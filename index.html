@@ -194,6 +194,23 @@ details li{margin:5px 0}
 .olist .oi.ingrp{padding-left:14px}
 .newsl{margin:0 0 16px;padding-left:20px;line-height:1.45}
 .newsl li{margin:4px 0}
+.pllist{display:flex;flex-direction:column;gap:6px}
+.plitem{text-align:left;border:1px solid var(--rule);background:var(--paper);border-radius:10px;padding:8px 10px;color:var(--ink);min-height:44px}
+.plitem[aria-pressed=true]{border-color:var(--ink);background:var(--paper-2)}
+.plitem b{display:block;font-size:13px}
+.plitem span{display:block;font-size:13px;color:var(--ink-2);margin-top:2px}
+#plBox{display:flex;flex-direction:column;gap:8px}
+#plBox textarea{width:100%;font:15px/1.4 var(--sans,system-ui);resize:vertical}
+#plBox .note{white-space:pre-line}
+.drplan{position:absolute;left:10px;top:10px;z-index:4;max-width:min(60%,420px);background:rgba(243,244,241,.94);border:1px solid var(--rule);border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.drplan[hidden]{display:none}
+.drplanh{display:block;width:100%;text-align:left;background:none;border:0;font:600 13px/1.2 var(--sans,system-ui);color:var(--ink);padding:8px 10px;min-height:36px}
+.drplanb{padding:0 10px 10px;font-size:14px;line-height:1.4;white-space:pre-line;max-height:30vh;overflow:auto}
+.drplanb[hidden]{display:none}
+.spcard{background:var(--paper);border-radius:16px;padding:16px;max-width:96vw;box-shadow:0 16px 40px rgba(0,0,0,.3)}
+.spcard canvas{display:block;border-radius:6px}
+.spcard .btns{display:flex;justify-content:flex-end}
+#drSpread[hidden]{display:none}
 .pgdoc{display:flex;flex-direction:column;gap:4px;flex:none}
 .pgdoc .note{margin:0}
 .pgdoc .btns{display:flex;gap:6px;flex-wrap:wrap}
@@ -796,6 +813,8 @@ var BK={
     def:{w:4,h:8,d:4,p:{rh:3,ov:.3,cren:false,win:true}},uses:['rh','ov'],win:'Ușă și deschideri',cren:true},
   zid:{name:'Zid',icon:'<path d="M2 9h20v11H2z M2 14.5h20 M9 9v5.5 M15 14.5V20"/>',
     def:{w:10,h:3,d:1,p:{cren:true}},uses:[],cren:true,lab:{w:'Lungime',d:'Grosime'}},
+  zidc:{name:'Zid în cerc',icon:'<path d="M4 15a8 5 0 0 0 16 0 M4 15v-4 M20 15v-4 M4 11a8 5 0 0 1 16 0 M8 19.2v-4 M12 20v-4 M16 19.2v-4"/>',
+    def:{w:16,h:3.5,d:16,p:{tk:1,arc:360,gw:3,cren:true,win:true}},uses:['tk','arc','gw'],win:'Poartă în față',cren:true,lab:{w:'Diametru X',h:'Înălțime',d:'Diametru Z'}},
   poarta:{name:'Poartă',icon:'<path d="M2 20V7h6v13z M16 20V7h6v13z M8 10h8 M2 7V5h2v2 M6 7V5h2v2 M16 7V5h2v2 M20 7V5h2v2"/>',
     def:{w:9,h:4.5,d:1.4,p:{gw:3,cren:true,win:false}},uses:['gw'],win:'Canat închis',cren:true,lab:{w:'Lungime',d:'Grosime'}},
   fort:{name:'Fortăreață',icon:'<path d="M3 20V10h18v10z M3 10V5h3v5 M18 10V5h3v5 M9 20v-5h6v5"/>',
@@ -998,6 +1017,36 @@ function wallRun(s,axis,a0,a1,c,y,h,t,o){
                      :[[c-t/2,y+h,a0],[c+t/2,y+h,a0],[c+t/2,y+h,a1],[c-t/2,y+h,a1]];
     }
     s.push(q);
+  }
+}
+/* zid curbat: segmente drepte scurte, rotite pe tangentă; arcul e centrat în față */
+function ringWall(s,w,h,d,p){
+  var tk=clamp(p.tk||1,.2,Math.min(w,d)/2-.1),A=clamp(p.arc||360,20,360)*D2R,rx=w/2-tk/2,rz=d/2-tk/2,full=A>=2*Math.PI-.01;
+  var R=(rx+rz)/2,n=Math.max(full?12:3,Math.round(A*R/1.6)),f0=-Math.PI/2-A/2,i;
+  var gate=!!p.win&&R>0,ga=gate?Math.min((p.gw||3)/R/2,A/2-.05):0,gh=Math.min(h*.62,3.4);
+  function P(f){return [Math.cos(f)*rx,Math.sin(f)*rz];}
+  var first=true;
+  for(i=0;i<n;i++){
+    var a=f0+A*i/n,b=f0+A*(i+1)/n,cut=false;
+    if(gate){
+      var lo=-Math.PI/2-ga,hi=-Math.PI/2+ga;
+      if(b<=lo||a>=hi){}else if(a>=lo&&b<=hi)continue;
+      else if(a<lo){b=lo;cut=true;}else{a=hi;cut=true;}
+    }
+    var p0=P(a),p1=P(b),cx=(p0[0]+p1[0])/2,cz=(p0[1]+p1[1])/2,dx=p1[0]-p0[0],dz=p1[1]-p0[1],L=Math.hypot(dx,dz);
+    if(L<.05)continue;
+    var rot=-Math.atan2(dz,dx)/D2R,seam=0;
+    if(full||i>0)seam|=1;if(full||i<n-1)seam|=2;if(cut)seam=0;
+    var o={rot:rot,seam:seam};if(first){o.key=1;first=false;}
+    s.push(mk('box',cx,0,cz,L+tk*.32,h,tk,o));
+    if(p.cren){
+      var m=Math.max(1,Math.round(L/1.3)),j;
+      for(j=0;j<m;j++){var u=(j+.5)/m;s.push(mk('box',p0[0]+dx*u,h,p0[1]+dz*u,L/m*.55,.55,tk*.9,{nb:1,rot:rot}));}
+    }
+  }
+  if(gate){
+    var g0=P(-Math.PI/2-ga),g1=P(-Math.PI/2+ga),gx=(g0[0]+g1[0])/2,gz=(g0[1]+g1[1])/2,gL=Math.hypot(g1[0]-g0[0],g1[1]-g0[1]);
+    s.push(mk('box',gx,gh,gz,gL+tk*.3,h-gh,tk,{rot:-Math.atan2(g1[1]-g0[1],g1[0]-g0[0])/D2R}));
   }
 }
 function ringMerl(s,w,d,y){
@@ -1222,6 +1271,8 @@ function buildSubs(ob){
   }else if(k==='zid'){
     wallRun(s,'x',-w/2,w/2,0,0,h,d,{key:1});
     if(p.cren)merl(s,'x',-w/2+.2,w/2-.2,0,h,d);
+  }else if(k==='zidc'){
+    ringWall(s,w,h,d,p);
   }else if(k==='poarta'){
     var gw=Math.min(p.gw||3,w*.7),gh=Math.min(h*.62,3.4),pw=(w-gw)/2;
     s.push(mk('box',-(w/2-pw/2),0,0,pw,h,d));
@@ -2140,6 +2191,8 @@ var fm=function(v){return v.toFixed(1)+' m';},fd=function(v){return Math.round(v
   ROW.th=addSlider(bs,{id:'b-th',label:'Înălț. turn',min:3,max:20,step:.1,get:pProp('th'),set:setP('th'),fmt:fm,obj:true});
   ROW.tr=addSlider(bs,{id:'b-tr',label:'Raza turnurilor',min:.8,max:5,step:.1,get:pProp('tr'),set:setP('tr'),fmt:fm,obj:true});
   ROW.gw=addSlider(bs,{id:'b-gw',label:'Lățime poartă',min:1,max:8,step:.1,get:pProp('gw'),set:setP('gw'),fmt:fm,obj:true});
+  ROW.tk=addSlider(bs,{id:'b-tk',label:'Grosime zid',min:.3,max:4,step:.1,get:pProp('tk'),set:setP('tk'),fmt:fm,obj:true});
+  ROW.arc=addSlider(bs,{id:'b-arc',label:'Cât din cerc',min:30,max:360,step:5,get:pProp('arc'),set:setP('arc'),fmt:function(v){return Math.round(v)+'°';},obj:true});
   ROW.dam=addSlider(bs,{id:'b-dam',label:'Ruinare',min:.1,max:1,step:.05,get:pProp('dam'),set:setP('dam'),fmt:function(v){return Math.round(v*100)+'%';},obj:true});
   ROW.nr=addSlider(bs,{id:'b-nr',label:'Număr de camere',min:2,max:12,step:1,get:pProp('nr'),set:setP('nr'),fmt:function(v){return String(Math.round(v));},obj:true});
   ROW.sd=addSlider(bs,{id:'b-sd',label:'Variantă',min:1,max:30,step:1,get:pProp('seed'),set:setP('seed'),fmt:function(v){return String(Math.round(v));},obj:true});
@@ -2358,7 +2411,7 @@ function syncUI(){
   document.querySelectorAll('#ltypeSeg button').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-ltype')===S.light.type));});
   $('#sunCtl').hidden=S.light.type!=='sun';$('#lampCtl').hidden=S.light.type!=='lamp';
   var bk=ob&&BK[ob.type],lb=(bk&&bk.lab)||{};
-  ['rh','fl','ov','th','tr','gw','dam','sd','nr','cnt','mix'].forEach(function(k){if(ROW[k])ROW[k].hidden=!(bk&&bk.uses.indexOf(k)>=0);});
+  ['rh','fl','ov','th','tr','gw','tk','arc','dam','sd','nr','cnt','mix'].forEach(function(k){if(ROW[k])ROW[k].hidden=!(bk&&bk.uses.indexOf(k)>=0);});
   var PLD={cnt:'Număr',dam:'Ruinare',nr:'Număr de camere',sd:'Variantă',mix:'Conifere'},pl=(bk&&bk.plab)||{};
   Object.keys(PLD).forEach(function(k){if(ROW[k])ROW[k].querySelector('label').lastChild.nodeValue=pl[k]||PLD[k];});
   [['w','Lățime'],['h','Înălțime'],['d','Adâncime']].forEach(function(e){
@@ -3112,7 +3165,7 @@ function pgFrameInit(){
   pgSlider(sh,'Margine pagină',0,70,1,function(){return S.page.mar!=null?S.page.mar:36;},function(v){S.page.mar=v;},function(v){return Math.round(v)+' px';});
 }
 function pgInit(){
-  pgCv=$('#pgCv');pgCtx=pgCv.getContext('2d');pgBuildLay();pgInitText();pgFrameInit();pgFxInit();pgFreeInit();pgCopyInit();pgLockInit();pgUnifyInit();pgVertInit();pgTabify();guideInit();
+  pgCv=$('#pgCv');pgCtx=pgCv.getContext('2d');pgBuildLay();pgInitText();pgFrameInit();pgFxInit();pgFreeInit();pgCopyInit();pgLockInit();pgUnifyInit();pgVertInit();plInit();pgTabify();guideInit();
   $('#pgOpenBtn').addEventListener('click',pgOpenUI);$('#pgOpenH').addEventListener('click',pgOpenUI);
   $('#pgClose').addEventListener('click',function(){$('#pg').hidden=true;qpSoon();if(DR.on&&DR.ready){drBuildTrace();drSync();drDirty();}});
   $('#pgPut').addEventListener('click',pgPut);
@@ -3432,8 +3485,8 @@ if(window.claude&&window.claude.hot&&window.claude.hot.ready)window.claude.hot.r
 else start((window.claude&&window.claude.hot&&window.claude.hot.data)||{});
 /* ---------- Drawing mode ---------- */
 var DR={on:false,ready:false,id:'',name:'Desen',w:1400,h:1960,kind:'page',layers:[],cur:0,nid:1,undo:[],redo:[],undoPx:0,tool:'gpen',prevTool:null,color:'#111827',color2:'#ffffff',recent:[],
-  cfg:{gpen:{size:9,op:1},fine:{size:4,op:1},maru:{size:14,op:1},pencil:{size:12,op:.9},brush:{size:26,op:.9},marker:{size:30,op:.6},air:{size:70,op:.5},chalk:{size:30,op:.9},tone:{size:60,op:1},crack:{size:18,op:1},cust:{size:40,op:1},eraser:{size:34,op:1},smudge:{size:44,op:.6},blur:{size:50,op:.7},fill:{size:1,op:1},grad:{size:1,op:1},fx:{size:1,op:1},shape:{size:6,op:1},line:{size:4,op:1},text:{size:1,op:1},sel:{size:1,op:1},move:{size:1,op:1},eyedrop:{size:1,op:1}},
-  smooth:.4,sens:1,taper:true,taperL:2.5,hiDpi:false,stylusOnly:true,twist:true,longP:true,barrel:true,
+  cfg:{gpen:{size:9,op:1},turnip:{size:12,op:1},kabura:{size:8,op:1},school:{size:7,op:1},fine:{size:4,op:1},maru:{size:14,op:1},pencil:{size:12,op:.9},brush:{size:26,op:.9},marker:{size:30,op:.6},air:{size:70,op:.5},chalk:{size:30,op:.9},tone:{size:60,op:1},crack:{size:18,op:1},cust:{size:40,op:1},eraser:{size:34,op:1},smudge:{size:44,op:.6},blur:{size:50,op:.7},fill:{size:1,op:1},grad:{size:1,op:1},fx:{size:1,op:1},shape:{size:6,op:1},line:{size:4,op:1},text:{size:1,op:1},sel:{size:1,op:1},move:{size:1,op:1},eyedrop:{size:1,op:1},pcheck:{size:1,op:1},hand:{size:1,op:1}},
+  smooth:.4,stab:'smooth',rope:24,ropeEnd:true,sens:1,taper:true,taperL:2.5,hiDpi:false,stylusOnly:true,twist:true,longP:true,barrel:true,
   v:{s:1,x:0,y:0,r:0,f:false},trace:{mode:'page',op:.4,cv:null,on:true},ruler:'off',clip:false,panel:0,frames:true,guides:true,
   sym:{mode:'off',n:6,x:.5,y:.5},fx:{kind:'focus',n:90,w:40},crack:{br:5,dep:50,persp:true,deb:true},tone:{kind:'dots',size:14,dens:35,ang:45},shape:{kind:'rect',mode:'line',sq:false},grad:{kind:'lin',to:'clear'},
   fillTol:70,fillGap:0,fillMode:'color',wandTol:40,
@@ -3441,15 +3494,15 @@ var DR={on:false,ready:false,id:'',name:'Desen',w:1400,h:1960,kind:'page',layers
   text:{str:'Text',size:72,font:'sans',bold:true,outline:false,vert:false},
   print:{on:false,fmt:'b5',bl:3,cw:148,ch:210},pgset:{fmt:'b5',dpi:300,bl:3,cw:148,ch:210},expDpi:0,warpR:1.6,cbId:'',cb:null,grid:{on:false,size:100,snap:false,thirds:false,center:false},
   stroke:null,fillAll:true,ptr:{},gest:null,tapG:null,dpr:1,raf:0,saveT:0,prefT:0,sbuf:null,bcv:null,tmp:null,tmp2:null,msgT:0,penT:0,disp:null,dctx:null,sync:[],built:false,toneC:null,softC:{},saveQ:Promise.resolve()};
-var DTOOLS=[['gpen','Stilou'],['fine','Fin'],['maru','Maru'],['pencil','Creion'],['brush','Pensulă'],['marker','Marker'],['air','Aerograf'],['chalk','Cretă'],['tone','Ton'],['cust','Pensule+'],null,
+var DTOOLS=[['gpen','G-Pen'],['fine','Peniță fină'],['maru','Maru-Pen'],['turnip','Turnip'],['kabura','Kabura'],['school','School pen'],['pencil','Creion'],['brush','Pensulă'],['marker','Marker'],['air','Aerograf'],['chalk','Cretă'],['tone','Ton'],['cust','Pensule+'],null,
   ['eraser','Radieră'],['smudge','Întinde'],['blur','Estompe'],null,
   ['fill','Găleată'],['grad','Gradient'],['shape','Formă'],['line','Linie'],['fx','Linii efect'],['crack','Crăpătură'],['text','Text'],null,
-  ['hand','Mână (mută foaia)'],['sel','Lasou și selecție'],['move','Mută'],['eyedrop','Pipetă']];
-var DBRUSH={gpen:1,fine:1,maru:1,pencil:1,brush:1,marker:1,air:1,chalk:1,tone:1,cust:1};
+  ['hand','Mână (mută foaia)'],['sel','Lasou și selecție'],['move','Mută'],['eyedrop','Pipetă'],['pcheck','Verifică perspectiva']];
+var DBRUSH={turnip:1,kabura:1,school:1,gpen:1,fine:1,maru:1,pencil:1,brush:1,marker:1,air:1,chalk:1,tone:1,cust:1};
 var DDIRECT={eraser:1,smudge:1,blur:1};
 var DGEST={line:1,shape:1,grad:1,fx:1,crack:1};
-var DNOSIZE={fill:1,grad:1,fx:1,sel:1,move:1,eyedrop:1,text:1};
-var DNOOP={sel:1,move:1,eyedrop:1,text:1};
+var DNOSIZE={pcheck:1,hand:1,fill:1,grad:1,fx:1,sel:1,move:1,eyedrop:1,text:1};
+var DNOOP={pcheck:1,hand:1,sel:1,move:1,eyedrop:1,text:1};
 var DBLENDS=[['source-over','Normal'],['multiply','Multiplică'],['screen','Ecran'],['overlay','Suprapunere'],['darken','Închide'],['lighten','Luminează'],['color-dodge','Subexpunere'],['soft-light','Lumină difuză'],['difference','Diferență']];
 var DCOLORS=['#111827','#ffffff','#6b7280','#b91c1c','#1d4ed8'];
 function drC(){return DR.cfg[DR.tool]||DR.cfg.gpen;}
@@ -3476,7 +3529,7 @@ function drNew(kind,opt){
     DR.print.on=true;var ps=drPageSize(opt.fmt,opt.dpi,opt.bl,opt.cw,opt.ch);sz=[ps.w,ps.h];
   }else if(kind==='page'){DR.print.fmt='b5';DR.print.bl=3;}
   DR.kind=kind==='page'?'page':'free';DR.w=sz[0];DR.h=sz[1];DR.layers=[];DR.nid=1;DR.undo=[];DR.redo=[];
-  DR.link=null;DR.id='d'+Date.now().toString(36);DR.name=(kind==='page'&&opt?'Pagină '+drFmt().n.split(' ')[0]+' ':'Desen ')+(DR.libN||1);
+  DR.link=null;DR.spread=null;DR.pr=null;DR.id='d'+Date.now().toString(36);DR.name=(kind==='page'&&opt?'Pagină '+drFmt().n.split(' ')[0]+' ':'Desen ')+(DR.libN||1);
   drBufs();
   var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;DR.cur=1;
   DR.trace={mode:kind==='page'?'page':'scene',op:.4,cv:null,on:true};DR.clip=false;DR.panel=0;DR.ready=true;
@@ -3550,7 +3603,9 @@ function drVP(info,axis){
   return {d:[kx/L,ky/L]};
 }
 function drRail(sp){
-  var r=DR.ruler;if(r==='off')return null;
+  var r=DR.ruler;
+  if(r==='off'&&DR.pr&&DR.pr.on&&DR.pr.snap)return {auto:true};
+  if(r==='off')return null;
   if(r==='hor')return {dx:1,dy:0};
   if(r==='ver')return {dx:0,dy:1};
   var info=drCamInfo();if(!info){drMsg('Pentru riglă de perspectivă alege un panou și bifează desenul doar în panou.');return null;}
@@ -3623,10 +3678,13 @@ function drRender(){
   if(DR.kind==='page'&&DR.frames){drFrames(x);}
   drDocOverlay(x);
   if(DR.link)dpOverlay(x);
+  if(DR.spread)spOverlay(x);
   x.setTransform(dpr,0,0,dpr,0,0);
   drOverlay(x);
   drLiveOverlay(x);
   drHoverOverlay(x);
+  pcOverlay(x);
+  prOverlay(x);
   if(DR.kind==='page'&&DR.clip){
     x.save();drViewTf(x,dpr);drPanelPath(x);x.lineWidth=3/v.s;x.strokeStyle='#f2c230';x.setLineDash([10/v.s,6/v.s]);x.stroke();x.restore();
   }
@@ -3809,6 +3867,9 @@ function drRadius(tool,pp){
   var s=drC().size/2;
   if(tool==='gpen')return Math.max(.4,s*(.14+.86*pp));
   if(tool==='fine')return Math.max(.4,s*(.5+.5*pp)*.7);
+  if(tool==='turnip')return Math.max(.6,s*(.62+.38*pp));
+  if(tool==='kabura')return Math.max(.6,s*(.88+.12*pp));
+  if(tool==='school')return Math.max(.4,s*(.25+.75*Math.pow(pp,1.4)));
   if(tool==='maru')return Math.max(.5,s*(.38+.62*pp));
   if(tool==='pencil')return Math.max(.4,s*(.35+.65*pp)*.8);
   if(tool==='brush')return Math.max(.4,s*(.1+.9*pp));
@@ -3915,6 +3976,8 @@ function drLocked(L,what){
 function drBegin(e){
   var L=DR.layers[DR.cur];if(!L)return;
   var tool=DR.tool,p=drToDoc(e);
+  if(DR.pr&&DR.pr.on&&DR.pr.edit){if(DR.float)drFloatCommit();prDragBegin(e,p);return;}
+  if(tool==='pcheck'){if(DR.float)drFloatCommit();DR.stroke={pc:true,pid:e.pointerId,layer:DR.cur,bb:[0,0,0,0],sc:[e.clientX,e.clientY]};PC.drag={a:p,b:p};drDirty();return;}
   if(tool==='hand'){if(DR.float)drFloatCommit();DR.gest={kind:'pan',id:e.pointerId,x0:e.clientX,y0:e.clientY,v0:{s:DR.v.s,x:DR.v.x,y:DR.v.y}};return;}
   if(e.pointerType==='pen'){
     if(e.buttons&32)tool='eraser';
@@ -4048,6 +4111,8 @@ function drGradPaint(c,a,b){
 }
 function drMoveStroke(e){
   var st=DR.stroke;if(!st||e.pointerId!==st.pid)return;
+  if(st.pc){if(PC.drag)PC.drag.b=drToDoc(e);drDirty();return;}
+  if(st.prd){prDragMove(st,drToDoc(e));return;}
   var evs=(e.getCoalescedEvents&&e.getCoalescedEvents())||[];if(!evs.length)evs=[e];
   if(st.eye){var pe=drToDoc(e);drPickAt(pe);drDirty();return;}
   if(st.sel){drSelMove(st,drToDoc(e));return;}
@@ -4056,9 +4121,16 @@ function drMoveStroke(e){
   evs.forEach(function(ev){
     var raw=drToDoc(ev),pr=drPressure(ev);
     if(st.gest)raw=drSnap(raw);
+    if(st.rail&&st.rail.auto){if(Math.hypot(raw[0]-st.p0[0],raw[1]-st.p0[1])*(DR.v.s||1)<12)return;st.rail=prPick(st.p0,raw);}
     if(st.rail){var vx=raw[0]-st.p0[0],vy=raw[1]-st.p0[1],dd=vx*st.rail.dx+vy*st.rail.dy;raw=[st.p0[0]+st.rail.dx*dd,st.p0[1]+st.rail.dy*dd];}
     st.raw=raw;st.rawP=pr;
     if(st.gest){st.end=raw;if(st.tool==='crack'){if(!st.path)st.path=[st.p0];var lq=st.path[st.path.length-1];if(Math.hypot(raw[0]-lq[0],raw[1]-lq[1])>2)st.path.push(raw);}return;}
+    if(DR.stab==='rope'&&!st.rail&&DR.rope>0){
+      var R=DR.rope/(DR.v.s||1),ddx=raw[0]-st.sx,ddy=raw[1]-st.sy,dd=Math.hypot(ddx,ddy);
+      if(dd<=R)return;
+      var rp=[raw[0]-ddx/dd*R,raw[1]-ddy/dd*R],rpp=st.sp+(pr-st.sp)*.5;
+      drStrokeSeg(st,[st.sx,st.sy],st.sp,rp,rpp);st.sx=rp[0];st.sy=rp[1];st.sp=rpp;return;
+    }
     var k=st.rail?1-DR.smooth*.3:1-DR.smooth*.88,np=[st.sx+(raw[0]-st.sx)*k,st.sy+(raw[1]-st.sy)*k],npp=st.sp+(pr-st.sp)*Math.max(.35,k);
     drStrokeSeg(st,[st.sx,st.sy],st.sp,np,npp);st.sx=np[0];st.sy=np[1];st.sp=npp;
   });
@@ -4094,11 +4166,13 @@ function drEndStroke(){
   if(st.eye){drEyeEnd(st);return;}
   if(st.sel){drSelEnd(st);return;}
   if(st.fd){DR.stroke=null;drDirty();return;}
+  if(st.prd){DR.stroke=null;drSaveSoon();drDirty();return;}
+  if(st.pc){DR.stroke=null;var pd=PC.drag;PC.drag=null;if(pd&&Math.hypot(pd.b[0]-pd.a[0],pd.b[1]-pd.a[1])>8/(DR.v.s||1)){PC.lines.push({a:pd.a,b:pd.b});pcAnalyze();}drSync();drDirty();return;}
   if(st.tool==='crack'){
     if(!st.path||st.path.length<2){drCancelStroke();return;}
     drCrackPaint(st.tctx,st.path,st.seed,false);st.bb=[0,0,DR.w,DR.h];
   }
-  if(!st.gest&&st.raw&&(st.sx!==st.raw[0]||st.sy!==st.raw[1]))drStrokeSeg(st,[st.sx,st.sy],st.sp,st.raw,st.rawP||st.sp);
+  if(!st.gest&&st.raw&&(st.sx!==st.raw[0]||st.sy!==st.raw[1])&&!(DR.stab==='rope'&&!DR.ropeEnd&&!st.rail))drStrokeSeg(st,[st.sx,st.sy],st.sp,st.raw,Math.min(st.rawP||st.sp,st.sp));
   DR.stroke=null;
   var L=DR.layers[st.layer],rc=drStrokeRect(st);
   if(!st.direct&&L&&rc){
@@ -4117,6 +4191,7 @@ function drCancelStroke(){
   var st=DR.stroke;if(!st)return;
   clearTimeout(st.lp);
   DR.stroke=null;
+  if(st.pc||st.prd){PC.drag=null;drDirty();return;}
   if(st.eye||st.sel||st.fd){drDirty();return;}
   var L=DR.layers[st.layer];
   st.tctx.restore();
@@ -5012,17 +5087,17 @@ function drSaveNow(){
   clearTimeout(DR.saveT);
   if(!DR.id)DR.id='d'+Date.now().toString(36);
   /* instantaneu: păstrăm referințe la stratul curent, ca să putem trece la alt desen imediat */
-  var snap={id:DR.id,name:DR.name,w:DR.w,h:DR.h,kind:DR.kind,cur:DR.cur,nid:DR.nid,trace:{mode:DR.trace.mode,op:DR.trace.op,on:DR.trace.on},pr:{fmt:DR.print.fmt,bl:DR.print.bl,cw:DR.print.cw,ch:DR.print.ch,on:DR.print.on},recent:DR.recent.slice(),layers:DR.layers.slice(),hist:drHistPick(),link:DR.link?JSON.parse(JSON.stringify(DR.link)):null,pg:(DR.kind==='page'?JSON.stringify(S.page):null)};
+  var snap={id:DR.id,name:DR.name,w:DR.w,h:DR.h,kind:DR.kind,cur:DR.cur,nid:DR.nid,trace:{mode:DR.trace.mode,op:DR.trace.op,on:DR.trace.on},pr:{fmt:DR.print.fmt,bl:DR.print.bl,cw:DR.print.cw,ch:DR.print.ch,on:DR.print.on},recent:DR.recent.slice(),layers:DR.layers.slice(),hist:drHistPick(),vpts:DR.pr?JSON.parse(JSON.stringify(DR.pr)):null,spread:DR.spread?JSON.parse(JSON.stringify(DR.spread)):null,planEx:(DR.kind==='page'&&S.page&&S.page.plan)?String(S.page.plan).replace(/\s+/g,' ').slice(0,140):'',link:DR.link?JSON.parse(JSON.stringify(DR.link)):null,pg:(DR.kind==='page'?JSON.stringify(S.page):null)};
   var job=function(){
     return drHistEnc(snap.hist).then(function(hist){snap.histE=hist;return Promise.all(snap.layers.map(function(L){return new Promise(function(res){L.cv.toBlob(res,'image/png');});}));}).then(function(blobs){
-      var meta={v:2,id:snap.id,name:snap.name,w:snap.w,h:snap.h,kind:snap.kind,cur:snap.cur,nid:snap.nid,trace:snap.trace,pr:snap.pr,t:Date.now(),recent:snap.recent,pg:snap.pg,link:snap.link,hist:snap.histE,
+      var meta={v:2,id:snap.id,name:snap.name,w:snap.w,h:snap.h,kind:snap.kind,cur:snap.cur,nid:snap.nid,trace:snap.trace,pr:snap.pr,t:Date.now(),recent:snap.recent,pg:snap.pg,link:snap.link,spread:snap.spread,vpts:snap.vpts,hist:snap.histE,
         layers:snap.layers.map(function(L,i){return {id:L.id,name:L.name,vis:L.vis,op:L.op,blend:L.blend,lock:!!L.lock,alock:!!L.alock,clip:!!L.clip,draft:!!L.draft,lib:L.lib||null,grp:L.grp||'',blob:blobs[i]};})};
       return idbPut(drKey(snap.id),meta).then(function(){return meta;});
     }).then(function(meta){
       return Promise.all([drThumbOf(snap),drIdx()]).then(function(r){
         var ix=r[1],e=ix.filter(function(q){return q.id===snap.id;})[0];
         if(!e){e={id:snap.id};ix.unshift(e);}
-        e.name=snap.name;e.t=meta.t;e.w=snap.w;e.h=snap.h;e.kind=snap.kind;e.thumb=r[0];e.link=snap.link?{page:snap.link.page,panel:snap.link.panel}:null;
+        e.name=snap.name;e.t=meta.t;e.w=snap.w;e.h=snap.h;e.kind=snap.kind;e.thumb=r[0];e.plan=snap.planEx||'';e.link=snap.link?{page:snap.link.page,panel:snap.link.panel}:null;
         return idbPut('docs',ix);
       });
     }).catch(function(){});
@@ -5038,7 +5113,7 @@ function drLoadSaved(id){
     return idbGet(drKey(did)).then(function(m){
       if(!m||!m.layers)return false;
       DR.id=did;DR.name=m.name||'Desen';
-      DR.w=m.w;DR.h=m.h;DR.kind=m.kind;DR.link=m.link||null;DR.nid=m.nid||1;DR.undo=[];DR.redo=[];DR.layers=[];
+      DR.w=m.w;DR.h=m.h;DR.kind=m.kind;DR.link=m.link||null;DR.spread=m.spread||null;DR.pr=m.vpts||null;if(DR.pr)DR.pr.edit=false;DR.nid=m.nid||1;DR.undo=[];DR.redo=[];DR.layers=[];
       drBufs();DR.recent=(m.recent||[]).slice(0,8);
       if(m.pr){DR.print.fmt=DPRINT[m.pr.fmt]?m.pr.fmt:'b5';DR.print.bl=m.pr.bl==null?3:m.pr.bl;DR.print.cw=m.pr.cw||148;DR.print.ch=m.pr.ch||210;DR.print.on=!!m.pr.on;}
       else if(m.kind==='page'){DR.print.fmt='b5';DR.print.bl=3;}
@@ -5067,7 +5142,7 @@ function drDeleteDoc(id){
   });
 }
 /* preferințe */
-var DPREFK=['cfg','color','color2','smooth','sens','stylusOnly','twist','longP','barrel','sym','fx','tone','shape','grad','fillTol','fillGap','fillMode','wandTol','text','grid','print','selKind','selMode','fillAll','pgset','expDpi','cbId','crack','taper','taperL','hiDpi'];
+var DPREFK=['cfg','color','color2','smooth','sens','stylusOnly','twist','longP','barrel','sym','fx','tone','shape','grad','fillTol','fillGap','fillMode','wandTol','text','grid','print','selKind','selMode','fillAll','pgset','expDpi','cbId','crack','taper','taperL','hiDpi','stab','rope','ropeEnd'];
 function drPrefSaveSoon(){
   if(!window.indexedDB)return;
   clearTimeout(DR.prefT);
@@ -5273,7 +5348,8 @@ function drBuild(){
   var bar=$('#drSliders');
   var sz=drSlider(bar,'Mărime',1,160,1,function(){return drC().size;},function(v){drC().size=v;},function(v){return Math.round(v)+' px';});
   var op=drSlider(bar,'Opacitate',5,100,1,function(){return Math.round(drC().op*100);},function(v){drC().op=v/100;},function(v){return Math.round(v)+'%';});
-  DR.sync.push(function(){sz.hidden=!!DNOSIZE[DR.tool];op.hidden=!!DNOOP[DR.tool];bar.hidden=sz.hidden&&op.hidden;});
+  var stb=drSlider(bar,'Stabilizare',0,100,1,function(){return DR.stab==='rope'?Math.round(DR.rope/.8):Math.round(DR.smooth*100);},function(v){if(DR.stab==='rope')DR.rope=Math.round(v*.8);else DR.smooth=v/100;},function(v){return Math.round(v)+(DR.stab==='rope'?' (sfoară)':'%');});
+  DR.sync.push(function(){sz.hidden=!!DNOSIZE[DR.tool];op.hidden=!!DNOOP[DR.tool];stb.hidden=!(DBRUSH[DR.tool]||DR.tool==='eraser');bar.hidden=sz.hidden&&op.hidden;});
   var sw=$('#drSw');
   DCOLORS.forEach(function(c){
     var b=el('button','sw');b.type='button';b.style.background=c;b.setAttribute('data-c',c);b.setAttribute('aria-label','Culoare '+c);
@@ -5406,6 +5482,7 @@ function drBuildCtx(){
     vis.grad=!fl&&t==='grad';
     vis.fx=!fl&&t==='fx';
     vis.crack=!fl&&t==='crack';
+    vis.pcheck=!fl&&t==='pcheck';
     vis.gtone=!fl&&t==='grad'&&DR.grad.kind==='ton';
     var any=false;
     cx.querySelectorAll('.cx').forEach(function(d){var k=d.getAttribute('data-k');d.hidden=!vis[k];if(vis[k])any=true;});
@@ -5529,6 +5606,7 @@ function drBuildSide(){
   pe.addEventListener('click',function(){$('#pg').hidden=false;pgSize();pgDraw();});eb2.appendChild(pe);
   pnl.appendChild(el('p','note','Alege aranjarea, trage marginile, schimbă stilul cadrului (punctat, bleed, zimțat…). Când închizi, calcul se actualizează.'));
   dpInit(sd,pnl);
+  spInit(sd);
   DR.sync.push(function(){
     pnl.hidden=DR.kind!=='page';
     pb.innerHTML='';
@@ -5593,8 +5671,13 @@ function drBuildSide(){
   });
 
   sd.appendChild(el('div','h','Pensulă și ecran'));
-  drSlider(sd,'Netezire',0,100,1,function(){return Math.round(DR.smooth*100);},function(v){DR.smooth=v/100;},function(v){return Math.round(v)+'%';});
-  drToggle(sd,'Capete subțiri la început de linie (stilou, fin, maru, pensulă)',function(){return DR.taper;},function(v){DR.taper=v;});
+  drSegBtn(sd,[['smooth','Stabilizator: netezire'],['rope','Stabilizator: sfoară']],function(){return DR.stab;},function(v){DR.stab=v;});
+  var nz=drSlider(sd,'Netezire',0,100,1,function(){return Math.round(DR.smooth*100);},function(v){DR.smooth=v/100;},function(v){return Math.round(v)+'%';});
+  var rl=drSlider(sd,'Lungimea sforii',0,80,1,function(){return DR.rope;},function(v){DR.rope=v;},function(v){return Math.round(v)+' px';});
+  var rt=drToggle(sd,'La ridicarea creionului, linia ajunge până la vârf',function(){return DR.ropeEnd;},function(v){DR.ropeEnd=v;});
+  var sn=el('p','note','„Netezire” rotunjește tremurul mâinii. „Sfoară”: linia urmează creionul ca trasă de o sfoară; mâna poate tremura cât e sfoara de lungă fără ca linia să se strâmbe (ca stabilizatorul din Clip Studio). Bun pentru contururi lungi și curbe curate.');sd.appendChild(sn);
+  DR.sync.push(function(){nz.hidden=DR.stab==='rope';rl.hidden=rt.hidden=DR.stab!=='rope';});
+  drToggle(sd,'Capete subțiri la început de linie (G-Pen, peniță, Maru, Turnip, School, pensulă)',function(){return DR.taper;},function(v){DR.taper=v;});
   drSlider(sd,'Lungimea subțierii',.5,8,.5,function(){return DR.taperL;},function(v){DR.taperL=v;},function(v){return v.toFixed(1)+'×';});
   drToggle(sd,'Afișare la rezoluția maximă a ecranului (mai clar, puțin mai lent)',function(){return DR.hiDpi;},function(v){DR.hiDpi=v;drSize();drDirty();});
   drSlider(sd,'Sensibilitate presiune',40,200,5,function(){return Math.round(DR.sens*100);},function(v){DR.sens=v/100;},function(v){return (v/100).toFixed(2);});
@@ -5675,7 +5758,7 @@ function drBuildTop(){
   $('#drRot0').addEventListener('click',drResetRot);
   /* chooser */
   drBuildPageSet();
-  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drTabify();
+  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();prInit();drTabify();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(err){}
   document.querySelectorAll('[data-drnew]').forEach(function(b){b.addEventListener('click',function(){
     var kd=b.getAttribute('data-drnew');
@@ -7453,7 +7536,7 @@ function chRender(){
         ch.pages.forEach(function(pid,i){
           var e=by[pid]||{name:'Pagina curentă'},row=el('div','libi'),th=el('div','libth');
           if(e.thumb){var im=el('img'),u=URL.createObjectURL(e.thumb);DLIBURLS.push(u);im.src=u;im.alt='';th.appendChild(im);}
-          var mid=el('div','libm'),b=el('b');b.textContent=(i+1)+'. '+(e.name||'Pagină');mid.appendChild(b);
+          var mid=el('div','libm'),b=el('b');b.textContent=(i+1)+'. '+(e.name||'Pagină');mid.appendChild(b);if(e.plan)mid.appendChild(el('small',null,e.plan));
           var bt=el('div','libb');
           function sb(t,fn,cls){var x=el('button','btn sm'+(cls?' '+cls:''),t);x.type='button';x.addEventListener('click',fn);bt.appendChild(x);return x;}
           sb('Deschide',function(){chOpenDoc(pid);},'solid');
@@ -7734,7 +7817,7 @@ function dpOpen(f){
     DR.id='d'+Date.now().toString(36);DR.name=(pname+' · panoul '+(i+1)).slice(0,40);
     drBufs();
     var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;DR.cur=1;
-    DR.link=lk;DR.print.on=false;
+    DR.link=lk;DR.spread=null;DR.print.on=false;
     DR.trace={mode:'panel',op:.4,cv:null,on:true};DR.clip=true;DR.panel=0;DR.ready=true;
     DR.v={s:1,x:0,y:0,r:0,f:false};
     drBuildTrace();drShowEditor();drFit();drSync();drDirty();
@@ -7969,7 +8052,7 @@ function uiTabSync(T){
 var DRTABS=null,PGTABS=null;
 function drTabify(){
   var sd=$('#drSide');if(!sd||DRTABS)return;
-  var G={'Foaie de panou':'pg','Desen':'lay','Capitol':'pg','Straturi':'lay','Calc din perspectivă':'gd','Riglă de perspectivă':'gd','Panouri de manga':'pg','Simetrie':'gd','Ghiduri':'gd',
+  var G={'Pagină dublă':'pg','Foaie de panou':'pg','Desen':'lay','Capitol':'pg','Straturi':'lay','Calc din perspectivă':'gd','Riglă de perspectivă':'gd','Puncte de fugă (1, 2, 3)':'gd','Panouri de manga':'pg','Simetrie':'gd','Ghiduri':'gd',
     'Ton de manga':'tl','Filtre pe strat':'tl','Pensulă și ecran':'tl','Export':'ex'};
   drNewTabify();
   DRTABS=uiTabify(sd,'dr',[['lay','Straturi'],['pg','Pagină'],['gd','Ghiduri'],['tl','Unelte'],['ex','Export']],function(t){return G[t]||null;},null);
@@ -7991,8 +8074,8 @@ function drNewTabify(){
 }
 function pgTabify(){
   var sh=$('#pgWrap')&&$('#pgWrap').parentNode;if(!sh||PGTABS)return;
-  var G={'Forma panoului ales':'pn','Cadrul panoului ales':'fr','Forma panourilor':'pn','Sugestii după atmosferă':'pn','Efecte pe panou':'fx','Sunete (onomatopee)':'tx','Text în pagină':'tx','Stilul sunetului ales':'tx'};
-  PGTABS=uiTabify(sh,'pg',[['pn','Panouri'],['fr','Cadru'],['vw','Vedere 3D'],['fx','Efecte'],['tx','Text și sunete']],function(t){return G[t]||null;},function(c){
+  var G={'Forma panoului ales':'pn','Cadrul panoului ales':'fr','Forma panourilor':'pn','Sugestii după atmosferă':'pn','Efecte pe panou':'fx','Sunete (onomatopee)':'tx','Text în pagină':'tx','Stilul sunetului ales':'tx','Plan pagină':'pl','Ce desenez în panoul ales':'pl'};
+  PGTABS=uiTabify(sh,'pg',[['pn','Panouri'],['pl','Plan'],['fr','Cadru'],['vw','Vedere 3D'],['fx','Efecte'],['tx','Text și sunete']],function(t){return G[t]||null;},function(c){
     if(c.classList.contains('pgtop')||c.id==='pgWrap'||c.id==='pgFreeBar'||c.id==='pgFreeInfo'||c.id==='pgMsg')return 'keep';
     if(c.id==='pgLay'||c.id==='pgFreeConv')return 'pn';
     if(c.id==='pgCopyRow'||c.querySelector('#pgPut'))return 'vw';
@@ -8127,11 +8210,11 @@ function drCrackPaint(c,path,seed,preview){
   }
 }
 /* ---------- Unelte grupate pe categorii ---------- */
-var DCATS=[['draw','Pensule',['gpen','fine','maru','pencil','brush','marker','air','chalk','cust']],
+var DCATS=[['draw','Pensule',['gpen','fine','maru','turnip','kabura','school','pencil','brush','marker','air','chalk','cust']],
   ['fix','Radieră',['eraser','smudge','blur']],
   ['fill','Umplere și ton',['fill','grad','tone']],
   ['fx','Efecte și forme',['fx','crack','shape','line','text']],
-  ['sel','Mână și selecție',['hand','sel','move','eyedrop']]];
+  ['sel','Mână și selecție',['hand','sel','move','eyedrop','pcheck']]];
 var DCATLAST={};
 function drCatOf(t){for(var i=0;i<DCATS.length;i++)if(DCATS[i][2].indexOf(t)>=0)return DCATS[i][0];return 'draw';}
 function drToolCats(tools){
@@ -8245,9 +8328,11 @@ function drFileMenu(ev){
   it('Salvează acum','Desenul se salvează oricum singur pe dispozitiv',function(){say(drSaveNow().then(function(){return 'Salvat pe dispozitiv.';}));});
   it('Salvează proiectul (.zip)','Cu toate straturile, ca să-l muți sau să-l păstrezi',function(){drExportZip();});
   it('Deschide un proiect (.zip)…','',function(){var i=$('#drProjIn');if(i)i.click();});
+  it('Deschide un desen început…','Imagine, PSD cu straturi sau poză cu o schiță',function(){var i=$('#drImpIn');if(i)i.click();});
   hd('Export');
   it('Imagine PNG','Pagina completă, la rezoluția aleasă',function(){drExportPNG();});
   it('PNG alb-negru pentru tipar','',function(){drExportPNG('bw');});
+  if(DR.spread){it('Cum iese în carte','Previzualizare cu cotorul',spPreview);it('Cele 2 pagini (PNG)','Fiecare pagină separat, cu bleed',function(){spExport();});it('Pune în capitol ca 2 pagini','',function(){spToChapter();});}
   it('PDF cu această pagină','',function(){say(drPagePDF().then(function(b){return saveBlob(b,drSafe(DR.name||'pagina')+'.pdf');}));});
   var ch=(typeof chOf==='function'&&CH.loaded)?chOf(DR.id):null;
   if(ch)it('PDF cu tot capitolul','„'+ch.name+'” · '+ch.pages.length+' pagini',function(){drMsg('Pregătesc capitolul…');say(chExportPDF(ch,function(t){drMsg(t);}).then(function(b){return saveBlob(b,drSafe(ch.name)+'.pdf');}));});
@@ -8311,7 +8396,7 @@ function guideInit(){
   if(!seen)try{localStorage.setItem('app-ver',APP_VER);}catch(e){}
 }
 /* ---------- Senzația pensulei: capete subțiri, cursor cu mărimea pensulei ---------- */
-var DTAPER={gpen:1,fine:1,maru:1,brush:1};
+var DTAPER={gpen:1,fine:1,maru:1,brush:1,turnip:1,school:1};
 function drTaperAt(st,dist){
   if(!DR.taper||!DTAPER[st.tool])return 1;
   var keep=DR.tool;DR.tool=st.tool;var sz=drC().size;DR.tool=keep;
@@ -8329,6 +8414,8 @@ function drHoverInit(){
   cv.addEventListener('pointerdown',function(){DHOV.p=null;});
 }
 function drHoverOverlay(x){
+  var st=DR.stroke;
+  if(st&&DR.stab==='rope'&&!st.gest&&!st.fd&&!st.sel&&st.raw&&DR.rope>0){var a=drV2S([st.sx,st.sy]),b=drV2S(st.raw);x.save();x.setLineDash([4,4]);x.lineWidth=1.2;x.strokeStyle='rgba(212,69,42,.85)';x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();x.setLineDash([]);x.beginPath();x.arc(b[0],b[1],DR.rope,0,7);x.strokeStyle='rgba(212,69,42,.35)';x.stroke();x.restore();}
   if(!DHOV.p||DR.stroke||DR.float)return;
   var t=DR.tool;if(!(DBRUSH[t]||t==='eraser'||t==='smudge'||t==='blur'))return;
   var r=drRadius(t,1)*DR.v.s,q=drV2S(DHOV.p);if(r<2)r=2;
@@ -8593,6 +8680,785 @@ function appNewsShow(){
   APP_NEWS.forEach(function(t){ul.appendChild(el('li',null,t));});
   var row=el('div','btns'),b=el('button','btn solid','Bine');b.type='button';b.addEventListener('click',function(){ov.hidden=true;});row.appendChild(b);
   card.appendChild(h);card.appendChild(ul);card.appendChild(row);ov.appendChild(card);document.body.appendChild(ov);
+}
+/* ---------- Importă desene începute: imagini (PNG, JPG, WebP) și PSD cu straturi ---------- */
+var DIMP={white:false};
+function drNewFromLayers(name,w,h,list,msg){
+  if(DR.ready){if(DR.float)drFloatCommit();drSaveNow();}
+  DR.id='d'+Date.now().toString(36);DR.name=String(name||'Desen importat').slice(0,60);
+  DR.w=w;DR.h=h;DR.kind='free';DR.link=null;DR.spread=null;DR.pr=null;DR.nid=1;DR.undo=[];DR.redo=[];DR.layers=[];drBufs();DR.recent=[];DR.print.on=false;
+  list.forEach(function(it){
+    var cv=drMk(w,h),x=cv.getContext('2d');if(it.cv)x.drawImage(it.cv,it.x||0,it.y||0);
+    DR.layers.push({id:DR.nid++,name:String(it.name||'Strat').slice(0,40),cv:cv,ctx:x,vis:it.vis!==false,op:it.op==null?1:it.op,blend:it.blend||'source-over',lock:false,alock:false,clip:!!it.clip,draft:false,grp:it.grp||''});
+  });
+  if(!DR.layers.length){var c0=drMk(w,h);DR.layers.push({id:DR.nid++,name:'Strat',cv:c0,ctx:c0.getContext('2d'),vis:true,op:1,blend:'source-over',lock:false,alock:false,clip:false,draft:false});}
+  var top=drMk(w,h);DR.layers.push({id:DR.nid++,name:'Cerneală',cv:top,ctx:top.getContext('2d'),vis:true,op:1,blend:'source-over',lock:false,alock:false,clip:false,draft:false});
+  DR.cur=DR.layers.length-1;
+  DR.trace={mode:'none',op:.4,cv:null,on:false};DR.clip=false;DR.panel=0;DR.ready=true;
+  DR.v={s:1,x:0,y:0,r:0,f:false};
+  drBuildTrace();$('#drNew').hidden=true;drShowEditor();drFit();drSync();drDirty();drSaveSoon();
+  drMsg(msg||'Desenul e deschis. Am pus deasupra un strat gol „Cerneală” pentru ce desenezi mai departe.');
+}
+/* albul hârtiei devine transparent (schițe scanate sau fotografiate) */
+function drWhiteToAlpha(cv){
+  var x=cv.getContext('2d'),im=x.getImageData(0,0,cv.width,cv.height),d=im.data,i;
+  for(i=0;i<d.length;i+=4){
+    var r=d[i],g=d[i+1],b=d[i+2],L=.299*r+.587*g+.114*b,a=clamp((242-L)/200,0,1)*(d[i+3]/255);
+    if(a<=0){d[i+3]=0;continue;}
+    d[i]=clamp((r-(1-a)*255)/a,0,255);d[i+1]=clamp((g-(1-a)*255)/a,0,255);d[i+2]=clamp((b-(1-a)*255)/a,0,255);d[i+3]=Math.round(a*255);
+  }
+  x.putImageData(im,0,0);return cv;
+}
+function drFitSize(w,h){var k=Math.min(1,9000/w,9000/h,Math.sqrt(40e6/(w*h)));return [Math.max(16,Math.round(w*k)),Math.max(16,Math.round(h*k)),k];}
+function drImportPicture(file){
+  return new Promise(function(res,rej){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var s=drFitSize(img.naturalWidth,img.naturalHeight),cv=drMk(s[0],s[1]),x=cv.getContext('2d');
+      x.imageSmoothingQuality='high';x.drawImage(img,0,0,s[0],s[1]);URL.revokeObjectURL(url);
+      if(DIMP.white)drWhiteToAlpha(cv);
+      var nm=String(file.name||'Desen').replace(/\.[a-z0-9]+$/i,'');
+      drNewFromLayers(nm,s[0],s[1],[{name:DIMP.white?'Schița (fără alb)':'Desen importat',cv:cv}],s[2]<1?'Imaginea era foarte mare, am micșorat-o la '+s[0]+'×'+s[1]+' px. Desenul e deschis, cu un strat „Cerneală” deasupra.':null);
+      res(true);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);rej(new Error('img'));};
+    img.src=url;
+  });
+}
+/* ---------- cititor PSD (8 biți, RGB sau tonuri de gri, fără compresie sau RLE) ---------- */
+var PSDBLR={};Object.keys(PSDBL).forEach(function(k){PSDBLR[PSDBL[k]]=k;});
+function psdRead(u8){
+  var dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength),p=0;
+  function U8(){return u8[p++];}function U16(){var v=dv.getUint16(p);p+=2;return v;}function I16(){var v=dv.getInt16(p);p+=2;return v;}
+  function U32(){var v=dv.getUint32(p);p+=4;return v;}function I32(){var v=dv.getInt32(p);p+=4;return v;}
+  function S(n){var s='';for(var i=0;i<n;i++)s+=String.fromCharCode(u8[p+i]);p+=n;return s;}
+  if(S(4)!=='8BPS')throw new Error('notpsd');
+  var ver=U16();if(ver!==1)throw new Error('psb');
+  p+=6;var nch=U16(),H=U32(),W=U32(),depth=U16(),mode=U16();
+  if(depth!==8||(mode!==3&&mode!==1))throw new Error('mode');
+  var sk=U32();p+=sk;sk=U32();p+=sk;
+  var lmLen=U32(),lmEnd=p+lmLen,layers=[];
+  function rle(len,w,h,comp,dst){
+    if(comp===0){dst.set(u8.subarray(p,p+w*h));p+=w*h;return;}
+    if(comp!==1)throw new Error('zip');
+    var cnt=[],y,o=0;for(y=0;y<h;y++)cnt.push(U16());
+    for(y=0;y<h;y++){
+      var end=p+cnt[y],x=0,base=y*w;
+      while(p<end&&x<w){var n=u8[p++];if(n<128){n++;for(var k=0;k<n&&x<w;k++)dst[base+x++]=u8[p++];if(k<n)p+=n-k;}else if(n>128){n=257-n;var v=u8[p++];for(k=0;k<n&&x<w;k++)dst[base+x++]=v;}}
+      p=end;
+    }
+  }
+  if(lmLen>0){
+    var liLen=U32(),liEnd=p+liLen;
+    if(liLen>0){
+      var n=Math.abs(I16()),recs=[],i;
+      for(i=0;i<n;i++){
+        var t=I32(),l=I32(),b=I32(),r=I32(),nc=U16(),chs=[];
+        for(var c=0;c<nc;c++)chs.push({id:I16(),len:U32()});
+        S(4);var bm=S(4),op=U8(),clip=U8(),fl=U8();U8();
+        var el=U32(),ep=p;
+        var mk2=U32();p+=mk2;mk2=U32();p+=mk2;
+        var nl=U8(),nm=S(nl);p+=(4-((nl+1)%4))%4;
+        var uni=null,sect=0;
+        while(p+12<=ep+el){
+          var sig=S(4);if(sig!=='8BIM'&&sig!=='8B64'){break;}
+          var key=S(4),ln=U32(),bp=p;
+          if(key==='luni'){var cn=U32(),s='';for(var q=0;q<cn;q++){s+=String.fromCharCode(U16());}uni=s.replace(/\u0000+$/,'');}
+          else if(key==='lsct'||key==='lsdk'){sect=U32();}
+          p=bp+ln+(ln%2&&false?1:0);
+        }
+        p=ep+el;
+        recs.push({t:t,l:l,b:b,r:r,chs:chs,blend:PSDBLR[bm]||'source-over',op:op/255,clip:!!clip,vis:!(fl&2),name:uni||nm,sect:sect});
+      }
+      recs.forEach(function(rc){
+        var w=rc.r-rc.l,h=rc.b-rc.t,planes={};
+        rc.chs.forEach(function(ch){
+          var st=p,comp=U16();
+          if(w>0&&h>0&&(ch.id>=-1&&ch.id<=2)){var buf=new Uint8Array(w*h);rle(ch.len,w,h,comp,buf);planes[ch.id]=buf;}
+          p=st+ch.len;
+        });
+        rc.planes=planes;
+      });
+      /* grupuri: de sus în jos, „folder” deschide, „sfârșit de secțiune” închide */
+      var stack=[];
+      for(i=recs.length-1;i>=0;i--){
+        var rc=recs[i];
+        if(rc.sect===1||rc.sect===2){stack.push(rc.name);continue;}
+        if(rc.sect===3){stack.pop();continue;}
+        rc.grp=stack.length?stack[stack.length-1]:'';
+      }
+      recs.forEach(function(rc){
+        if(rc.sect)return;
+        var w=rc.r-rc.l,h=rc.b-rc.t;if(w<=0||h<=0){layers.push({name:rc.name,vis:rc.vis,op:rc.op,blend:rc.blend,clip:rc.clip,grp:rc.grp});return;}
+        var cv=drMk(w,h),x=cv.getContext('2d'),im=x.createImageData(w,h),d=im.data,P=rc.planes,R=P[0],G=mode===1?P[0]:P[1],B=mode===1?P[0]:P[2],A=P[-1],k;
+        for(k=0;k<w*h;k++){d[k*4]=R?R[k]:0;d[k*4+1]=G?G[k]:0;d[k*4+2]=B?B[k]:0;d[k*4+3]=A?A[k]:255;}
+        x.putImageData(im,0,0);
+        layers.push({name:rc.name,cv:cv,x:rc.l,y:rc.t,vis:rc.vis,op:rc.op,blend:rc.blend,clip:rc.clip,grp:rc.grp});
+      });
+    }
+  }
+  p=lmEnd;
+  if(!layers.length){
+    /* fără straturi: imaginea compusă */
+    var comp=U16(),pl=[],cc=mode===1?1:3,j;
+    if(comp===1){var cnts=[];for(j=0;j<H*nch;j++)cnts.push(U16());p-=0;
+      /* re-citim pe canale folosind lungimile de rând */
+      var off=p,row=0;for(j=0;j<cc;j++){var buf2=new Uint8Array(W*H);for(var y=0;y<H;y++){var e=off+cnts[row++],x2=0,base=y*W;while(off<e&&x2<W){var nn=u8[off++];if(nn<128){nn++;for(var kk=0;kk<nn&&x2<W;kk++)buf2[base+x2++]=u8[off++];}else if(nn>128){nn=257-nn;var vv=u8[off++];for(kk=0;kk<nn&&x2<W;kk++)buf2[base+x2++]=vv;}}off=e;}pl.push(buf2);}
+    }else if(comp===0){for(j=0;j<cc;j++){pl.push(u8.subarray(p,p+W*H));p+=W*H;}}
+    else throw new Error('zip');
+    var cvm=drMk(W,H),xm=cvm.getContext('2d'),imm=xm.createImageData(W,H),dm=imm.data;
+    for(j=0;j<W*H;j++){dm[j*4]=pl[0][j];dm[j*4+1]=pl[cc>1?1:0][j];dm[j*4+2]=pl[cc>1?2:0][j];dm[j*4+3]=255;}
+    xm.putImageData(imm,0,0);layers.push({name:'Imagine',cv:cvm});
+  }
+  return {w:W,h:H,layers:layers};
+}
+function drImportPSD(file){
+  return file.arrayBuffer().then(function(ab){
+    var r=psdRead(new Uint8Array(ab));
+    if(r.w*r.h>40e6||r.w>9000||r.h>9000)throw new Error('size');
+    var nm=String(file.name||'Desen').replace(/\.psd$/i,'');
+    drNewFromLayers(nm,r.w,r.h,r.layers,'PSD deschis: '+r.layers.length+' straturi'+(r.layers.some(function(l){return l.grp;})?', cu grupuri':'')+'. Am pus deasupra un strat gol „Cerneală”.');
+    return true;
+  });
+}
+function drImportAny(file){
+  if(!file)return Promise.resolve(false);
+  var n=String(file.name||'').toLowerCase();
+  if(/\.zip$/.test(n))return drImportProject(file);
+  return file.slice(0,4).arrayBuffer().then(function(ab){
+    var h=new Uint8Array(ab);
+    if(h[0]===0x38&&h[1]===0x42&&h[2]===0x50&&h[3]===0x53)return drImportPSD(file);
+    if(/\.(clip|procreate|kra|sai|mdp)$/.test(n))throw new Error('fmt');
+    return drImportPicture(file);
+  }).catch(function(e){
+    var m=e&&e.message;
+    drMsg(m==='fmt'?'Formatul acesta nu-l pot citi. Exportă desenul ca PSD (păstrează straturile) sau PNG din aplicația în care l-ai început.':
+      m==='mode'?'PSD-ul nu e în RGB pe 8 biți. Salvează-l ca RGB, 8 biți, și încearcă din nou.':
+      m==='zip'?'PSD-ul folosește o compresie pe care nu o pot citi. Salvează-l din nou (din Photoshop: „Maximize compatibility”) sau exportă PNG.':
+      m==='psb'?'Fișierele PSB (foarte mari) nu le pot deschide. Salvează ca PSD.':
+      m==='size'?'Desenul e prea mare pentru această aplicație (peste 40 de milioane de pixeli).':'Nu am putut deschide fișierul.');
+    return false;
+  });
+}
+function drImportInit(){
+  var nt=document.querySelector('#drNew > .note');if(!nt||$('#drImpIn'))return;
+  var fi=el('input');fi.type='file';fi.id='drImpIn';fi.accept='image/*,.psd,.zip,image/vnd.adobe.photoshop,application/octet-stream';fi.style.display='none';
+  fi.addEventListener('change',function(){var f=fi.files&&fi.files[0];fi.value='';if(f)drImportAny(f);});
+  var ob=el('button','btn');ob.type='button';ob.innerHTML='<b>Deschide un desen început</b><small>Imagine (PNG, JPG), PSD cu straturi din alte aplicații, sau o poză cu o schiță pe hârtie</small>';
+  ob.addEventListener('click',function(){fi.click();});
+  var l=el('label','toggle'),cb=el('input'),sp=el('span',null,'Albul hârtiei devine transparent (pentru schițe scanate sau fotografiate)');
+  cb.type='checkbox';cb.addEventListener('change',function(){DIMP.white=cb.checked;});l.appendChild(cb);l.appendChild(sp);
+  nt.parentNode.insertBefore(ob,nt);nt.parentNode.insertBefore(l,nt);nt.parentNode.insertBefore(fi,nt);
+}
+/* ---------- Planul paginii: scenariul paginii și ce se desenează în fiecare panou ---------- */
+function pgNotes(){var pg=S.page;if(!Array.isArray(pg.notes))pg.notes=[];return pg.notes;}
+/* ---- citirea scenariului (reguli simple, fără internet) ---- */
+var PLBIG=/(plan (foarte )?larg|panoramă|panorama|splash|toată pagina|pagina întreagă|mare\b|panou mare|vedere de ansamblu|peisaj|exterior larg)/i;
+var PLSMALL=/(prim[- ]?plan|detaliu|close[- ]?up|mic\b|panou mic|reacție|ochii|ochi\b|mâna|mana\b|insert)/i;
+function plSplit(txt){
+  var lines=String(txt||'').replace(/\r/g,'').split('\n'),out=[],cur=null,i;
+  var hdr=/^\s*(?:panou|panel|cadru|vinieta|vinietă|p)\s*\.?\s*(\d+)\s*[:.)\-–—]?\s*(.*)$/i,num=/^\s*(\d+)\s*[.)\-–—:]\s+(.*)$/;
+  var anyHdr=lines.some(function(l){return hdr.test(l)||num.test(l);});
+  if(anyHdr){
+    lines.forEach(function(l){
+      var m=l.match(hdr)||l.match(num);
+      if(m){cur={lines:[]};out.push(cur);if(m[2].trim())cur.lines.push(m[2].trim());}
+      else if(l.trim()){if(!cur){cur={lines:[]};out.push(cur);}cur.lines.push(l.trim());}
+    });
+  }else{
+    /* fără numerotare: fiecare paragraf (despărțit de un rând gol) e un panou */
+    var para=[];
+    lines.concat(['']).forEach(function(l){if(l.trim())para.push(l.trim());else if(para.length){out.push({lines:para});para=[];}});
+  }
+  return out.filter(function(p){return p.lines.length;});
+}
+function plParse(txt){
+  return plSplit(txt).map(function(p){
+    var desc=[],bubs=[];
+    p.lines.forEach(function(l){
+      var m;
+      if((m=l.match(/^\s*(?:sfx|sunet|zgomot)\s*[:\-–]\s*(.+)$/i))){bubs.push({k:'sfx',t:m[1].replace(/["„”“]/g,'').trim()});return;}
+      if((m=l.match(/^\s*(?:legendă|legenda|narator|naratorul|text)\s*[:\-–]\s*(.+)$/i))){bubs.push({k:'cap',t:m[1].replace(/^["„“]|["”]$/g,'').trim()});return;}
+      if((m=l.match(/^\s*(?:gând|gand|gândește|gandeste)\s*(?:\(([^)]*)\))?\s*[:\-–]\s*(.+)$/i))){bubs.push({k:'thought',t:m[2].replace(/^["„“]|["”]$/g,'').trim()});return;}
+      if((m=l.match(/^\s*([A-ZĂÂÎȘȚŞŢ][\wăâîșțşţĂÂÎȘȚŞŢ\-]{0,18}(?:\s+[A-ZĂÂÎȘȚŞŢ][\wăâîșțşţĂÂÎȘȚŞŢ\-]{0,18})?)\s*(\((?:gând|gand|în gând|in gand)\))?\s*:\s*(.+)$/))&&!/^(panou|panel|plan|cadru|vedere|unghi|camera|cameră|fundal|scena|scenă|loc|timp)$/i.test(m[1])){
+        bubs.push({k:m[2]?'thought':'speech',t:m[3].replace(/^["„“]|["”]$/g,'').trim(),who:m[1]});return;
+      }
+      /* replici între ghilimele în descriere */
+      var q=l.match(/[„"“]([^"”“]{1,120})["”]/g);
+      if(q){q.forEach(function(s){bubs.push({k:'speech',t:s.replace(/[„"“”]/g,'').trim()});});l=l.replace(/[„"“][^"”“]{1,120}["”]/g,'').trim();}
+      /* sunete scrise cu majuscule și semn de exclamare: BUM! TRAAAAC! */
+      var sf=l.match(/\b[A-ZĂÂÎȘȚ]{2,}(?:[ \-][A-ZĂÂÎȘȚ]{2,})*!+/g);
+      if(sf){sf.forEach(function(s){bubs.push({k:'sfx',t:s});});}
+      if(l)desc.push(l);
+    });
+    var d=desc.join(' '),all=p.lines.join(' '),w=PLBIG.test(all)?2:PLSMALL.test(all)?.65:1;
+    var cam=/de sus|vedere de sus|vulturului/i.test(all)?'de sus':/de jos|contra-plonjeu|contraplonjeu/i.test(all)?'de jos':/prim[- ]?plan|close/i.test(all)?'prim-plan':/plan larg|panoram/i.test(all)?'plan larg':'';
+    return {desc:d,full:p.lines.join('\n'),bubs:bubs,w:w,cam:cam};
+  });
+}
+/* ---- aranjarea: panourile mari stau singure pe rând, celelalte câte 2 (sau 3 mici) ---- */
+function plLayout(P,rtl){
+  var rows=[],i=0;
+  while(i<P.length){
+    if(P[i].w>=2){rows.push([i]);i++;continue;}
+    var row=[i];i++;
+    while(i<P.length&&P[i].w<2&&row.length<(P[row[0]].w<1&&P[i].w<1?3:2))row.push(i++);
+    rows.push(row);
+  }
+  /* un singur panou mic rămas la final se lipește de rândul anterior */
+  if(rows.length>1&&rows[rows.length-1].length===1&&P[rows[rows.length-1][0]].w<2&&rows[rows.length-2].length===1&&P[rows[rows.length-2][0]].w<2){var last=rows.pop();rows[rows.length-1]=rows[rows.length-1].concat(last);}
+  var D=pgDims(),M=D.M,G=D.G,aw=PW-2*M,ah=PH-2*M-G*(rows.length-1);
+  var rh=rows.map(function(r){var mx=0;r.forEach(function(k){mx=Math.max(mx,P[k].w>=2?1.6:P[k].w<1?.8:1);});return mx;}),sum=rh.reduce(function(a,b){return a+b;},0);
+  var polys=new Array(P.length),y=M;
+  rows.forEach(function(r,ri){
+    var h=ah*rh[ri]/sum,ws=r.map(function(k){return Math.max(.5,P[k].w);}),wsum=ws.reduce(function(a,b){return a+b;},0),avail=aw-G*(r.length-1),x=M;
+    var order=rtl?r.slice().reverse():r,wo=rtl?ws.slice().reverse():ws;
+    order.forEach(function(k,j){var w=avail*wo[j]/wsum;polys[k]=[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];x+=w+G;});
+    y+=h+G;
+  });
+  return polys;
+}
+var PLUNDO=null;
+function plGenerate(txt,withBubs){
+  var P=plParse(txt);
+  if(!P.length){pgMsg('Nu am găsit niciun panou în text. Scrie „Panou 1: …”, „Panou 2: …” sau despart panourile cu un rând gol.');return 0;}
+  if(P.length>12){P=P.slice(0,12);pgMsg('Am luat doar primele 12 panouri; pe o pagină nu încap mai multe.');}
+  PLUNDO=JSON.stringify(S.page);
+  var pg=S.page,rtl=!!pg.rtl,polys=plLayout(P,rtl);
+  pg.layout='free';pg.adj=null;pg.free=polys.map(function(p){return {p:p};});
+  pg.panels=(pg.panels||[]).slice(0,P.length);pg.pst=[];pg.fx=(pg.fx||[]).filter(function(f){return f.p<P.length;});
+  pg.plan=txt;pg.notes=P.map(function(p){return p.full;});pg.tips=P.map(function(p){return p.cam?('Unghi: '+p.cam+'.'):null;});
+  plApplyFrames(P,true);polys=pg.free.map(function(f){return f.p;});pg.ftips=P.map(function(p){return p.frame.why;});pg.ctip=plCountTip(P.length,P);
+  if(withBubs){
+    pg.bub=[];var id=1;
+    P.forEach(function(p,k){
+      var b=pgBox(polys[k]),n=0,cols=Math.max(1,p.bubs.filter(function(x){return x.k!=='sfx';}).length);
+      p.bubs.forEach(function(bb){
+        if(bb.k==='sfx'){pg.bub.push({id:id++,k:'sfx',x:b.x0+b.w*.5,y:b.y0+b.h*.62,t:bb.t.slice(0,24),fx:'burst',sz:.8,rt:-7});return;}
+        var xx=rtl?b.x1-b.w*(.22+.56*(n/(cols>1?cols-1:1))):b.x0+b.w*(.22+.56*(n/(cols>1?cols-1:1))),yy=b.y0+Math.min(b.h*.28,70)+(n%2)*Math.min(40,b.h*.12);
+        if(cols===1)xx=rtl?b.x1-b.w*.3:b.x0+b.w*.3;
+        var o={id:id++,k:bb.k,x:clamp(xx,b.x0+40,b.x1-40),y:clamp(yy,b.y0+30,b.y1-30),t:bb.t.slice(0,160)};
+        if(bb.k!=='cap'){o.tx=-30;o.ty=Math.min(80,b.h*.25);}
+        pg.bub.push(o);n++;
+      });
+    });
+  }
+  pgSel=0;if(typeof PGF!=='undefined'){PGF.vtx=-1;PGF.hist=[];}
+  pgDraw();
+  /* după ce știm mărimea bulelor: legendele în colțul panoului, restul împinse înăuntru */
+  if(withBubs)pg.bub.forEach(function(b){
+    if(!b._r)return;
+    var q=null;polys.forEach(function(pp){var bx=pgBox(pp);if(b.x>=bx.x0&&b.x<=bx.x1&&b.y>=bx.y0&&b.y<=bx.y1)q=bx;});if(!q)return;
+    var r=b._r,pad=8;
+    if(b.k==='cap'){b.x=(rtl?q.x1-r.w/2-pad:q.x0+r.w/2+pad);b.y=q.y0+r.h/2+pad;return;}
+    if(r.x<q.x0+pad)b.x+=q.x0+pad-r.x;else if(r.x+r.w>q.x1-pad)b.x-=r.x+r.w-(q.x1-pad);
+    if(r.y<q.y0+pad)b.y+=q.y0+pad-r.y;else if(r.y+r.h>q.y1-pad)b.y-=r.y+r.h-(q.y1-pad);
+  });
+  schedSave();pgDraw();
+  var nb=P.reduce(function(a,p){return a+p.bubs.length;},0);
+  var nbl=P.filter(function(p){return p.frame.bl;}).length,nsp=P.filter(function(p){return p.frame.st!=='solid';}).length;
+  pgMsg('Am făcut '+P.length+' panouri'+(withBubs&&nb?', '+nb+' bule de text':'')+(nsp?', '+nsp+' cu cadru special':'')+(nbl?', '+nbl+' cu bleed':'')+'. '+pg.ctip+' „Anulează generarea” revine la pagina de dinainte.');
+  return P.length;
+}
+function plUndo(){
+  if(!PLUNDO)return;
+  try{S.page=JSON.parse(PLUNDO);}catch(e){return;}
+  PLUNDO=null;pgSel=0;schedSave();pgDraw();pgMsg('Am revenit la pagina de dinainte de generare.');
+}
+/* ---- interfața: fila „Plan” în pagina de manga ---- */
+function plInit(){
+  var exp=$('#pgExport');if(!exp||$('#plBox'))return;
+  var row=exp.parentNode,box=el('div');box.id='plBox';
+  box.appendChild(el('div','h','Plan pagină'));
+  box.appendChild(el('p','note','Scrie ce se întâmplă pe pagină, panou cu panou. Exemplu:\nPanou 1: Plan larg, satul la apus.\nPanou 2: Aiko se întoarce. Aiko: Ai auzit?\nPanou 3: Prim-plan, ochii ei. BUM!'));
+  var ta=el('textarea','txt');ta.id='plText';ta.rows=7;ta.setAttribute('aria-label','Scenariul paginii');ta.placeholder='Panou 1: …\nPanou 2: …';
+  box.appendChild(ta);
+  var opt=el('label','toggle'),cb=el('input'),sp=el('span',null,'Pune și replicile, gândurile și sunetele ca bule');cb.type='checkbox';cb.checked=true;opt.appendChild(cb);opt.appendChild(sp);box.appendChild(opt);
+  var rb=el('div','btns');box.appendChild(rb);
+  var gen=el('button','btn solid','Generează panourile din text');gen.type='button';rb.appendChild(gen);
+  var arm=null;
+  gen.addEventListener('click',function(){
+    var has=(S.page.panels||[]).some(function(p){return p&&p.cam;})||(S.page.bub||[]).length;
+    if(has&&gen.getAttribute('data-armed')!=='1'){gen.setAttribute('data-armed','1');gen.textContent='Pagina are deja conținut. Înlocuiesc? Atinge iar';clearTimeout(arm);arm=setTimeout(function(){gen.removeAttribute('data-armed');gen.textContent='Generează panourile din text';},3500);return;}
+    gen.removeAttribute('data-armed');gen.textContent='Generează panourile din text';
+    plGenerate(ta.value,cb.checked);sync();
+  });
+  var un=el('button','btn','Anulează generarea');un.type='button';un.addEventListener('click',function(){plUndo();sync();});rb.appendChild(un);
+  var sv=el('button','btn','Salvează doar planul');sv.type='button';sv.addEventListener('click',function(){S.page.plan=ta.value;schedSave();pgMsg('Planul paginii e salvat.');});rb.appendChild(sv);
+  box.appendChild(el('div','h','Ce desenez în panoul ales'));
+  var cur=el('textarea','txt');cur.id='plNote';cur.rows=3;cur.setAttribute('aria-label','Planul panoului ales');cur.placeholder='Notițe pentru acest panou: ce se vede, unghiul, replicile…';
+  cur.addEventListener('input',function(){var N=pgNotes();N[pgSel]=cur.value;schedSave();});
+  box.appendChild(cur);
+  var why=el('p','note plwhy');why.id='plWhy';box.appendChild(why);
+  var sb=el('div','btns');box.appendChild(sb);
+  var sg=el('button','btn','Sugerează cadrele după plan');sg.type='button';sg.addEventListener('click',function(){plSuggestExisting();sync();});sb.appendChild(sg);
+  var gd=el('details','brguide');gd.appendChild(el('summary',null,'Când folosesc fiecare cadru și câte panouri pun?'));
+  var gl=el('ul','newsl');
+  Object.keys(PLWHY).forEach(function(k){gl.appendChild(el('li',null,PLWHY[k]));});
+  gl.appendChild(el('li',null,'Bleed: plan larg, peisaj, deschidere de scenă sau moment imens; imaginea iese din pagină. Nu pune bleed la panourile cu text important lângă margine (se poate tăia la tipar).'));
+  gl.appendChild(el('li',null,'Număr de panouri: 1–2 pentru momente mari, 3–4 pentru acțiune, 5–6 pentru dialog obișnuit, 7–8 doar pentru dialog rapid. Peste 8, împarte pe două pagini.'));
+  gl.appendChild(el('li',null,'Poți cere cadrul direct în text: „Panou 3 (dublu): …”, „Panou 1, bleed: …”, „întrerupt”, „zimțat”, „fără cadru”.'));
+  gd.appendChild(gl);box.appendChild(gd);
+  var lst=el('div','pllist');lst.id='plList';box.appendChild(lst);
+  row.parentNode.insertBefore(box,row);
+  ta.addEventListener('change',function(){S.page.plan=ta.value;schedSave();});
+  var lastSig='';
+  function sync(){
+    if(document.activeElement!==ta)ta.value=S.page.plan||'';
+    var N=pgNotes(),n=pageQuads(S.page.layout).length;
+    if(document.activeElement!==cur)cur.value=N[pgSel]||'';
+    var lbl=box.querySelectorAll('.h')[1];if(lbl)lbl.textContent='Ce desenez în panoul '+(pgSel+1);
+    un.disabled=!PLUNDO;
+    var ft=(S.page.ftips||[])[pgSel],ps=(S.page.pst||[])[pgSel],nm=ps?(PGFRN.filter(function(f){return f[0]===ps.st;})[0]||['','Normal'])[1]:'Normal';
+    why.textContent='Cadrul panoului '+(pgSel+1)+': '+nm+(ps&&ps.bl?' + bleed':'')+'. '+(ft||'')+((S.page.ctip&&pgSel===0)?' — '+S.page.ctip:'');
+    var sig=n+'|'+pgSel+'|'+N.slice(0,n).join('\u0001')+'|'+JSON.stringify(S.page.pst||[]);
+    if(sig===lastSig)return;lastSig=sig;
+    lst.innerHTML='';
+    for(var i=0;i<n;i++)(function(i){
+      var b=el('button','plitem');b.type='button';b.setAttribute('aria-pressed',String(i===pgSel));
+      var ps2=(S.page.pst||[])[i],fn=ps2&&ps2.st&&ps2.st!=='solid'?(PGFRN.filter(function(f){return f[0]===ps2.st;})[0]||['',''])[1]:'';
+      b.appendChild(el('b',null,'Panou '+(i+1)+(fn?' · '+fn:'')+(ps2&&ps2.bl?' · bleed':'')));b.appendChild(el('span',null,(N[i]||'— fără plan —').replace(/\n/g,' · ').slice(0,140)));
+      b.addEventListener('click',function(){pgSel=i;pgDraw();});
+      lst.appendChild(b);
+    })(i);
+  }
+  PGSYNC.push(sync);
+}
+/* ---- în Desen: planul panoului ales, pe foaie ---- */
+function plDrawInit(){
+  var wrap=$('#drWrap');if(!wrap||$('#drPlan'))return;
+  var t=el('div','drplan');t.id='drPlan';t.hidden=true;
+  var hd=el('button','drplanh');hd.type='button';var tx=el('div','drplanb');
+  t.appendChild(hd);t.appendChild(tx);wrap.appendChild(t);
+  DR.planMin=false;DR.planOff=false;
+  var hs=[].filter.call(document.querySelectorAll('#drSide .h'),function(h){return h.textContent==='Panouri de manga';})[0];
+  if(hs)drToggle(hs.parentNode,'Arată pe foaie planul panoului ales',function(){return !DR.planOff;},function(v){DR.planOff=!v;});
+  hd.addEventListener('click',function(){DR.planMin=!DR.planMin;drSync();});
+  DR.sync.push(function(){
+    var note='',lbl='';
+    if(DR.ready&&DR.kind==='page'){var N=S.page.notes||[];note=N[DR.panel]||'';lbl='Plan · panoul '+(DR.panel+1);if(!note&&S.page.plan&&!N.length){note=S.page.plan;lbl='Planul paginii';}}
+    else if(DR.ready&&DR.link){var N2=S.page.notes||[];note=N2[DR.link.panel]||'';lbl='Plan · panoul '+(DR.link.panel+1);}
+    t.hidden=!note||DR.planOff;
+    hd.textContent=(DR.planMin?'▸ ':'▾ ')+lbl;tx.hidden=DR.planMin;tx.textContent=note;
+  });
+}
+/* ---------- Cadrul fiecărui panou: din text sau sugerat după ce se întâmplă ---------- */
+var PLFR=[
+  /* [cuvinte scrise explicit, stil] */
+  [/\b(fără cadru|fara cadru|fără chenar|fara chenar)\b/i,'none'],
+  [/\b(dublu|cadru dublu)\b/i,'dbl'],
+  [/\b(întrerupt|intrerupt|linie întreruptă)\b/i,'dash'],
+  [/\b(punctat)\b/i,'dot'],
+  [/\b(zimțat|zimtat)\b/i,'jag'],
+  [/\b(cadru nor|nor\b|cadru moale)\b/i,'cloud'],
+  [/\b(cadru gros|gros)\b/i,'thick'],
+  [/\b(cadru subțire|subțire|subtire)\b/i,'thin'],
+  [/\b(cadru normal|normal)\b/i,'solid']
+];
+var PLWHY={
+  solid:'Normal: acțiune și dialog obișnuit; cititorul nu trebuie să se oprească aici.',
+  thick:'Gros: moment greu, apăsat (o hotărâre, o lovitură puternică).',
+  thin:'Subțire: moment ușor, liniștit, un detaliu discret.',
+  dot:'Punctat: imaginat, ipotetic („ce-ar fi dacă…”), sau o explicație alăturată.',
+  dash:'Întrerupt: amintire, flashback, ceva din trecut.',
+  dbl:'Dublu: șoc, dezvăluire, momentul pe care cititorul nu trebuie să-l rateze.',
+  jag:'Zimțat: impact, explozie, durere, panică — energie care „sparge” cadrul.',
+  cloud:'Nor: vis, visare, gând plutitor, o scenă care nu e reală.',
+  none:'Fără cadru: liniște, timp oprit, o imagine care „respiră” în pagină.'
+};
+var PLAUTO=[
+  [/(flashback|amintire|își amintește|isi aminteste|în trecut|in trecut|cu ani în urmă|cu ani in urma|copilărie|copilarie)/i,'dash'],
+  [/(visează|viseaza|\bvis\b|visul|imaginează|imagineaza|fantezie|halucina)/i,'cloud'],
+  [/(dacă ar|daca ar|ce-ar fi|ar putea|plan secret|schema|explică|explica)/i,'dot'],
+  [/(explozie|explodează|exploda|lovește|loveste|lovitură|lovitura|impact|izbește|izbeste|se prăbușește|se prabuseste|țipă|tipa|urlă|urla|durere|panică|panica|\bBUM\b|\bPOC\b|\bBANG\b|\bKABOOM\b)/i,'jag'],
+  [/(șoc|soc\b|șocat|socat|îngheață|ingheata|dezvăluire|dezvaluire|nu se poate|imposibil|trădare|tradare|apare brusc|se dezvăluie|se dezvaluie|ochii mari)/i,'dbl'],
+  [/(hotărăște|hotaraste|jură|jura\b|decis|se ridică|se ridica|ultima lovitură|ultima lovitura)/i,'thick'],
+  [/(liniște|liniste|tăcere|tacere|vântul|vantul|frunze|zăpada|zapada|se uită departe|se uita departe|singur[ăa]?\b|timpul stă|timpul sta)/i,'none'],
+  [/(zâmbește|zambeste|ușor|usor|delicat|atinge|mângâie|mangaie)/i,'thin']
+];
+var PLBLEED=/(bleed|până la marginea paginii|pana la marginea paginii|fără margine|fara margine|plan larg|panoramă|panorama|peisaj|splash|toată pagina|toata pagina|vedere de ansamblu|uriaș|urias|imens|cer\b|orizont)/i;
+function plFrame(all){
+  var i,st=null,ex=false,bl=PLBLEED.test(all),why=[];
+  for(i=0;i<PLFR.length;i++)if(PLFR[i][0].test(all)){st=PLFR[i][1];ex=true;break;}
+  if(!st)for(i=0;i<PLAUTO.length;i++)if(PLAUTO[i][0].test(all)){st=PLAUTO[i][1];break;}
+  if(!st)st='solid';
+  why.push(PLWHY[st]);
+  if(bl)why.push('Bleed: un loc mare sau un moment amplu; imaginea iese din pagină și pare fără sfârșit.');
+  return {st:st,bl:bl,explicit:ex,why:why.join(' ')};
+}
+function plBleedPoly(poly){
+  var M=pgDims().M,T=Math.max(M+4,40);
+  return poly.map(function(v){var x=v[0],y=v[1];if(x<T)x=0;else if(x>PW-T)x=PW;if(y<T)y=0;else if(y>PH-T)y=PH;return [x,y];});
+}
+/* sfat pentru numărul de panouri */
+function plCountTip(n,P){
+  var act=P.filter(function(p){return PLAUTO[3][0].test(p.full);}).length;
+  if(n<=2)return 'Puține panouri ('+n+'): pagină lentă și amplă. Bună pentru o deschidere de capitol sau un moment mare.';
+  if(n<=4)return n+' panouri: ritm bun pentru acțiune sau pentru o scenă importantă; fiecare imagine are loc să respire.';
+  if(n<=6)return n+' panouri: ritm obișnuit de manga, bun pentru dialog și acțiune amestecate.'+(act>2?' Ai multă acțiune: încearcă 3–4 panouri mai mari, ca să se simtă forța.':'');
+  if(n<=8)return n+' panouri: pagină densă, potrivită pentru dialog rapid sau o secvență de mișcări mici. Pentru acțiune, împarte pe două pagini.';
+  return n+' panouri: prea aglomerat pentru o pagină. Împarte scena pe două pagini (maxim 6–7 pe pagină).';
+}
+/* aplică cadrele pe panourile existente, după planul lor */
+function plApplyFrames(P,polys){
+  var pg=S.page,notes=[];
+  P.forEach(function(p,k){
+    var f=plFrame(p.full);
+    var s=pgPst(k);s.st=f.st;s.bl=f.bl;
+    if(f.bl&&polys&&pg.free&&pg.free[k])pg.free[k].p=plBleedPoly(pg.free[k].p);
+    p.frame=f;
+  });
+  return P;
+}
+function plSuggestExisting(){
+  var N=pgNotes(),n=pageQuads(S.page.layout).length,P=[],k;
+  for(k=0;k<n;k++)P.push({full:N[k]||''});
+  if(!P.some(function(p){return p.full;})){pgMsg('Panourile n-au încă plan. Scrie planul (fila Plan) sau notițele fiecărui panou, apoi cere sugestii.');return;}
+  PLUNDO=JSON.stringify(S.page);
+  plApplyFrames(P,S.page.layout==='free');
+  S.page.ftips=P.map(function(p){return p.full?p.frame.why:'';});
+  schedSave();pgDraw();
+  pgMsg('Am pus cadrele potrivite fiecărui panou. Motivul îl vezi sub planul panoului ales.');
+}
+/* \b nu știe de diacritice: îl înlocuim cu o graniță de cuvânt care ține cont de litere românești */
+function plU(re){var B='(?:(?<![\\p{L}\\d])(?=[\\p{L}\\d])|(?<=[\\p{L}\\d])(?![\\p{L}\\d]))';return new RegExp(re.source.replace(/\\b/g,B),'iu');}
+PLFR.forEach(function(r){r[0]=plU(r[0]);});PLAUTO.forEach(function(r){r[0]=plU(r[0]);});
+PLBLEED=plU(PLBLEED);PLBIG=plU(PLBIG);PLSMALL=plU(PLSMALL);
+/* ---------- Pagină dublă (spread): un desen mare pe două pagini alăturate ---------- */
+function spGeom(){
+  var sp=DR.spread,F=sp.fmt==='custom'?{tw:sp.cw,th:sp.ch,sf:10}:(DPRINT[sp.fmt]||DPRINT.b5),bl=sp.bl,pm=DR.w/(2*F.tw+2*bl);
+  var t0=bl*pm,trim=[bl*pm,t0,(bl+2*F.tw)*pm,t0+F.th*pm],mid=(bl+F.tw)*pm,s=(F.sf||10)*pm,g=(sp.gut==null?6:sp.gut)*pm;
+  return {F:F,bl:bl,pm:pm,trim:trim,mid:mid,safe:s,gut:g,pw:Math.round((F.tw+2*bl)*pm)};
+}
+function spNew(){
+  var o=drPgOpt(),F=o.fmt==='custom'?{tw:o.cw,th:o.ch}:(DPRINT[o.fmt]||DPRINT.b5),k=o.dpi/25.4;
+  var w=Math.round((2*F.tw+2*o.bl)*k),h=Math.round((F.th+2*o.bl)*k);
+  if(w*h>40e6){var r=Math.sqrt(40e6/(w*h));w=Math.round(w*r);h=Math.round(h*r);}
+  drNew('sq');
+  /* drNew a făcut o pânză liberă; o redimensionăm la pagina dublă */
+  DR.w=w;DR.h=h;DR.layers=[];DR.nid=1;drBufs();
+  var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;DR.cur=1;
+  DR.spread={fmt:o.fmt,bl:o.bl,cw:o.cw,ch:o.ch,dpi:o.dpi,gut:6,rtl:true};
+  DR.name=('Pagină dublă '+(DR.libN||1)).slice(0,40);DR.trace.mode='scene';
+  drBuildTrace();drFit();drSync();drDirty();drSaveSoon();
+  drMsg('Pagină dublă: linia din mijloc e cotorul cărții. Ce e în banda gri din mijloc se pierde în legătură; nu pune acolo fețe sau text.');
+}
+function spOverlay(x){
+  var G=spGeom(),v=DR.v,t=G.trim;
+  x.save();
+  x.fillStyle='rgba(220,50,40,.10)';
+  x.fillRect(0,0,DR.w,t[1]);x.fillRect(0,t[3],DR.w,DR.h-t[3]);x.fillRect(0,t[1],t[0],t[3]-t[1]);x.fillRect(t[2],t[1],DR.w-t[2],t[3]-t[1]);
+  /* cotorul: zona care se pierde în legătură */
+  x.fillStyle='rgba(100,100,120,.16)';x.fillRect(G.mid-G.gut,t[1],2*G.gut,t[3]-t[1]);
+  x.setLineDash([10/v.s,6/v.s]);x.lineWidth=1.8/v.s;
+  x.strokeStyle='#d4452a';x.strokeRect(t[0],t[1],t[2]-t[0],t[3]-t[1]);
+  x.strokeStyle='#2557c9';
+  x.strokeRect(t[0]+G.safe,t[1]+G.safe,G.mid-G.gut-t[0]-G.safe,t[3]-t[1]-2*G.safe);
+  x.strokeRect(G.mid+G.gut,t[1]+G.safe,t[2]-G.safe-G.mid-G.gut,t[3]-t[1]-2*G.safe);
+  x.setLineDash([16/v.s,8/v.s]);x.strokeStyle='rgba(124,58,237,.9)';x.lineWidth=2.4/v.s;
+  x.beginPath();x.moveTo(G.mid,0);x.lineTo(G.mid,DR.h);x.stroke();x.setLineDash([]);
+  /* etichete */
+  var fs=Math.max(14/v.s,G.pm*4),rtl=DR.spread.rtl;
+  x.font='600 '+fs+'px system-ui,sans-serif';x.fillStyle='rgba(124,58,237,.9)';x.textBaseline='top';
+  x.textAlign='center';
+  x.fillText(rtl?'pagina a doua (stânga)':'prima pagină (stânga)',(t[0]+G.mid)/2,t[1]+G.safe*.25);
+  x.fillText(rtl?'prima pagină (dreapta)':'pagina a doua (dreapta)',(G.mid+t[2])/2,t[1]+G.safe*.25);
+  x.fillText('cotor',G.mid,t[3]-G.safe*.8);
+  x.restore();
+}
+/* cele două pagini, fiecare cu bleed pe toate laturile (bleed-ul din interior vine din cealaltă jumătate) */
+function spHalves(){
+  if(DR.float)drFloatCommit();
+  var G=spGeom(),flat=drFlat(false),pw=G.pw,ph=DR.h,L=drMk(pw,ph),R=drMk(pw,ph),xr=Math.round(G.mid-G.bl*G.pm);
+  L.getContext('2d').drawImage(flat,0,0,pw,ph,0,0,pw,ph);
+  R.getContext('2d').drawImage(flat,xr,0,pw,ph,0,0,pw,ph);
+  return {L:L,R:R,first:DR.spread.rtl?R:L,second:DR.spread.rtl?L:R};
+}
+function spExport(){
+  var h=spHalves(),base=drFileBase(),dpi=Math.round(DR.spread.dpi||300),n=0;
+  function one(cv,name){return new Promise(function(res){cv.toBlob(function(b){(typeof pngSetDpi==='function'?pngSetDpi(b,dpi):Promise.resolve(b)).then(function(bb){res(saveBlob(bb,name));});},'image/png');});}
+  drMsg('Pregătesc cele două pagini…');
+  return one(h.first,base+'-pagina-1.png').then(function(){return one(h.second,base+'-pagina-2.png');}).then(function(){drMsg('Am salvat cele două pagini (prima e '+(DR.spread.rtl?'cea din dreapta, ca în manga':'cea din stânga')+').');});
+}
+function spToChapter(){
+  var h=spHalves(),sp=DR.spread,spId=DR.id,spName=DR.name,ids=[];
+  var opt={fmt:sp.fmt,dpi:sp.dpi,bl:sp.bl,cw:sp.cw,ch:sp.ch},keepPage=S.page;
+  return drSaveNow().then(chLoad).then(function(){
+    var ch=CH.list[CH.list.length-1];
+    return ch?ch:chNew('Capitol '+(CH.list.length+1),null);
+  }).then(function(ch){
+    var parts=[h.first,h.second],chain=Promise.resolve();
+    parts.forEach(function(cv,k){
+      chain=chain.then(function(){
+        S.page=defPage();S.page.layout='free';S.page.free=[{p:[[0,0],[PW,0],[PW,PH],[0,PH]]}];S.page.pst=[{st:'none',bl:true}];
+        S.page.plan='Pagina dublă „'+spName+'”, partea '+(k+1);
+        drNew('page',opt);
+        var L=DR.layers[DR.cur];L.name='Pagină dublă';
+        L.ctx.drawImage(cv,0,0,DR.w,DR.h);
+        DR.name=(spName+' · '+(k+1)+'/2').slice(0,40);
+        ch.pages.push(DR.id);ids.push(DR.id);
+        return drSaveNow();
+      });
+    });
+    return chain.then(function(){return chSave();}).then(function(){return ch;});
+  }).then(function(ch){
+    S.page=keepPage;
+    return drLoadSaved(spId).then(function(){drShowEditor();drFit();drSync();drDirty();chRender&&chRender();
+      drMsg('Am pus cele două pagini la sfârșitul capitolului „'+ch.name+'”, în ordinea de citire. Exportul PDF al capitolului le include.');});
+  });
+}
+/* previzualizare: cartea deschisă, cu cotorul care înghite puțin din imagine */
+function spPreview(){
+  var h=spHalves(),G=spGeom(),ov=$('#spPrev');
+  if(!ov){
+    ov=el('div','guideov');ov.id='spPrev';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Cum iese în carte');
+    var card=el('div','spcard'),cv=el('canvas');cv.id='spPrevCv';
+    var row=el('div','btns'),b=el('button','btn solid','Închide');b.type='button';b.addEventListener('click',function(){ov.hidden=true;});
+    var note=el('p','note','Așa arată cele două pagini în carte, tăiate la format. Umbra din mijloc e cotorul: ce e acolo se vede greu sau deloc.');
+    row.appendChild(b);card.appendChild(cv);card.appendChild(note);card.appendChild(row);ov.appendChild(card);document.body.appendChild(ov);
+    ov.addEventListener('click',function(e){if(e.target===ov)ov.hidden=true;});
+  }
+  var c=$('#spPrevCv'),tb=G.bl*G.pm,tw=G.F.tw*G.pm,th=G.F.th*G.pm,maxW=Math.min(window.innerWidth-40,1400),k=Math.min(maxW/(2*tw+30),(window.innerHeight*.7)/(th+30));
+  c.width=Math.round((2*tw+30)*k);c.height=Math.round((th+30)*k);c.style.width=c.width+'px';c.style.maxWidth='100%';
+  var x=c.getContext('2d');x.fillStyle='#3a3f47';x.fillRect(0,0,c.width,c.height);
+  var px=15*k,py=15*k,W=tw*k,H=th*k;
+  x.drawImage(h.L,tb,tb,tw,th,px,py,W,H);
+  x.drawImage(h.R,tb,tb,tw,th,px+W,py,W,H);
+  var gw=Math.max(12,G.gut*k*1.6),g=x.createLinearGradient(px+W-gw,0,px+W+gw,0);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.42,'rgba(0,0,0,.28)');g.addColorStop(.5,'rgba(0,0,0,.5)');g.addColorStop(.58,'rgba(0,0,0,.28)');g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g;x.fillRect(px+W-gw,py,2*gw,H);
+  x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=1;x.strokeRect(px,py,2*W,H);
+  ov.hidden=false;
+}
+function spInit(sd){
+  /* butonul din „Desen nou” */
+  var pb=document.querySelector('[data-drnew="page"]');
+  if(pb&&!$('#spNewB')){
+    var b=el('button','btn');b.type='button';b.id='spNewB';b.innerHTML='<b>Pagină dublă (două pagini alăturate)</b><small>Pentru o clădire, un peisaj sau un moment mare care se întinde pe două pagini; cu cotorul marcat</small>';
+    b.addEventListener('click',function(){spNew();});pb.parentNode.insertBefore(b,pb.nextSibling);
+  }
+  /* secțiunea din meniul desenului */
+  var sec=el('div');sec.id='drSpread';
+  sec.appendChild(el('div','h','Pagină dublă'));
+  var info=el('p','note');sec.appendChild(info);
+  var r1=el('div','btns');sec.appendChild(r1);
+  drBtn(r1,'Vezi cum iese în carte',spPreview,'solid');
+  drBtn(r1,'Exportă cele 2 pagini (PNG)',function(){spExport();});
+  drBtn(r1,'Pune în capitol ca 2 pagini',function(){spToChapter();});
+  drToggle(sec,'Ordine manga: pagina din dreapta se citește prima',function(){return DR.spread&&DR.spread.rtl;},function(v){if(DR.spread){DR.spread.rtl=v;drSaveSoon();}});
+  drSlider(sec,'Zona cotorului',0,15,1,function(){return DR.spread?DR.spread.gut:6;},function(v){if(DR.spread){DR.spread.gut=v;drSaveSoon();}},function(v){return Math.round(v)+' mm';});
+  sec.appendChild(el('p','note','Sfaturi: pune subiectul principal pe una dintre jumătăți, nu în cotor. O linie de orizont sau o clădire lungă care trece peste cotor arată bine; o față tăiată de cotor, nu. Textul ține-l în chenarele albastre.'));
+  sd.insertBefore(sec,sd.firstChild);
+  DR.sync.push(function(){
+    var on=!!(DR.ready&&DR.spread);sec.hidden=!on;
+    if(on){var G=spGeom();info.textContent='Două pagini '+(G.F.n||'')+' alăturate ('+DR.w+'×'+DR.h+' px). Linia mov e cotorul; banda gri din mijloc se pierde în legătură.';}
+  });
+}
+/* ---------- Verificator de perspectivă: tragi linii peste muchiile desenului și afli dacă duc spre punctele de fugă ---------- */
+var PC={lines:[],res:null,on:false};
+function pcAng(dx,dy){return Math.atan2(dy,dx);}
+function pcDiff(a,b){var d=Math.abs(a-b)%Math.PI;return Math.min(d,Math.PI-d);}
+/* unghiul dintre linie și direcția spre punctul de fugă (sau direcția la infinit) */
+function pcErr(l,vp){
+  var mx=(l.a[0]+l.b[0])/2,my=(l.a[1]+l.b[1])/2,la=pcAng(l.b[0]-l.a[0],l.b[1]-l.a[1]);
+  var va=vp.p?pcAng(vp.p[0]-mx,vp.p[1]-my):pcAng(vp.d[0],vp.d[1]);
+  return pcDiff(la,va);
+}
+function pcInter(l1,l2){
+  var x1=l1.a[0],y1=l1.a[1],x2=l1.b[0],y2=l1.b[1],x3=l2.a[0],y3=l2.a[1],x4=l2.b[0],y4=l2.b[1];
+  var d=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);if(Math.abs(d)<1e-9)return null;
+  var t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/d;return [x1+t*(x2-x1),y1+t*(y2-y1)];
+}
+var PCOK=1.2*Math.PI/180,PCWARN=3*Math.PI/180;
+function pcAnalyze(){
+  var L=PC.lines,res={items:[],vps:[],mode:'',hor:null,msg:''};
+  if(!L.length){PC.res=null;return;}
+  var info=null,useScene=!PC.free&&(DR.link||DR.kind==='page'||(DR.trace&&DR.trace.on&&/scene/.test(DR.trace.mode)));
+  if(useScene)try{info=drCamInfo();}catch(e){}
+  var vert=function(l){return pcDiff(pcAng(l.b[0]-l.a[0],l.b[1]-l.a[1]),Math.PI/2)<12*Math.PI/180;};
+  if(info){
+    /* comparăm cu perspectiva scenei 3D */
+    res.mode='scene';
+    var V=[{n:'X',c:'#d4452a',v:drVP(info,'x')},{n:'Z',c:'#2557c9',v:drVP(info,'z')},{n:'Y',c:'#1f8a4c',v:drVP(info,'y')}];
+    res.vps=V.filter(function(q){return q.v&&q.v.p;}).map(function(q){return {p:q.v.p,c:q.c,n:q.n};});
+    L.forEach(function(l){
+      var best=null;V.forEach(function(q){if(!q.v)return;var e=pcErr(l,q.v);if(!best||e<best.e)best={e:e,q:q};});
+      res.items.push({l:l,e:best.e,to:best.q.v.p||null,dir:best.q.v.d||null,n:best.q.n,c:best.q.c});
+    });
+    var xv=V[0].v;if(xv&&xv.p)res.hor=xv.p[1];else if(V[1].v&&V[1].v.p)res.hor=V[1].v.p[1];
+  }else{
+    /* fără scenă: găsim singuri punctele de fugă din liniile tale */
+    res.mode='free';
+    var rest=L.filter(function(l){return !vert(l);}),vs=L.filter(vert);
+    vs.forEach(function(l){var e=pcDiff(pcAng(l.b[0]-l.a[0],l.b[1]-l.a[1]),Math.PI/2);res.items.push({l:l,e:e,dir:[0,1],n:'vert',c:'#1f8a4c'});});
+    var cols=['#d4452a','#2557c9','#a16207'],k;
+    for(k=0;k<3&&rest.length>=2;k++){
+      var best=null,i,j;
+      for(i=0;i<rest.length;i++)for(j=i+1;j<rest.length;j++){
+        var p=pcInter(rest[i],rest[j]);if(!p)continue;
+        var inl=rest.filter(function(l){return pcErr(l,{p:p})<PCWARN;});
+        if(!best||inl.length>best.n)best={p:p,n:inl.length};
+      }
+      if(!best||best.n<2)break;
+      /* rafinare: punctul care face eroarea medie cea mai mică între liniile apropiate */
+      var inl2=rest.filter(function(l){return pcErr(l,{p:best.p})<PCWARN;}),sx=0,sy=0,c=0;
+      for(i=0;i<inl2.length;i++)for(j=i+1;j<inl2.length;j++){var q=pcInter(inl2[i],inl2[j]);if(q&&Math.abs(q[0])<DR.w*20&&Math.abs(q[1])<DR.h*20){sx+=q[0];sy+=q[1];c++;}}
+      var vp=c?[sx/c,sy/c]:best.p,col=cols[k];
+      res.vps.push({p:vp,c:col,n:String(k+1)});
+      inl2.forEach(function(l){res.items.push({l:l,e:pcErr(l,{p:vp}),to:vp,n:String(k+1),c:col});});
+      rest=rest.filter(function(l){return inl2.indexOf(l)<0;});
+    }
+    rest.forEach(function(l){res.items.push({l:l,e:99,n:'?',c:'#b42318',lost:true});});
+    if(res.vps.length>=2){var a=res.vps[0].p,b=res.vps[1].p;res.hor=(a[1]+b[1])/2;res.tilt=Math.atan2(b[1]-a[1],b[0]-a[0]);}
+    else if(res.vps.length===1)res.hor=res.vps[0].p[1];
+  }
+  var good=res.items.filter(function(i){return i.e<PCOK;}).length,warn=res.items.filter(function(i){return i.e>=PCOK&&i.e<PCWARN;}).length,bad=res.items.length-good-warn;
+  var worst=res.items.reduce(function(m,i){return i.e<90&&i.e>m?i.e:m;},0);
+  function pl(n,a,b){return n+' '+(n===1?a:b);}
+  res.msg=pl(res.items.length,'linie','linii')+': '+pl(good,'corectă','corecte')+(warn?', '+warn+' aproape (sub 3°)':'')+(bad?', '+pl(bad,'greșită','greșite'):'')+'.'+(worst>PCOK?' Cea mai mare abatere: '+(worst*180/Math.PI).toFixed(1)+'°.':'');
+  if(res.mode==='free'){
+    if(res.items.some(function(i){return i.lost;}))res.msg+=' Liniile roșii nu duc spre niciun punct de fugă comun.';
+    if(res.tilt!=null&&Math.abs(Math.sin(res.tilt))>Math.sin(2*Math.PI/180))res.msg+=' Orizontul (linia dintre punctele de fugă) e înclinat cu '+(Math.abs(res.tilt)*180/Math.PI).toFixed(1)+'°: dacă n-ai vrut cadru înclinat, ceva nu e drept.';
+    if(L.length<3)res.msg+=' Trage cel puțin 2 linii pe fiecare direcție ca să găsesc punctele de fugă.';
+  }else res.msg+=' Compar cu perspectiva scenei 3D (orizontul și punctele de fugă).';
+  PC.res=res;
+}
+function pcOverlay(x){
+  if(DR.tool!=='pcheck'&&!PC.keep)return;
+  var R=PC.res,v=DR.v;
+  x.save();x.lineCap='round';
+  if(R){
+    if(R.hor!=null&&isFinite(R.hor)){var h0=drV2S([-DR.w*3,R.hor]),h1=drV2S([DR.w*4,R.hor]);x.setLineDash([8,6]);x.strokeStyle='rgba(31,138,76,.8)';x.lineWidth=1.5;x.beginPath();x.moveTo(h0[0],h0[1]);x.lineTo(h1[0],h1[1]);x.stroke();x.setLineDash([]);}
+    R.items.forEach(function(it){
+      var a=drV2S(it.l.a),b=drV2S(it.l.b),col=it.lost?'#b42318':it.e<PCOK?'#15803d':it.e<PCWARN?'#d97706':'#b42318';
+      /* prelungirea spre punctul de fugă */
+      if(it.to){var t=drV2S(it.to),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];x.setLineDash([3,5]);x.strokeStyle=col;x.globalAlpha=.55;x.lineWidth=1;x.beginPath();x.moveTo(m[0],m[1]);x.lineTo(t[0],t[1]);x.stroke();x.setLineDash([]);x.globalAlpha=1;}
+      x.strokeStyle='#ffffff';x.lineWidth=6;x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();
+      x.strokeStyle=col;x.lineWidth=3;x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();
+      if(it.e>=PCOK){var lbl=it.lost?'?':(it.e*180/Math.PI).toFixed(1)+'°';x.font='600 13px system-ui';var w=x.measureText(lbl).width;x.fillStyle='#ffffff';x.fillRect(b[0]+6,b[1]-18,w+8,18);x.fillStyle=col;x.fillText(lbl,b[0]+10,b[1]-4);}
+    });
+    R.vps.forEach(function(p){var q=drV2S(p.p);x.beginPath();x.arc(q[0],q[1],8,0,7);x.fillStyle='#ffffff';x.fill();x.lineWidth=3;x.strokeStyle=p.c;x.stroke();});
+  }
+  var d=PC.drag;if(d){var a2=drV2S(d.a),b2=drV2S(d.b);x.strokeStyle='#7c3aed';x.lineWidth=2.5;x.setLineDash([6,4]);x.beginPath();x.moveTo(a2[0],a2[1]);x.lineTo(b2[0],b2[1]);x.stroke();x.setLineDash([]);}
+  x.restore();
+}
+function pcClear(){PC.lines=[];PC.res=null;drSync();drDirty();}
+function pcUndoLine(){PC.lines.pop();pcAnalyze();drSync();drDirty();}
+function pcInit(){
+  var cx=document.querySelector('.cx[data-k="sel"]');if(!cx)return;
+  var box=cx.parentNode,sec=el('div','cx');sec.setAttribute('data-k','pcheck');box.appendChild(sec);
+  var l1=el('div','cxl');sec.appendChild(l1);
+  drBtn(l1,'Șterge ultima linie',pcUndoLine);drBtn(l1,'Șterge toate',pcClear);
+  var msg=el('p','note');msg.id='pcMsg';sec.appendChild(msg);
+  drToggle(sec,'Găsește punctele de fugă din liniile mele (nu din scena 3D)',function(){return !!PC.free;},function(v){PC.free=v;pcAnalyze();drDirty();});
+  drToggle(sec,'Lasă rezultatul pe foaie și când schimb unealta',function(){return !!PC.keep;},function(v){PC.keep=v;drDirty();});
+  DR.sync.push(function(){
+    sec.hidden=DR.tool!=='pcheck'||!!DR.float;
+    msg.textContent=PC.res?PC.res.msg:'Trage linii peste muchiile drepte ale desenului (colțuri de clădiri, ferestre, marginile mesei). Verde = duce spre punctul de fugă, portocaliu = aproape, roșu = greșit. Dacă ai scena 3D ca calc, compar cu ea; altfel găsesc singur punctele de fugă din liniile tale (trage cel puțin 2 pe fiecare direcție).';
+  });
+  /* un buton și în Ghiduri */
+  var hs=[].filter.call(document.querySelectorAll('#drSide .h'),function(h){return h.textContent==='Riglă de perspectivă';})[0];
+  if(hs){var r=el('div','btns');drBtn(r,'Verificator de perspectivă',function(){drSetTool('pcheck');var s=$('#drSide');if(window.innerWidth<900)s.hidden=true;},'solid');hs.parentNode.insertBefore(r,hs.nextSibling);}
+}
+/* ---------- Perspectivă cu puncte de fugă puse de tine (1, 2 sau 3), ca în Clip Studio ---------- */
+var PRCOL=['#d4452a','#2557c9','#1f8a4c'];
+function prDef(n){
+  var w=DR.w,h=DR.h;
+  if(n===1)return [[w*.5,h*.4]];
+  if(n===2)return [[-w*.15,h*.4],[w*1.15,h*.4]];
+  return [[-w*.2,h*.33],[w*1.2,h*.33],[w*.5,h*1.9]];
+}
+function prSet(n){
+  if(!DR.pr)DR.pr={on:false,n:2,pts:null,snap:true,show:true,edit:false};
+  if(!n){DR.pr.on=false;DR.pr.edit=false;drSync();drDirty();drSaveSoon();return;}
+  var keep=DR.pr.pts&&DR.pr.pts.length>=n?DR.pr.pts.slice(0,n):null;
+  if(!keep){var d=prDef(n);keep=(DR.pr.pts||[]).slice(0,n);while(keep.length<n)keep.push(d[keep.length]);}
+  DR.pr.n=n;DR.pr.pts=keep;DR.pr.on=true;
+  drSync();drDirty();drSaveSoon();
+}
+function prFromScene(){
+  var info=null;try{info=drCamInfo();}catch(e){}
+  if(!info){drMsg('Nu am o vedere 3D aici. Pe o pagină, alege un panou cu vedere și bifează „Desenează doar în panoul ales”.');return;}
+  var P=[];['x','z','y'].forEach(function(a){var v=drVP(info,a);if(v&&v.p&&isFinite(v.p[0])&&isFinite(v.p[1])&&Math.abs(v.p[0])<DR.w*30&&Math.abs(v.p[1])<DR.h*30)P.push(v.p);});
+  if(!P.length){drMsg('Vederea 3D are toate liniile paralele (fără puncte de fugă la distanță finită).');return;}
+  if(!DR.pr)prSet(P.length);
+  DR.pr.n=Math.min(3,P.length);DR.pr.pts=P.slice(0,3);DR.pr.on=true;drSync();drDirty();drSaveSoon();
+  drMsg('Am luat '+P.length+' puncte de fugă din scena 3D. Le poți muta cu „Mută punctele”.');
+}
+/* direcția liniei: spre punctul de fugă cel mai apropiat de cum ai pornit mâna */
+function prPick(p0,p1){
+  var pr=DR.pr,mx=p1[0]-p0[0],my=p1[1]-p0[1],ma=Math.atan2(my,mx),best=null;
+  function cand(dx,dy){var L=Math.hypot(dx,dy);if(L<1e-6)return;dx/=L;dy/=L;var a=Math.atan2(dy,dx),d=Math.abs(a-ma)%Math.PI;d=Math.min(d,Math.PI-d);if(!best||d<best.d)best={d:d,dx:dx,dy:dy};}
+  pr.pts.forEach(function(v){cand(v[0]-p0[0],v[1]-p0[1]);});
+  if(pr.n===1){cand(1,0);cand(0,1);}
+  else if(pr.n===2)cand(0,1);
+  return best?{dx:best.dx,dy:best.dy}:null;
+}
+function prHit(e){
+  var pr=DR.pr;if(!pr||!pr.on)return null;
+  var r=DR.disp.getBoundingClientRect(),sp=[e.clientX-r.left,e.clientY-r.top],i,R=e.pointerType==='touch'?36:26;
+  for(i=0;i<pr.pts.length;i++){var q=drV2S(pr.pts[i]);if(Math.hypot(q[0]-sp[0],q[1]-sp[1])<R)return {k:'v',i:i};}
+  if(pr.n<=2){var hy=drV2S([0,pr.pts[0][1]])[1];if(Math.abs(sp[1]-hy)<16&&(pr.n===1||Math.abs(drV2S(pr.pts[1])[1]-hy)<2))return {k:'h'};}
+  return null;
+}
+function prDragBegin(e,p){
+  var h=prHit(e);
+  if(!h){drMsg('Trage de un punct de fugă (cercurile colorate) sau de linia orizontului. Apasă „Gata” când ai terminat.');return true;}
+  DR.stroke={prd:h,pid:e.pointerId,p0:p,pts0:DR.pr.pts.map(function(v){return v.slice();}),layer:DR.cur,bb:[0,0,0,0],sc:[e.clientX,e.clientY]};
+  return true;
+}
+function prDragMove(st,p){
+  var pr=DR.pr,dx=p[0]-st.p0[0],dy=p[1]-st.p0[1];
+  if(st.prd.k==='v'){var v=st.pts0[st.prd.i];pr.pts[st.prd.i]=[v[0]+dx,v[1]+dy];
+    /* la 2 puncte, orizontul rămâne drept: celălalt punct urmează pe verticală */
+    if(pr.n===2&&!pr.tilt){var o=1-st.prd.i;pr.pts[o]=[st.pts0[o][0],v[1]+dy];}
+  }else pr.pts=st.pts0.map(function(v,i){return (pr.n===3&&i===2)?v.slice():[v[0],v[1]+dy];});
+  drDirty();
+}
+function prOverlay(x){
+  var pr=DR.pr;if(!pr||!pr.on||!pr.show)return;
+  var w=DR.w,h=DR.h,corners=[[0,0],[w,0],[w,h],[0,h]];
+  x.save();x.lineWidth=1;
+  pr.pts.forEach(function(v,i){
+    var q=drV2S(v),col=PRCOL[i];
+    /* evantai de linii spre punct, cât acoperă foaia */
+    var angs=corners.map(function(c){return Math.atan2(c[1]-v[1],c[0]-v[0]);}),a0=Math.min.apply(0,angs),a1=Math.max.apply(0,angs);
+    if(a1-a0>Math.PI){angs=angs.map(function(a){return a<0?a+2*Math.PI:a;});a0=Math.min.apply(0,angs);a1=Math.max.apply(0,angs);}
+    var inside=v[0]>=0&&v[0]<=w&&v[1]>=0&&v[1]<=h;if(inside){a0=0;a1=2*Math.PI;}
+    var n=inside?36:16,R=Math.hypot(w,h)*3;
+    x.strokeStyle=col;x.globalAlpha=pr.edit?.38:.22;x.beginPath();
+    for(var k=0;k<=n;k++){var a=a0+(a1-a0)*k/n,e=drV2S([v[0]+Math.cos(a)*R,v[1]+Math.sin(a)*R]);x.moveTo(q[0],q[1]);x.lineTo(e[0],e[1]);}
+    x.stroke();x.globalAlpha=1;
+  });
+  /* orizontul */
+  if(pr.n<=2){
+    var a=pr.pts[0],b=pr.n===2?pr.pts[1]:[pr.pts[0][0]+1,pr.pts[0][1]],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,R2=Math.hypot(w,h)*4;
+    var s0=drV2S([a[0]-dx/L*R2,a[1]-dy/L*R2]),s1=drV2S([a[0]+dx/L*R2,a[1]+dy/L*R2]);
+    x.strokeStyle='rgba(31,138,76,.85)';x.lineWidth=pr.edit?2.5:1.5;x.setLineDash([10,6]);x.beginPath();x.moveTo(s0[0],s0[1]);x.lineTo(s1[0],s1[1]);x.stroke();x.setLineDash([]);
+  }
+  pr.pts.forEach(function(v,i){var q=drV2S(v);x.beginPath();x.arc(q[0],q[1],pr.edit?13:8,0,7);x.fillStyle='#ffffff';x.fill();x.lineWidth=3;x.strokeStyle=PRCOL[i];x.stroke();
+    if(pr.edit){x.font='700 12px system-ui';x.fillStyle=PRCOL[i];x.textAlign='center';x.textBaseline='middle';x.fillText(String(i+1),q[0],q[1]);}});
+  /* puncte în afara ecranului: săgeată pe margine */
+  var r=DR.disp.getBoundingClientRect(),W=r.width,H=r.height;
+  pr.pts.forEach(function(v,i){var q=drV2S(v);if(q[0]>=0&&q[0]<=W&&q[1]>=0&&q[1]<=H)return;
+    var cx=clamp(q[0],14,W-14),cy=clamp(q[1],14,H-14);x.beginPath();x.arc(cx,cy,7,0,7);x.fillStyle=PRCOL[i];x.globalAlpha=.75;x.fill();x.globalAlpha=1;});
+  x.restore();
+}
+function prInit(){
+  var hs=[].filter.call(document.querySelectorAll('#drSide .h'),function(h){return h.textContent==='Riglă de perspectivă';})[0];if(!hs)return;
+  var sec=el('div');sec.id='drPr';
+  sec.appendChild(el('div','h','Puncte de fugă (1, 2, 3)'));
+  drSegBtn(sec,[[0,'Oprit'],[1,'1 punct'],[2,'2 puncte'],[3,'3 puncte']],function(){return DR.pr&&DR.pr.on?DR.pr.n:0;},function(v){prSet(+v);});
+  var r1=el('div','btns');sec.appendChild(r1);
+  var eb=drBtn(r1,'Mută punctele',function(){if(!DR.pr||!DR.pr.on)prSet(2);DR.pr.edit=!DR.pr.edit;drSync();drDirty();if(DR.pr.edit)drMsg('Trage de cercuri ca să muți punctele de fugă, sau de linia verde ca să muți orizontul. Poți micșora foaia ca să ajungi la punctele din afara ei.');});
+  drBtn(r1,'Ia punctele din scena 3D',prFromScene);
+  drBtn(r1,'Pune-le la loc',function(){if(DR.pr&&DR.pr.on){DR.pr.pts=prDef(DR.pr.n);drDirty();drSaveSoon();}});
+  var t1=drToggle(sec,'Liniile se lipesc de punctele de fugă (automat, după cum pornești linia)',function(){return !DR.pr||DR.pr.snap;},function(v){if(!DR.pr)prSet(0);DR.pr.snap=v;});
+  var t2=drToggle(sec,'Arată liniile ajutătoare',function(){return !DR.pr||DR.pr.show;},function(v){if(!DR.pr)prSet(0);DR.pr.show=v;drDirty();});
+  var t3=drToggle(sec,'Orizont înclinat (punctele se mișcă separat)',function(){return !!(DR.pr&&DR.pr.tilt);},function(v){if(DR.pr)DR.pr.tilt=v;});
+  sec.appendChild(el('p','note','Pune punctele unde vrei (pot fi și în afara foii). Cu lipirea pornită, fiecare linie pe care o tragi merge drept spre punctul de fugă cel mai potrivit cu direcția în care ai pornit mâna; la 1 punct și orizontalele și verticalele, la 2 puncte și verticalele. Merge cu toate pensulele și cu radiera.'));
+  hs.parentNode.insertBefore(sec,hs);
+  DR.sync.push(function(){var on=!!(DR.pr&&DR.pr.on);eb.textContent=DR.pr&&DR.pr.edit?'Gata cu mutatul':'Mută punctele';eb.classList.toggle('solid',!!(DR.pr&&DR.pr.edit));t1.hidden=t2.hidden=!on;t3.hidden=!(on&&DR.pr.n===2);});
 }
 
 /* ---------- Reference window (ca „Sub View” din Clip Studio) ---------- */
@@ -8959,7 +9825,7 @@ function figInit(){
 }
 
 initDownloads();initScenes();pgInit();drInit();figInit();qpInit();
-if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
+if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
 })();
 </script>
 <script>
