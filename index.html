@@ -7861,12 +7861,47 @@ function dpOverlay(x){
 function dpFind(pageId,i){
   return drIdx().then(function(ix){return ix.filter(function(e){return e.link&&e.link.page===pageId&&e.link.panel===i;})[0]||null;});
 }
+/* elementele din bibliotecă puse în panou se mută pe foaia separată (altfel nu le vezi acolo) */
+function dpTakeLib(i){
+  var q=dpQuad(i);if(!q)return [];
+  var kp=DR.w/PW,b=dpBB(q),x0=Math.floor(b[0]*kp),y0=Math.floor(b[1]*kp),w=Math.ceil((b[2]-b[0])*kp),h=Math.ceil((b[3]-b[1])*kp),out=[],j;
+  for(j=DR.layers.length-1;j>=0;j--){
+    var L=DR.layers[j];if(!L.lib||!L.lib.id||L.lib.pdoc||L.lock)continue;
+    var g=L.ctx.getImageData(x0,y0,Math.max(1,w),Math.max(1,h)).data,has=false,n;
+    for(n=3;n<g.length;n+=16)if(g[n]>8){has=true;break;}
+    if(!has)continue;
+    var c=drMk(w,h),x=c.getContext('2d');
+    x.save();x.translate(-x0,-y0);x.scale(kp,kp);pgFramePath(x,q,pgStyle(i));x.restore();
+    x.save();x.clip();x.drawImage(L.cv,-x0,-y0);x.restore();
+    /* curăță din pagină doar ce e în panou */
+    L.ctx.save();L.ctx.setTransform(1,0,0,1,0,0);L.ctx.scale(kp,kp);pgFramePath(L.ctx,q,pgStyle(i));L.ctx.restore();
+    L.ctx.save();L.ctx.setTransform(1,0,0,1,0,0);L.ctx.clip();L.ctx.globalCompositeOperation='destination-out';L.ctx.fillStyle='#000';L.ctx.fillRect(0,0,DR.w,DR.h);L.ctx.restore();
+    var s=drMk(128,Math.max(1,Math.round(128*DR.h/DR.w))),sx=s.getContext('2d');sx.drawImage(L.cv,0,0,s.width,s.height);
+    var sd=sx.getImageData(0,0,s.width,s.height).data,left=false;for(n=3;n<sd.length;n+=4)if(sd[n]){left=true;break;}
+    out.unshift({name:L.name,cv:c,lib:JSON.parse(JSON.stringify(L.lib)),op:L.op,vis:L.vis});
+    if(!left){DR.layers.splice(j,1);if(DR.cur>=DR.layers.length)DR.cur=DR.layers.length-1;}
+  }
+  if(out.length){DR.undo=[];DR.redo=[];DR.undoPx=0;drDirty();}
+  return out;
+}
+function dpGiveLib(list,lk){
+  if(!list||!list.length)return '';
+  var kp=lk.pw/PW,s=dpK(lk)/kp,ox=lk.bb[0]*kp,oy=lk.bb[1]*kp;
+  list.forEach(function(m){
+    var L=drAddLayer(m.name,DR.layers.length);L.op=m.op;L.vis=m.vis;
+    L.ctx.save();L.ctx.imageSmoothingQuality='high';L.ctx.drawImage(m.cv,0,0,m.cv.width*s,m.cv.height*s);L.ctx.restore();
+    var lb=m.lib;if(lb.tf){lb.tf={cx:(lb.tf.cx-ox)*s,cy:(lb.tf.cy-oy)*s,sx:lb.tf.sx*s,sy:lb.tf.sy*s,rot:lb.tf.rot};}
+    L.lib=lb;DR.cur=DR.layers.indexOf(L);
+  });
+  drDirty();
+  return ' Am adus aici și: '+list.map(function(m){return '„'+m.name+'”';}).join(', ')+' (din bibliotecă).';
+}
 /* din pagină: deschide (sau creează) foaia separată pentru panoul ales */
 function dpOpen(f){
   if(!DR.ready||DR.kind!=='page'){drMsg('Deschide întâi o pagină de manga.');return Promise.resolve(false);}
   var i=DR.panel,q=dpQuad(i);if(!q){drMsg('Alege un panou.');return Promise.resolve(false);}
   if(DR.float)drFloatCommit();
-  var pageId=DR.id,pw=DR.w,pname=DR.name;
+  var pageId=DR.id,pw=DR.w,pname=DR.name,mv=dpTakeLib(i);
   return drSaveNow().then(function(){return dpFind(pageId,i);}).then(function(e){
     var lk=dpLinkFrom(pageId,i,f||1,pw);
     if(e){
@@ -7879,7 +7914,7 @@ function dpOpen(f){
         else if(DR.link){lk.bb=DR.link.bb;lk.q=DR.link.q;lk.sty=DR.link.sty;lk.f=DR.link.f;}
         DR.link=lk;DR.trace.mode=DR.trace.mode==='none'?'none':'panel';drBuildTrace();
         DR.v={s:1,x:0,y:0,r:0,f:false};drShowEditor();drFit();drSync();drDirty();drSaveSoon();
-        drMsg(sameShape?'Ai revenit la foaia panoului '+(i+1)+'.':'Ai revenit la foaia panoului '+(i+1)+'. Forma panoului s-a schimbat; la „Pune în pagină” desenul se potrivește pe forma nouă.');
+        var ex=dpGiveLib(mv,lk);if(ex)drSaveSoon();drMsg((sameShape?'Ai revenit la foaia panoului '+(i+1)+'.':'Ai revenit la foaia panoului '+(i+1)+'. Forma panoului s-a schimbat; la „Pune în pagină” desenul se potrivește pe forma nouă.')+ex);
         return true;
       });
     }
@@ -7892,9 +7927,10 @@ function dpOpen(f){
     DR.link=lk;DR.spread=null;DR.print.on=false;
     DR.trace={mode:'panel',op:.4,cv:null,on:true};DR.clip=true;DR.panel=0;DR.ready=true;
     DR.v={s:1,x:0,y:0,r:0,f:false};
+    var ex=dpGiveLib(mv,lk);
     drBuildTrace();drShowEditor();drFit();drSync();drDirty();
     return drSaveNow().then(function(){
-      drMsg('Foaie mare pentru panoul '+(i+1)+'. Desenează, apoi apasă „Pune în pagină”.');return true;
+      drMsg('Foaie mare pentru panoul '+(i+1)+'. Desenează, apoi apasă „Pune în pagină”.'+ex);return true;
     });
   }).catch(function(){drMsg('Nu am putut deschide foaia panoului.');return false;});
 }
@@ -8735,8 +8771,8 @@ function drExportPSD(){
   return new Promise(function(r){setTimeout(r,30);}).then(function(){return saveBlob(psdBuild(),drFileBase()+'.psd');}).then(function(m){drMsg(m);},function(){drMsg('Nu am putut face PSD-ul (poate e prea mare pentru memoria disponibilă).');});
 }
 /* ---------- Anunț de versiune nouă ---------- */
-var APP_VER='2026.11.20u';
-var APP_NEWS=['„Pune din bibliotecă” e acum în Fișier și în Meniu → Pagină: pui fața sau corpul salvat direct în panou.','Salvează în bibliotecă, la vedere: Fișier → „Salvează în bibliotecă…”, Meniu → Pagină → „💾 Salvează panoul în bibliotecă”, sau „💾 În bibliotecă” când ai o selecție. Pe o pagină se salvează doar ce e în panoul ales.',
+var APP_VER='2026.11.20v';
+var APP_NEWS=['Ce pui din bibliotecă într-un panou apare acum și pe foaia separată a panoului.','„Pune din bibliotecă” e acum în Fișier și în Meniu → Pagină: pui fața sau corpul salvat direct în panou.','Salvează în bibliotecă, la vedere: Fișier → „Salvează în bibliotecă…”, Meniu → Pagină → „💾 Salvează panoul în bibliotecă”, sau „💾 În bibliotecă” când ai o selecție. Pe o pagină se salvează doar ce e în panoul ales.',
   'Imagine pentru telefon / internet (Fișier, sau în fereastra de salvare): JPG de 2048 px micșorat corect, ca tonurile cu puncte să arate ca pe ecran și în WhatsApp, Instagram sau galerie. PNG-ul rămâne pentru tipar, la rezoluția întreagă.',
   'Umplere cu orice pensulă din Pensule+: Găleată → Textură → „O pensulă din Pensule+”. Pensulele cu textură umplu cu textura lor; cele cu forme (frunziș, iarbă, flori, sclipiri, mulțime) umplu zona cu forme, cu mărimea și distanța alese, și în perspectivă.',
   'Moduri active, mereu la vedere sus: selecție, mutare, simetrie, riglă, puncte de fugă, plan în perspectivă, „doar în panou”, strat ascuns/blocat, opacitate mică. Fiecare are buton clar de oprire; când sunt mai multe, „✕ Oprește tot”.',
