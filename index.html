@@ -3542,7 +3542,7 @@ function drNew(kind,opt){
   DR.link=null;DR.spread=null;DR.pr=null;DR.sketch=null;DR.id='d'+Date.now().toString(36);DR.name=(kind==='page'&&opt?'Pagină '+drFmt().n.split(' ')[0]+' ':'Desen ')+(DR.libN||1);
   drBufs();
   var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;DR.cur=1;
-  DR.trace={mode:kind==='page'?'page':'scene',op:.4,cv:null,on:true};DR.clip=false;DR.panel=0;DR.ready=true;
+  DR.trace={mode:kind==='page'?'page':kind==='screen'?'scene':'none',op:.4,cv:null,on:true};DR.clip=false;DR.panel=0;DR.ready=true;
   DR.v={s:1,x:0,y:0,r:0,f:false};
   drBuildTrace();drShowEditor();drSaveSoon();
 }
@@ -3934,7 +3934,7 @@ function drRetouch(st,p,r,si){
 }
 function drDab1(st,p,pp,si,ang){
   var c=st.tctx,t=st.tool,r=drRadius(t,pp)*(st.tap==null?drTaperAt(st,0):st.tap),j,rg=st.rgb;
-  if(t==='cust'){if(st.cb)drDabCust(st,p,pp,ang);return;}
+  if(t==='cust'){if(st.cb)drDabCust(st,p,pp,ang,st.cb.p.taper?drC().size*(st.tap==null?drTaperAt(st,0):st.tap):0);return;}
   if(t==='eraser'){
     c.globalCompositeOperation='destination-out';c.globalAlpha=drC().op;c.fillStyle='#000';
     c.beginPath();c.arc(p[0],p[1],r,0,7);c.fill();c.globalCompositeOperation='source-over';c.globalAlpha=1;
@@ -4013,7 +4013,7 @@ function drBegin(e){
   if(DGEST[tool])p=drSnap(p);
   var st={tool:tool,pid:e.pointerId,p0:p,sx:p[0],sy:p[1],sp:drPressure(e),bb:[1e9,1e9,-1e9,-1e9],rail:DGEST[tool]?null:drRail(p),layer:DR.cur,alpha:cfg.op,raw:p,end:null,rgb:hex2rgb(DR.color),pk:[],direct:!!DDIRECT[tool],mask:tool==='tone',gest:!!DGEST[tool],sc:[e.clientX,e.clientY],moved:0,pen:e.pointerType,seed:1+Math.floor(Math.random()*1e6)};
   DR.tool=prevTool;
-  if(tool==='cust'){st.cb=DR.cb;st.mips=cbTint(DR.cb,DR.color);st.ang=null;}
+  if(tool==='cust'){st.cb=DR.cb;st.mips=cbTint(DR.cb,DR.cb.p.col||DR.color);st.ang=null;}
   var tctx=st.direct?L.ctx:DR.sbuf.getContext('2d');
   tctx.save();
   if(DR.clip&&(DR.kind==='page'||DR.link)){drPanelPath(tctx);tctx.clip();}
@@ -5787,7 +5787,7 @@ function drBuildTop(){
   $('#drRot0').addEventListener('click',drResetRot);
   /* chooser */
   drBuildPageSet();
-  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();foInit();prInit();skInit();phInit();drTabify();fsInit();qsInit();smInit();cfInit();trInit();cbInit();shInit();hmInit();tdInit();npInit();if(!window.__persp)setTimeout(hmShow,0);
+  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();foInit();prInit();skInit();phInit();drTabify();fsInit();qsInit();smInit();cfInit();trInit();cbInit();shInit();hmInit();tdInit();npInit();edInit();if(!window.__persp)setTimeout(hmShow,0);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(err){}
   document.querySelectorAll('[data-drnew]').forEach(function(b){b.addEventListener('click',function(){
     var kd=b.getAttribute('data-drnew');
@@ -6177,7 +6177,7 @@ function drBrImportFiles(files,msg){
 }
 /* ---------- interfață ---------- */
 function drBrOpen(){var p=$('#drBr');if(!p)return;p.hidden=false;if(DBR.render)DBR.render();drSync();}
-function drBrClose(){var p=$('#drBr');if(p)p.hidden=true;}
+function drBrClose(){var p=$('#drBr');if(p)p.hidden=true;drSync();}
 function drBrDrawPrev(cv){
   var x=cv.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,cv.width,cv.height);
   var cb=DR.cb;if(!cb)return;
@@ -6314,9 +6314,9 @@ function drBrInit(){
     render(true);
     if(!window.indexedDB)return;
     idbGet('cbpack').then(function(fl){
-      if(fl)return;
-      msg.textContent='Instalez pachetul gratuit de pensule…';
-      drBrPackInstall(function(t){msg.textContent=t;}).then(function(n){msg.textContent='Pachetul gratuit ('+n+' pensule) e instalat.';render(true);},function(){});
+      if(fl&&fl.v>=2)return;
+      msg.textContent=fl?'Adaug pensulele noi pentru manga…':'Instalez pachetul gratuit de pensule…';
+      drBrPackInstall(function(t){msg.textContent=t;}).then(function(n){msg.textContent=(fl?'Am adăugat '+n+' pensule noi pentru manga (sus, la „Manga: …”).':'Pachetul gratuit ('+n+' pensule) e instalat.');render(true);},function(){});
     },function(){});
   });
 }
@@ -6401,6 +6401,10 @@ function drBrPackBuild(row,i){
 }
 /* instalează (sau completează) pachetul: sare peste pensulele cu același nume */
 function drBrPackInstall(say){
+  if(drBrPackInstall.p)return drBrPackInstall.p;
+  return (drBrPackInstall.p=drBrPackInstall2(say).then(function(n){drBrPackInstall.p=null;return n;},function(e){drBrPackInstall.p=null;throw e;}));
+}
+function drBrPackInstall2(say){
   var have={};DBR.list.forEach(function(e){have[e.name]=1;});
   var todo=PKSET.map(function(r,i){return {r:r,i:i};}).filter(function(o){return !have[o.r[1]];}),n=0,chain=Promise.resolve();
   todo.slice().reverse().forEach(function(o,k){
@@ -6410,7 +6414,7 @@ function drBrPackInstall(say){
       return cbSaveNew(it).then(function(){n++;return new Promise(function(r){setTimeout(r,0);});});
     });
   });
-  return chain.then(function(){return cbIdxSave();}).then(function(){return idbPut('cbpack',{v:1,t:Date.now()});}).then(function(){return n;});
+  return chain.then(function(){return cbIdxSave();}).then(function(){return idbPut('cbpack',{v:2,t:Date.now()});}).then(function(){return n;});
 }
 /* ---------- Panouri libere (pagina de manga) ---------- */
 var PGF={cut:false,cutL:null,vtx:-1,vp:-1,drag:null,hist:[],guides:null,tapT:0,tapV:-1,tapP:-1,snap:true,pg:null,ui:null,convT:null,conv:0};
@@ -8434,7 +8438,7 @@ function guideInit(){
 /* ---------- Senzația pensulei: capete subțiri, cursor cu mărimea pensulei ---------- */
 var DTAPER={gpen:1,fine:1,maru:1,brush:1,turnip:1,school:1};
 function drTaperAt(st,dist){
-  if(!DR.taper||!DTAPER[st.tool])return 1;
+  if(!DR.taper||!(DTAPER[st.tool]||(st.tool==='cust'&&st.cb&&st.cb.p.taper)))return 1;
   var keep=DR.tool;DR.tool=st.tool;var sz=drC().size;DR.tool=keep;
   var L=Math.max(8,sz*DR.taperL),x=clamp(dist/L,0,1);
   return .12+.88*x*x*(3-2*x);
@@ -8695,8 +8699,14 @@ function drExportPSD(){
   return new Promise(function(r){setTimeout(r,30);}).then(function(){return saveBlob(psdBuild(),drFileBase()+'.psd');}).then(function(m){drMsg(m);},function(){drMsg('Nu am putut face PSD-ul (poate e prea mare pentru memoria disponibilă).');});
 }
 /* ---------- Anunț de versiune nouă ---------- */
-var APP_VER='2026.11.20i';
-var APP_NEWS=['Pagină nouă în capitol: alegi tu panourile (aranjare gata făcută, câte vrei, un panou pe care îl tai tu, sau din text) și cadrul lor. Nu se mai copiază automat pagina de dinainte.',
+var APP_VER='2026.11.20m';
+var APP_NEWS=['Formele curate merg mai sigur: tremurul mâinii cât ții creionul pe loc nu mai oprește corectarea, iar cercurile, pătratele și triunghiurile mai strâmbe sau neînchise complet sunt recunoscute. Merge cu toate pensulele.',
+  '35 pensule noi pentru manga (Pensule+ → categoriile „Manga: …”): G-Pen tuș real, Maru, Kabura, pensulă fude, tuș uscat, fineliner, umplere, corector și pix alb, creioane de schiță albastru/roșu/HB/2B, ton și hașuri cu pensula, sclipiri, flori, flăcări, fulger, frunziș, nori, stele, valuri, mulțime, cărămizi, lemn, iarbă.',
+  'Calcul (imaginea de sub desen, care nu e pe niciun strat și nu se șterge cu radiera): butonul ◐ din dreapta îl ascunde/arată, iar „Scoate-l” îl scoate de tot. Desenele libere noi nu mai pornesc cu scena 3D dedesubt.',
+  'Reparat: după ce modifici panourile unei pagini, panourile vechi nu mai rămân în fundal.',
+  'Editezi panourile oricărei pagini: „✎ Panouri” pe tabla capitolului, ▦ în banda de pagini sau Meniu → Pagină. Adaugi, ștergi, muți, tai, schimbi forma și ordinea.',
+  'Ștergi capitole (🗑 pe raft sau pe tablă): doar capitolul, sau cu tot cu pagini. Paginile le scoți din capitol sau le ștergi cu 🗑 de sub fiecare.',
+  'Pagină nouă în capitol: alegi tu panourile (aranjare gata făcută, câte vrei, un panou pe care îl tai tu, sau din text) și cadrul lor. Nu se mai copiază automat pagina de dinainte.',
   'Reparat: după lasou, selecția rămânea activă și desenul apărea doar în ea. Acum apare sus „✕ Deselectează”, selecția se mută odată cu ce ai mutat și îți spun dacă o linie e în afara selecției.',
   'Acasă: continui ce lucrai, capitolele, desenele libere și „+ Nou”. „Închide” e acum „← Acasă”.',
   'Meniul are 4 file: Straturi, Pagină, Ajutoare, Setări. Fișier are doar salvare, deschidere și export.',
@@ -10201,8 +10211,10 @@ function qsTrack(st,e){
   var p=drToDoc(e);
   if(!st.qs){st.qs=[st.p0];st.qa=[e.clientX,e.clientY];}
   var lq=st.qs[st.qs.length-1];if(Math.hypot(p[0]-lq[0],p[1]-lq[1])*(DR.v.s||1)>1.5)st.qs.push(p);
-  /* creionul s-a mișcat → repornește numărătoarea pentru „ținut pe loc” */
-  if(Math.hypot(e.clientX-st.qa[0],e.clientY-st.qa[1])>5){
+  /* creionul se mișcă (pas mare între evenimente sau s-a depărtat de locul unde stătea) → numărătoarea pentru „ținut pe loc” o ia de la capăt; tremurul mic al mâinii nu contează */
+  var lp=st.qlp||st.qa,step=Math.hypot(e.clientX-lp[0],e.clientY-lp[1]),drift=Math.hypot(e.clientX-st.qa[0],e.clientY-st.qa[1]);
+  st.qlp=[e.clientX,e.clientY];
+  if(step>2.5||drift>8||!st.qt){
     st.qa=[e.clientX,e.clientY];clearTimeout(st.qt);
     st.qt=setTimeout(function(){qsFire(st);},QS_HOLD);
   }
@@ -10219,7 +10231,7 @@ function qsFit(P){
   var dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,md=0;
   P.forEach(function(p){md=Math.max(md,Math.abs(dy*(p[0]-a[0])-dx*(p[1]-a[1]))/L);});
   if(L>.8*len&&md<Math.max(.045*L,3/s))return {name:'Linie',pts:[a,b],closed:false};
-  var closed=gap<Math.max(.22*diag,18/s)&&len>2.2*diag*.9;
+  var closed=gap<Math.max(.3*diag,24/s)&&len>1.8*diag;
   if(closed){
     /* elipsă / cerc prin axele principale */
     var cx=0,cy=0;P.forEach(function(p){cx+=p[0];cy+=p[1];});cx/=P.length;cy/=P.length;
@@ -10240,10 +10252,10 @@ function qsFit(P){
     while(R.length>3){var q0=R[0],qn=R[R.length-1];if(Math.hypot(q0[0]-qn[0],q0[1]-qn[1])<.15*diag)R.pop();else break;}
     var pe=0;if(R.length>=3&&R.length<=6){P.forEach(function(p){var m=1e9;for(var i=0;i<R.length;i++){var c=R[i],d=R[(i+1)%R.length],ex=d[0]-c[0],ey=d[1]-c[1],l2=ex*ex+ey*ey||1,t=clamp(((p[0]-c[0])*ex+(p[1]-c[1])*ey)/l2,0,1);m=Math.min(m,Math.hypot(p[0]-c[0]-ex*t,p[1]-c[1]-ey*t));}pe+=m;});pe/=P.length*diag;}
     else pe=1;
-    if(R.length>=3&&R.length<=5&&pe<(R.length===5?.015:.03)&&pe<ee*.5&&!qsSelfX(R)){
+    if(R.length>=3&&R.length<=5&&pe<(R.length===5?.02:.045)&&pe<ee*.6&&!qsSelfX(R)){
       if(R.length===4){
         /* aproape unghiuri drepte → dreptunghi curat (păstrând rotirea) */
-        var right=true;for(var i=0;i<4;i++){var p0=R[(i+3)%4],p1=R[i],p2=R[(i+1)%4],v1=[p0[0]-p1[0],p0[1]-p1[1]],v2=[p2[0]-p1[0],p2[1]-p1[1]],cs=(v1[0]*v2[0]+v1[1]*v2[1])/(Math.hypot(v1[0],v1[1])*Math.hypot(v2[0],v2[1])||1);if(Math.abs(cs)>.26)right=false;}
+        var right=true;for(var i=0;i<4;i++){var p0=R[(i+3)%4],p1=R[i],p2=R[(i+1)%4],v1=[p0[0]-p1[0],p0[1]-p1[1]],v2=[p2[0]-p1[0],p2[1]-p1[1]],cs=(v1[0]*v2[0]+v1[1]*v2[1])/(Math.hypot(v1[0],v1[1])*Math.hypot(v2[0],v2[1])||1);if(Math.abs(cs)>.35)right=false;}
         if(right){
           var ang=Math.atan2(R[1][1]-R[0][1],R[1][0]-R[0][0]),sn=Math.round(ang/(Math.PI/2))*(Math.PI/2);if(Math.abs(ang-sn)<.12)ang=sn;
           var c2=Math.cos(ang),s2=Math.sin(ang),mx=0,my=0;R.forEach(function(p){mx+=p[0]/4;my+=p[1]/4;});
@@ -10255,7 +10267,7 @@ function qsFit(P){
       }
       return {name:R.length===3?'Triunghi':R.length===4?'Patrulater':'Poligon',pts:R,closed:true};
     }
-    if(ee<.14){
+    if(ee<.2){
       var circ=Math.min(ra,rb)/Math.max(ra,rb)>.86;if(circ)ra=rb=(ra+rb)/2;
       var n=Math.max(48,Math.round((ra+rb)*s/2)),E=[];
       /* axe aproape orizontale/verticale → le îndreptăm */
@@ -10483,7 +10495,7 @@ function rlBuild(){
   var u=b('↶','Anulează',function(){drUndo();});var re=b('↷','Refă',function(){drRedo();});
   var er=b('⌫','Radieră / înapoi la pensulă',drToggleEraser,'rlEr');
   DR.sync.push(function(){
-    var on=DR.rail!==false&&DR.ready;r.hidden=!on;
+    var bp=$('#drBr'),on=DR.rail!==false&&DR.ready&&!(bp&&!bp.hidden);r.hidden=!on;
     document.body.classList.toggle('railR',DR.railSide==='R');document.body.classList.toggle('hasrail',on);
     var noSz=!!DNOSIZE[DR.tool];r.classList.toggle('nosz',noSz);
     u.disabled=!DR.undo.length;re.disabled=!DR.redo.length;
@@ -10959,6 +10971,7 @@ function cbBoardRender(){
     tb('+ Pagină',function(){cbAddPage(ch);});
     tb('Export…',function(){cbExportDlg(ch);});
     var dirB=tb(ch.rtl?'Dreapta → stânga':'Stânga → dreapta',function(){ch.rtl=!ch.rtl;chSave().then(cbBoardRender);});dirB.title='Sensul de citire';
+    var del=tb('🗑',function(){cbDeleteChapter(ch,function(){});});del.setAttribute('aria-label','Șterge capitolul');del.title='Șterge capitolul';
     tb('Închide',function(){bd.hidden=true;});
     var grid=el('div','cbgrid'+(ch.rtl?' rtl':''));bd.appendChild(grid);
     if(!ch.pages.length)grid.appendChild(el('p','note','Capitolul n-are încă pagini. Apasă „+ Pagină”.'));
@@ -10979,6 +10992,9 @@ function cbBoardRender(){
         function mb(t,lab,d){var b=el('button','cbm',t);b.type='button';b.setAttribute('aria-label',lab);b.addEventListener('click',function(ev){ev.stopPropagation();cbMove(ch,i,i+d);});mv.appendChild(b);return b;}
         mb(ch.rtl?'›':'‹','Mută mai devreme',-1).disabled=i===0;mb(ch.rtl?'‹':'›','Mută mai târziu',1).disabled=i===ch.pages.length-1;
         ft.appendChild(mv);
+        var pe=el('div','cbpe');card.appendChild(pe);
+        var eb=el('button','cbm','✎ Panouri');eb.type='button';eb.title='Adaugă, șterge, mută panourile';eb.addEventListener('click',function(ev){ev.stopPropagation();bd.hidden=true;$('#dr').hidden=false;DR.on=true;chOpenDoc(pid).then(function(){pgEditPanels();});});pe.appendChild(eb);
+        var xb=el('button','cbm','🗑');xb.type='button';xb.setAttribute('aria-label','Scoate sau șterge pagina');xb.addEventListener('click',function(ev){ev.stopPropagation();cbDeletePage(ch,pid);});pe.appendChild(xb);
         if(e.plan||e.name){var sm=el('small','cbnote',(e.plan||'').slice(0,70));card.appendChild(sm);}
         cbDragable(card,ch,pid);
         sw.appendChild(card);
@@ -11329,6 +11345,7 @@ function shRender(){
         r.appendChild(sel);
         /* ordinea capitolelor în serie */
         var li=CH.list.indexOf(c),same=CH.list.filter(function(x){return (x.ser||'')===(c.ser||'');}),k=same.indexOf(c);
+        var dx=el('button','cbm','🗑');dx.type='button';dx.setAttribute('aria-label','Șterge capitolul');dx.title='Șterge capitolul';dx.addEventListener('click',function(){cbDeleteChapter(c,function(){shRender();});});r.appendChild(dx);
         var mv=el('span','cbmv');r.appendChild(mv);
         function mb(t,lab,dlt){var b=el('button','cbm',t);b.type='button';b.setAttribute('aria-label',lab);b.addEventListener('click',function(){var o=same[k+dlt];if(!o)return;var a=CH.list.indexOf(c),bI=CH.list.indexOf(o);CH.list[a]=o;CH.list[bI]=c;chSave().then(shRender);});mv.appendChild(b);return b;}
         mb('‹','Mai devreme',-1).disabled=k===0;mb('›','Mai târziu',1).disabled=k===same.length-1;
@@ -11739,6 +11756,192 @@ function npInit(){
   '.npn[hidden],.npt[hidden]{display:none!important}.npfr{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.npfr .btn[aria-pressed="true"]{background:var(--acc);color:#fff;border-color:transparent}.npt textarea{width:100%;box-sizing:border-box;font:inherit;font-size:14px}';
   document.head.appendChild(st);
 }
+/* ---------- Editezi panourile oricărei pagini; ștergi capitole și pagini ---------- */
+/* deschide editorul de panouri direct în modul liber: + panou, șterge, mută, taie, formă, ordine */
+function pgEditPanels(){
+  if(!DR.ready||DR.kind!=='page'){drMsg('Deschide o pagină de manga.');return;}
+  if(DR.float)drFloatCommit();
+  $('#pg').hidden=false;try{pgSize();}catch(e){}
+  if(S.page.layout!=='free'){try{pgFreeEnter();}catch(e){}}
+  try{pgDraw();}catch(e){}
+  if(typeof PGTABS!=='undefined'&&PGTABS)uiTabGo(PGTABS,'pn',false);
+  var bar=$('#pgFreeBar');if(bar){bar.hidden=false;setTimeout(function(){bar.scrollIntoView({block:'center'});bar.classList.add('fsflash');setTimeout(function(){bar.classList.remove('fsflash');},2600);},80);}
+  pgMsg('Atinge un panou ca să-l alegi. Îl muți trăgând de el, îi schimbi forma trăgând de colțuri. „+ Panou” adaugă, „Șterge panoul” scoate, „✂ Taie cu linie” îl împarte.');
+}
+/* când închizi foaia paginii, desenul se salvează cu panourile noi */
+function edWatchPg(){
+  var pg=$('#pg');if(!pg||!window.MutationObserver)return;
+  var was=pg.hidden;
+  new MutationObserver(function(){if(pg.hidden&&!was&&DR.ready&&DR.kind==='page'){try{drBuildTrace();}catch(e){}drDirty();drSaveNow().then(function(){drSync();drDirty();if($('#cbBoard')&&!$('#cbBoard').hidden)cbBoardRender();});}was=pg.hidden;}).observe(pg,{attributes:true,attributeFilter:['hidden']});
+}
+/* ===== Ștergeri ===== */
+function cbAsk(title,text,choices){
+  var d=cbDlg('cbAskDlg',title),p=d.pad;
+  p.appendChild(el('div','h',title));p.appendChild(el('p',null,text));
+  var r=el('div','cbask');p.appendChild(r);
+  choices.forEach(function(c){
+    var b=el('button','btn'+(c.cls?' '+c.cls:''));b.type='button';b.appendChild(el('b',null,c.t));if(c.s)b.appendChild(el('small',null,c.s));
+    b.addEventListener('click',function(){
+      if(c.confirm&&b.getAttribute('data-armed')!=='1'){b.setAttribute('data-armed','1');var bb=b.querySelector('b'),o=bb.textContent;bb.textContent='Sigur? Atinge încă o dată';setTimeout(function(){b.removeAttribute('data-armed');bb.textContent=o;},3500);return;}
+      d.hidden=true;if(c.fn)c.fn();
+    });r.appendChild(b);
+  });
+  var x=el('button','btn','Renunță');x.type='button';x.addEventListener('click',function(){d.hidden=true;});r.appendChild(x);
+}
+function cbDeleteChapter(ch,after){
+  var n=ch.pages.length;
+  cbAsk('Șterge „'+ch.name+'”','Ce faci cu cele '+n+(n===1?' pagină':' pagini')+'?',[
+    {t:'Șterge doar capitolul',s:'Paginile rămân, le găsești la Acasă → Desene libere',fn:function(){cbDelCh(ch,false).then(after);}},
+    {t:'Șterge capitolul și paginile',s:'Nu se mai pot recupera (decât dintr-o copie de siguranță)',cls:'danger',confirm:true,fn:function(){cbDelCh(ch,true).then(after);}}
+  ]);
+}
+function cbDelCh(ch,withPages){
+  var ids=ch.pages.slice(),cur=DR.ready?DR.id:'';
+  CH.list=CH.list.filter(function(c){return c!==ch;});
+  var p=chSave();
+  if(withPages)p=p.then(function(){return ids.reduce(function(q,id){return q.then(function(){return drDeleteDoc(id).catch(function(){});});},Promise.resolve());});
+  return p.then(function(){
+    if(withPages&&ids.indexOf(cur)>=0){DR.ready=false;DR.id='';}
+    var bd=$('#cbBoard');if(bd&&CB.ch===ch.id)bd.hidden=true;
+    drMsg(withPages?'Capitolul și paginile lui au fost șterse.':'Capitolul a fost șters; paginile sunt la Desene libere.');
+    drSync();if($('#shShelf')&&!$('#shShelf').hidden)shRender();if($('#home')&&!$('#home').hidden)hmRender();
+    if(withPages&&!DR.ready)hmShow();
+  });
+}
+function cbDeletePage(ch,pid){
+  var i=ch.pages.indexOf(pid);
+  cbAsk('Pagina '+(i+1),'Ce faci cu pagina aceasta?',[
+    {t:'Scoate-o din capitol',s:'Rămâne la Acasă → Desene libere',fn:function(){ch.pages.splice(ch.pages.indexOf(pid),1);chSave().then(function(){cbBoardRender();drSync();});}},
+    {t:'Șterge pagina de tot',s:'Nu se mai poate recupera',cls:'danger',confirm:true,fn:function(){
+      ch.pages.splice(ch.pages.indexOf(pid),1);
+      chSave().then(function(){return drDeleteDoc(pid);}).then(function(){
+        if(DR.id===pid){DR.ready=false;DR.id='';}
+        cbBoardRender();drSync();drMsg('Pagina a fost ștearsă.');
+      });
+    }}
+  ]);
+}
+function edInit(){
+  edWatchPg();tcInit();
+  /* panourile schimbate în foaia paginii: calcul se reface imediat, fără panourile vechi */
+  if(typeof PGSYNC!=='undefined')PGSYNC.push(function(){if(!DR.ready||DR.kind!=='page'||DR.link)return;clearTimeout(DR.tcT);DR.tcT=setTimeout(function(){try{drBuildTrace();}catch(e){}drDirty();},120);});
+  /* Meniu → Pagină: butonul existent deschide direct editarea panourilor */
+  [].forEach.call(document.querySelectorAll('#drSide button'),function(b){
+    if(b.textContent==='Editează panourile și cadrele'){var n=b.cloneNode(true);n.textContent='✎ Editează panourile (adaugă, șterge, mută, taie)';n.classList.add('solid');b.parentNode.replaceChild(n,b);n.addEventListener('click',pgEditPanels);}
+  });
+  /* banda de pagini: buton pentru panouri */
+  var s=$('#cbStrip');
+  if(s&&!$('#cbPanB')){var b=el('button','cbsb','▦');b.id='cbPanB';b.type='button';b.setAttribute('aria-label','Editează panourile paginii');b.title='Editează panourile';
+    b.addEventListener('pointerdown',function(e){e.stopPropagation();});b.addEventListener('click',pgEditPanels);s.appendChild(b);}
+  var st=document.createElement('style');
+  st.textContent='.cbask{display:flex;flex-direction:column;gap:8px}.cbask .btn{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:10px 12px}.cbask .btn small{font-size:12.5px;opacity:.75}'+
+  '.btn.danger{border-color:#dc2626!important;color:#b91c1c!important}.btn.danger[data-armed="1"]{background:#dc2626!important;color:#fff!important}'+
+  '.cbpe{display:flex;gap:4px;flex-wrap:wrap}.cbpe .cbm{width:auto;padding:0 8px;font-size:12px}';
+  document.head.appendChild(st);
+}
+
+/* calcul (imaginea de sub desen): îl vezi, îl ascunzi sau îl scoți dintr-o atingere */
+function tcName(){var m=DR.trace&&DR.trace.mode;return DR.sketch?'schița din text':m==='page'?'panourile paginii':m==='scene'||m==='sceneg'?'scena 3D':m==='panel'?'vederea panoului':'';}
+function tcInit(){
+  if($('#drCalcB'))return;
+  var v=$('#drView');if(!v)return;
+  var b=el('button',null,'◐');b.id='drCalcB';b.type='button';b.setAttribute('aria-label','Arată sau ascunde calcul (imaginea de sub desen)');b.title='Calc: arată / ascunde';
+  b.addEventListener('click',function(){
+    if(!DR.ready)return;
+    if(!DR.trace||DR.trace.mode==='none'){drMsg('Nu ai niciun calc. Îl alegi din Meniu → Ajutoare → „Calc din perspectivă”.');return;}
+    DR.trace.on=!DR.trace.on;drSync();drDirty();drSaveSoon();
+    tcChip(DR.trace.on?'Calcul ('+tcName()+') e vizibil.':'Calcul ('+tcName()+') e ascuns.');
+  });
+  v.appendChild(b);
+  var c=el('div','tcchip');c.id='tcChip';c.hidden=true;$('#drWrap').appendChild(c);
+  var st=document.createElement('style');
+  st.textContent='#drCalcB[aria-pressed="true"]{background:var(--acc)!important;color:#fff!important}#drCalcB.none{opacity:.4}'+
+  '.tcchip{position:absolute;right:64px;top:8px;z-index:5;display:flex;gap:6px;align-items:center;padding:5px 6px 5px 12px;border-radius:999px;background:var(--float,#fff);color:var(--ink);border:1px solid var(--rule);box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:13px}.tcchip[hidden]{display:none}'+
+  '.tcchip button{border:0;border-radius:999px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;background:var(--paper-2);color:var(--ink)}.tcchip button.solid{background:var(--acc);color:#fff}';
+  document.head.appendChild(st);
+  DR.sync.push(function(){var has=DR.ready&&DR.trace&&DR.trace.mode!=='none';b.classList.toggle('none',!has);b.setAttribute('aria-pressed',String(!!(has&&DR.trace.on)));});
+}
+function tcChip(t){
+  var c=$('#tcChip');if(!c)return;clearTimeout(c.t);c.innerHTML='';c.appendChild(el('span',null,t));
+  var a=el('button',null,DR.trace.on?'Ascunde':'Arată');a.type='button';a.addEventListener('click',function(){DR.trace.on=!DR.trace.on;drSync();drDirty();drSaveSoon();tcChip(DR.trace.on?'Calcul e vizibil.':'Calcul e ascuns.');});c.appendChild(a);
+  var x=el('button','solid','Scoate-l');x.type='button';x.addEventListener('click',function(){DR.trace.mode='none';DR.trace.cv=null;DR.sketch=null;c.hidden=true;drSync();drDirty();drSaveSoon();drMsg('Calcul a fost scos din desen. Îl poți pune înapoi din Meniu → Ajutoare → „Calc din perspectivă”.');});c.appendChild(x);
+  c.hidden=false;c.t=setTimeout(function(){c.hidden=true;},6000);
+}
+/* ---------- Pachetul manga: peniță, tuș, pensulă fude, umplere, corector, schiță, efecte și fundaluri ---------- */
+/* texturi noi pentru pensule: puncte de raster, cărămidă, lemn */
+(function(){
+  var g0=pkGrain;
+  pkGrain=function(kind,seed){
+    var S=128,c,x,im,d,i,j;
+    if(kind==='dots'||kind==='dotsfine'){
+      var P=kind==='dots'?8:5;c=drMk(S,S);x=c.getContext('2d');im=x.createImageData(S,S);d=im.data;
+      /* puncte de raster la 45°: un punct pe celulă, mărimea dată de presiune (prin opacitate) */
+      for(j=0;j<S;j++)for(i=0;i<S;i++){var u=(i+j)/Math.SQRT2,v=(i-j)/Math.SQRT2,fu=u/P-Math.floor(u/P)-.5,fv=v/P-Math.floor(v/P)-.5,r=Math.hypot(fu,fv),l=pkSm(.36,.3,r),q=(j*S+i)*4,val=Math.round(l*255);d[q]=d[q+1]=d[q+2]=val;d[q+3]=255;}
+      x.putImageData(im,0,0);return c;
+    }
+    if(kind==='hatch'||kind==='xhatch'){
+      c=drMk(S,S);x=c.getContext('2d');im=x.createImageData(S,S);d=im.data;var P2=8;
+      for(j=0;j<S;j++)for(i=0;i<S;i++){var a1=((i+j)%P2+P2)%P2,on=Math.min(a1,P2-a1)<1.3;if(kind==='xhatch'){var a2=((i-j)%P2+P2)%P2;on=on||Math.min(a2,P2-a2)<1.1;}var q3=(j*S+i)*4,v3=on?255:0;d[q3]=d[q3+1]=d[q3+2]=v3;d[q3+3]=255;}
+      x.putImageData(im,0,0);return c;
+    }
+    if(kind==='brick'){
+      c=drMk(S,S);x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,S,S);x.fillStyle='#000';
+      for(j=0;j<4;j++){var y=j*32;x.fillRect(0,y,S,3);var off=j%2?32:0;for(i=-1;i<3;i++)x.fillRect(off+i*64,y,3,32);}
+      return c;
+    }
+    if(kind==='wood'){
+      c=drMk(S,S);x=c.getContext('2d');im=x.createImageData(S,S);d=im.data;
+      for(j=0;j<S;j++)for(i=0;i<S;i++){var w=Math.sin((j/S*6.2832*6)+pkF(i/S*4,j/S*4,seed,3,4)*5),l2=pkSm(.55,.75,Math.abs(w)),q2=(j*S+i)*4,v2=Math.round(l2*255);d[q2]=d[q2+1]=d[q2+2]=v2;d[q2+3]=255;}
+      x.putImageData(im,0,0);return c;
+    }
+    return g0(kind,seed);
+  };
+})();
+var PKSET2=[
+ /* --- Manga: tuș (penițe și pensule pentru contur) --- */
+ ['Manga: tuș','G-Pen (tuș real)',function(){return pkField(128,128,function(u,v,i,j){var r=Math.hypot(u,v);return pkSm(.98,.86,r+(pkH(i,j,5)-.5)*.05);});},{spacing:3,presSize:.95,presOp:0,flow:1,taper:true}],
+ ['Manga: tuș','Maru-Pen (detalii fine)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.85,Math.hypot(u,v));});},{spacing:3,presSize:.85,presOp:.1,flow:1,taper:true}],
+ ['Manga: tuș','Kabura (linie egală)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.86,Math.hypot(u,v));});},{spacing:3,presSize:.35,presOp:0,flow:1,taper:true}],
+ ['Manga: tuș','Pensulă tuș (fude)',function(){return pkField(160,96,function(u,v){return pkSm(1,.82,Math.hypot(u,v*1.08));});},{spacing:3,presSize:1,presOp:.08,flow:1,follow:true,round:.55,taper:true}],
+ ['Manga: tuș','Pensulă tuș uscată (kasure)',function(){return pkField(256,96,function(u,v,i){var sh=1-(Math.pow(Math.abs(u),5)+Math.pow(Math.abs(v),2)),s=pkN(i*.35,0,81)*.6+pkN(i*1.4,0,82)*.4;return sh>0?pkSm(.38,.55,s)*pkSm(0,.1,sh):0;});},{spacing:3,presSize:.8,presOp:.25,flow:1,follow:true,angle:90,taper:true}],
+ ['Manga: tuș','Fineliner (fără presiune)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.86,Math.hypot(u,v));});},{spacing:3,presSize:0,presOp:0,flow:1}],
+ ['Manga: tuș','Tuș cu margine tremurată',function(){return pkField(128,128,function(u,v,i,j){var a=Math.atan2(v,u),r=Math.hypot(u,v)/(.88+.1*pkN(Math.cos(a)*3+4,Math.sin(a)*3+4,85));return pkSm(1,.9,r);});},{spacing:4,presSize:.8,presOp:0,flow:1,ajit:180,taper:true}],
+ ['Manga: tuș','Umplere negru (marker gros)',function(){return pkField(96,96,function(u,v){return pkSm(1,.9,Math.hypot(u,v));});},{spacing:6,presSize:.25,presOp:0,flow:1}],
+ ['Manga: tuș','Corector alb',function(){return pkField(96,96,function(u,v){return pkSm(.98,.86,Math.hypot(u,v));});},{spacing:3,presSize:.7,presOp:0,flow:1,col:'#ffffff',taper:true}],
+ ['Manga: tuș','Pix alb (sclipiri pe păr)',function(){return pkField(64,64,function(u,v){return pkSm(.98,.8,Math.hypot(u,v));});},{spacing:3,presSize:1,presOp:.2,flow:1,col:'#ffffff',taper:true}],
+ /* --- schiță --- */
+ ['Manga: schiță','Creion albastru (schiță)',function(){return pkField(128,128,function(u,v){return Math.pow(pkSm(1,.1,Math.hypot(u,v)),.6);});},{spacing:10,presSize:.4,presOp:.6,flow:.55,col:'#5b8fd9'},'paper',.7],
+ ['Manga: schiță','Creion roșu (schiță)',function(){return pkField(128,128,function(u,v){return Math.pow(pkSm(1,.1,Math.hypot(u,v)),.6);});},{spacing:10,presSize:.4,presOp:.6,flow:.55,col:'#d9534f'},'paper',.7],
+ ['Manga: schiță','Creion HB',function(){return pkField(128,128,function(u,v){return Math.pow(pkSm(1,.08,Math.hypot(u,v)),.7);});},{spacing:9,presSize:.35,presOp:.65,flow:.6},'paper',.8,1.2],
+ ['Manga: schiță','Creion moale 2B',function(){return pkField(128,128,function(u,v){return Math.pow(pkSm(1,0,Math.hypot(u,v)),.7);});},{spacing:9,presSize:.5,presOp:.6,flow:.55},'rough',.75,1.4],
+ /* --- ton și umbre --- */
+ ['Manga: ton','Ton cu pensula (puncte)',function(){return pkField(128,128,function(u,v){return pkSm(1,.7,Math.hypot(u,v));});},{spacing:8,presSize:.2,presOp:0,flow:1},'dots',1,1],
+ ['Manga: ton','Ton fin cu pensula',function(){return pkField(128,128,function(u,v){return pkSm(1,.7,Math.hypot(u,v));});},{spacing:8,presSize:.2,presOp:0,flow:1},'dotsfine',1,1],
+ ['Manga: ton','Ton degradeu (presiune = densitate)',function(){return pkField(128,128,function(u,v){return pkSm(1,.2,Math.hypot(u,v));});},{spacing:10,presSize:.2,presOp:.9,flow:.7},'dots',1,1],
+ ['Manga: ton','Hașură cu pensula',function(){return pkField(128,128,function(u,v){return pkSm(1,.75,Math.hypot(u,v));});},{spacing:8,presSize:.25,presOp:0,flow:1},'hatch',1,1],
+ ['Manga: ton','Hașură încrucișată cu pensula',function(){return pkField(128,128,function(u,v){return pkSm(1,.75,Math.hypot(u,v));});},{spacing:8,presSize:.25,presOp:0,flow:1},'xhatch',1,1],
+ ['Manga: ton','Puncte (stipple)',function(){return pkDraw(256,256,function(x){var R=pkRnd(91);for(var i=0;i<38;i++){var a=R()*6.28,d=Math.sqrt(R())*112;x.beginPath();x.arc(128+Math.cos(a)*d,128+Math.sin(a)*d,4+R()*4,0,7);x.fill();}});},{spacing:40,presSize:.3,presOp:0,flow:1,ajit:180,scatter:.4}],
+ /* --- efecte --- */
+ ['Manga: efecte','Sclipiri (shoujo)',function(){return pkDraw(256,256,function(x){x.beginPath();x.moveTo(128,8);x.quadraticCurveTo(138,118,248,128);x.quadraticCurveTo(138,138,128,248);x.quadraticCurveTo(118,138,8,128);x.quadraticCurveTo(118,118,128,8);x.fill();});},{spacing:110,presSize:.3,presOp:0,flow:1,ajit:20,sjit:.6,scatter:1.4}],
+ ['Manga: efecte','Flori (shoujo)',function(){return pkDraw(256,256,function(x){x.lineWidth=7;for(var k=0;k<5;k++){x.save();x.translate(128,128);x.rotate(k*1.2566);x.beginPath();x.ellipse(0,-62,34,56,0,0,7);x.stroke();x.restore();}x.beginPath();x.arc(128,128,22,0,7);x.fill();});},{spacing:120,presSize:.3,presOp:0,flow:1,ajit:180,sjit:.5,scatter:1.2}],
+ ['Manga: efecte','Bule de lumină',function(){return pkField(256,256,function(u,v){var r=Math.hypot(u,v);return pkSm(1,.9,r)*(.25+.75*pkSm(.7,.95,r));});},{spacing:120,presSize:.3,presOp:.3,flow:.8,sjit:.7,scatter:1.6}],
+ ['Manga: efecte','Flăcări',function(){return pkDraw(256,256,function(x){x.beginPath();x.moveTo(128,250);x.bezierCurveTo(40,230,40,150,90,110);x.bezierCurveTo(80,160,110,170,112,140);x.bezierCurveTo(100,90,130,50,128,6);x.bezierCurveTo(170,60,200,110,170,160);x.bezierCurveTo(190,150,200,130,196,110);x.bezierCurveTo(230,160,220,236,128,250);x.fill();});},{spacing:40,presSize:.5,presOp:0,flow:1,follow:true,angle:-90,sjit:.35,ajit:12,scatter:.5}],
+ ['Manga: efecte','Fulger',function(){return pkDraw(256,256,function(x){x.beginPath();x.moveTo(150,4);x.lineTo(70,132);x.lineTo(120,132);x.lineTo(86,252);x.lineTo(190,104);x.lineTo(136,104);x.lineTo(176,4);x.closePath();x.fill();});},{spacing:160,presSize:.3,presOp:0,flow:1,ajit:15,sjit:.4}],
+ ['Manga: efecte','Linii de șoc (în jur)',function(){return pkField(256,24,function(u,v){var t=(u+1)/2;return pkSm(0,.3,t)*pkSm(1,.4,Math.abs(v)/(.15+.85*(1-t)));});},{spacing:22,presSize:.4,presOp:0,flow:1,follow:true,angle:90,sjit:.5,ajit:6}],
+ /* --- fundaluri --- */
+ ['Manga: fundal','Frunziș (copac)',function(){return pkDraw(256,256,function(x){var R=pkRnd(101);for(var i=0;i<22;i++){var a=R()*6.28,d=Math.sqrt(R())*90,cx=128+Math.cos(a)*d,cy=128+Math.sin(a)*d,s=14+R()*14,r=R()*6.28;x.save();x.translate(cx,cy);x.rotate(r);x.beginPath();x.ellipse(0,0,s,s*.5,0,0,7);x.fill();x.restore();}});},{spacing:45,presSize:.4,presOp:0,flow:1,ajit:180,sjit:.3,scatter:.6}],
+ ['Manga: fundal','Contur de frunziș',function(){return pkDraw(256,256,function(x){x.lineWidth=6;var R=pkRnd(103);x.beginPath();for(var i=0;i<=14;i++){var a=i/14*6.2832,r=90+R()*20;var p=[128+Math.cos(a)*r,128+Math.sin(a)*r];if(!i)x.moveTo(p[0],p[1]);else{var a2=(i-.5)/14*6.2832;x.quadraticCurveTo(128+Math.cos(a2)*(r+34),128+Math.sin(a2)*(r+34),p[0],p[1]);}}x.stroke();});},{spacing:70,presSize:.3,presOp:0,flow:1,ajit:180,sjit:.3,scatter:.5}],
+ ['Manga: fundal','Nori (contur)',function(){return pkDraw(256,160,function(x){x.lineWidth=6;x.beginPath();x.moveTo(20,130);x.bezierCurveTo(0,80,50,60,70,80);x.bezierCurveTo(70,30,140,20,150,60);x.bezierCurveTo(180,30,240,60,220,100);x.bezierCurveTo(250,120,236,140,210,136);x.stroke();});},{spacing:90,presSize:.3,presOp:0,flow:1,sjit:.4,scatter:.6}],
+ ['Manga: fundal','Stele pe cer',function(){return pkDraw(256,256,function(x){var R=pkRnd(107);for(var i=0;i<14;i++){var cx=20+R()*216,cy=20+R()*216,s=2+R()*5;x.beginPath();x.arc(cx,cy,s,0,7);x.fill();}pkSpiky(x,128,128,26,7,4,0);});},{spacing:90,presSize:.2,presOp:.3,flow:1,ajit:180,scatter:1.2}],
+ ['Manga: fundal','Valuri',function(){return pkDraw(256,96,function(x){x.lineWidth=7;x.beginPath();x.moveTo(0,60);for(var i=0;i<=4;i++){x.quadraticCurveTo(i*64+32,10,i*64+64,60);}x.stroke();});},{spacing:60,presSize:.3,presOp:0,flow:1,follow:true,sjit:.2}],
+ ['Manga: fundal','Mulțime (siluete)',function(){return pkDraw(256,256,function(x){var R=pkRnd(109);for(var i=0;i<6;i++){var cx=30+i*40+R()*10,s=.8+R()*.4,top=90+R()*40;x.beginPath();x.arc(cx,top,16*s,0,7);x.fill();x.beginPath();x.moveTo(cx-30*s,256);x.quadraticCurveTo(cx-28*s,top+22*s,cx,top+20*s);x.quadraticCurveTo(cx+28*s,top+22*s,cx+30*s,256);x.fill();}});},{spacing:130,presSize:.2,presOp:0,flow:1,sjit:.15}],
+ ['Manga: fundal','Cărămizi',function(){return pkField(128,128,function(u,v){return pkSm(1,.85,Math.max(Math.abs(u),Math.abs(v)));});},{spacing:10,presSize:.2,presOp:0,flow:1},'brick',1,1],
+ ['Manga: fundal','Fibră de lemn',function(){return pkField(128,128,function(u,v){return pkSm(1,.8,Math.max(Math.abs(u),Math.abs(v)));});},{spacing:10,presSize:.2,presOp:0,flow:1},'wood',.9,1.5],
+ ['Manga: fundal','Iarbă (fire de tuș)',function(){return pkDraw(256,256,function(x){var R=pkRnd(111);for(var i=0;i<14;i++){var bx=20+i*16+R()*8,top=40+R()*120,lean=(R()-.5)*70;x.beginPath();x.moveTo(bx-4,256);x.quadraticCurveTo(bx+lean*.3,(256+top)/2,bx+lean,top);x.quadraticCurveTo(bx+lean*.3+2,(256+top)/2,bx+4,256);x.closePath();x.fill();}});},{spacing:30,presSize:.3,presOp:0,flow:1,sjit:.3}]
+];
+PKSET2.forEach(function(r){PKSET.push(r);});
+['Manga: tuș','Manga: schiță','Manga: ton','Manga: efecte','Manga: fundal'].forEach(function(c){if(PKCAT.indexOf(c)<0)PKCAT.unshift(c);});
+PKCAT.sort(function(a,b){return (b.indexOf('Manga')===0)-(a.indexOf('Manga')===0);});
 
 /* ---------- Reference window (ca „Sub View” din Clip Studio) ---------- */
 var RF_MAX=8;
@@ -12104,7 +12307,7 @@ function figInit(){
 }
 
 initDownloads();initScenes();pgInit();drInit();figInit();qpInit();
-if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,CH:CH,CB:CB,NP:NP,cbPageDlg:cbPageDlg,cbAddPageWith:cbAddPageWith,hmShow:hmShow,hmHide:hmHide,tdTheme:tdTheme,tdNotes:tdNotes,SH:SH,shOpen:shOpen,shNewSeries:shNewSeries,cbSplitPages:cbSplitPages,cbCreate:cbCreate,cbNewDialog:cbNewDialog,cbBoard:cbBoard,cbRead:cbRead,cbReadStep:cbReadStep,cbExport:cbExport,chOf:chOf,chLoad:chLoad,drC:drC,drV2S:drV2S,TL:TL,tlCapture:tlCapture,tlMeta:tlMeta,tlLoadFrames:tlLoadFrames,tlRender:tlRender,tlOpen:tlOpen,trStart:trStart,fcSet:fcSet,drToggleEraser:drToggleEraser,drBackupNow:drBackupNow,sfMaybeRemind:sfMaybeRemind,SF:SF,FO:FO,foGeom:foGeom,foStamp:foStamp,qsFit:qsFit,qsFire:qsFire,smSet:smSet,fsIndex:fsIndex,fsSearch:fsSearch,fsOpen:fsOpen,fsGo:fsGo,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
+if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,CH:CH,CB:CB,PKSET:PKSET,PKCAT:PKCAT,drBrPackInstall:drBrPackInstall,tcChip:tcChip,pgEditPanels:pgEditPanels,cbDelCh:cbDelCh,cbDeleteChapter:cbDeleteChapter,cbDeletePage:cbDeletePage,NP:NP,cbPageDlg:cbPageDlg,cbAddPageWith:cbAddPageWith,hmShow:hmShow,hmHide:hmHide,tdTheme:tdTheme,tdNotes:tdNotes,SH:SH,shOpen:shOpen,shNewSeries:shNewSeries,cbSplitPages:cbSplitPages,cbCreate:cbCreate,cbNewDialog:cbNewDialog,cbBoard:cbBoard,cbRead:cbRead,cbReadStep:cbReadStep,cbExport:cbExport,chOf:chOf,chLoad:chLoad,drC:drC,drV2S:drV2S,TL:TL,tlCapture:tlCapture,tlMeta:tlMeta,tlLoadFrames:tlLoadFrames,tlRender:tlRender,tlOpen:tlOpen,trStart:trStart,fcSet:fcSet,drToggleEraser:drToggleEraser,drBackupNow:drBackupNow,sfMaybeRemind:sfMaybeRemind,SF:SF,FO:FO,foGeom:foGeom,foStamp:foStamp,qsFit:qsFit,qsFire:qsFire,smSet:smSet,fsIndex:fsIndex,fsSearch:fsSearch,fsOpen:fsOpen,fsGo:fsGo,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,idbGet:idbGet,DBR:DBR,drBrPackBuild:drBrPackBuild,cbDef:cbDef,cbPreviewCv:cbPreviewCv,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
 })();
 </script>
 <script>
