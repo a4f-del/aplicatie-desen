@@ -3506,13 +3506,13 @@ var DR={on:false,ready:false,id:'',name:'Desen',w:1400,h:1960,kind:'page',layers
   stroke:null,fillAll:true,ptr:{},gest:null,tapG:null,dpr:1,raf:0,saveT:0,prefT:0,sbuf:null,bcv:null,tmp:null,tmp2:null,msgT:0,penT:0,disp:null,dctx:null,sync:[],built:false,toneC:null,softC:{},saveQ:Promise.resolve()};
 var DTOOLS=[['gpen','G-Pen'],['fine','Peniță fină'],['maru','Maru-Pen'],['turnip','Turnip'],['kabura','Kabura'],['school','School pen'],['pencil','Creion'],['brush','Pensulă'],['marker','Marker'],['air','Aerograf'],['chalk','Cretă'],['tone','Ton'],['cust','Pensule+'],null,
   ['eraser','Radieră'],['smudge','Întinde'],['blur','Estompe'],null,
-  ['fill','Găleată'],['grad','Gradient'],['shape','Formă'],['line','Linie'],['fx','Linii efect'],['crack','Crăpătură'],['text','Text'],null,
+  ['fill','Găleată'],['grad','Gradient'],['shape','Formă'],['line','Linie'],['fx','Linii efect'],['crack','Crăpătură'],['fore','Scurtare'],['text','Text'],null,
   ['hand','Mână (mută foaia)'],['sel','Lasou și selecție'],['move','Mută'],['eyedrop','Pipetă'],['pcheck','Verifică perspectiva']];
 var DBRUSH={turnip:1,kabura:1,school:1,gpen:1,fine:1,maru:1,pencil:1,brush:1,marker:1,air:1,chalk:1,tone:1,cust:1};
 var DDIRECT={eraser:1,smudge:1,blur:1};
 var DGEST={line:1,shape:1,grad:1,fx:1,crack:1};
-var DNOSIZE={pcheck:1,hand:1,fill:1,grad:1,fx:1,sel:1,move:1,eyedrop:1,text:1};
-var DNOOP={pcheck:1,hand:1,sel:1,move:1,eyedrop:1,text:1};
+var DNOSIZE={fore:1,pcheck:1,hand:1,fill:1,grad:1,fx:1,sel:1,move:1,eyedrop:1,text:1};
+var DNOOP={fore:1,pcheck:1,hand:1,sel:1,move:1,eyedrop:1,text:1};
 var DBLENDS=[['source-over','Normal'],['multiply','Multiplică'],['screen','Ecran'],['overlay','Suprapunere'],['darken','Închide'],['lighten','Luminează'],['color-dodge','Subexpunere'],['soft-light','Lumină difuză'],['difference','Diferență']];
 var DCOLORS=['#111827','#ffffff','#6b7280','#b91c1c','#1d4ed8'];
 function drC(){return DR.cfg[DR.tool]||DR.cfg.gpen;}
@@ -3681,7 +3681,7 @@ function drCompose(x,o){
 function drRender(){
   var c=DR.disp,x=DR.dctx;if(!c||!x||!DR.ready)return;
   var v=DR.v,dpr=DR.dpr;
-  x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.fillStyle='#d6d9d3';x.fillRect(0,0,c.width,c.height);
+  x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.fillStyle=DR.wrapBg||'#d6d9d3';x.fillRect(0,0,c.width,c.height);
   drViewTf(x,dpr);
   x.imageSmoothingEnabled=v.s<2.5;x.imageSmoothingQuality='high';
   x.fillStyle='#ffffff';x.fillRect(0,0,DR.w,DR.h);
@@ -3697,6 +3697,8 @@ function drRender(){
   drHoverOverlay(x);
   pcOverlay(x);
   prOverlay(x);
+  foOverlay(x);
+  rlOverlay(x);
   if(DR.kind==='page'&&DR.clip){
     x.save();drViewTf(x,dpr);drPanelPath(x);x.lineWidth=3/v.s;x.strokeStyle='#f2c230';x.setLineDash([10/v.s,6/v.s]);x.stroke();x.restore();
   }
@@ -3990,6 +3992,7 @@ function drBegin(e){
   var tool=DR.tool,p=drToDoc(e);
   if(DR.pr&&DR.pr.on&&DR.pr.edit){if(DR.float)drFloatCommit();prDragBegin(e,p);return;}
   if(tool==='pcheck'){if(DR.float)drFloatCommit();DR.stroke={pc:true,pid:e.pointerId,layer:DR.cur,bb:[0,0,0,0],sc:[e.clientX,e.clientY]};PC.drag={a:p,b:p};drDirty();return;}
+  if(tool==='fore'){if(DR.float)drFloatCommit();foBegin(e,p);return;}
   if(tool==='hand'){if(DR.float)drFloatCommit();DR.gest={kind:'pan',id:e.pointerId,x0:e.clientX,y0:e.clientY,v0:{s:DR.v.s,x:DR.v.x,y:DR.v.y}};return;}
   if(e.pointerType==='pen'){
     if(e.buttons&32)tool='eraser';
@@ -4125,11 +4128,14 @@ function drMoveStroke(e){
   var st=DR.stroke;if(!st||e.pointerId!==st.pid)return;
   if(st.pc){if(PC.drag)PC.drag.b=drToDoc(e);drDirty();return;}
   if(st.prd){prDragMove(st,drToDoc(e));return;}
+  if(st.fo){foMove(st,drToDoc(e));return;}
   var evs=(e.getCoalescedEvents&&e.getCoalescedEvents())||[];if(!evs.length)evs=[e];
   if(st.eye){var pe=drToDoc(e);drPickAt(pe);drDirty();return;}
   if(st.sel){drSelMove(st,drToDoc(e));return;}
   if(st.fd){drFloatDrag(st,drToDoc(e));return;}
   st.moved=Math.max(st.moved||0,Math.hypot(e.clientX-st.sc[0],e.clientY-st.sc[1]));
+  if(st.qsDone)return;
+  qsTrack(st,e);
   evs.forEach(function(ev){
     var raw=drToDoc(ev),pr=drPressure(ev);
     if(st.gest)raw=drSnap(raw);
@@ -4156,7 +4162,7 @@ function drPush(L,bb){
   DR.undo.push({id:L.id,x:x0,y:y0,w:w,h:h,b:drCrop(DR.bcv,x0,y0,w,h),a:drCrop(L.cv,x0,y0,w,h)});
   DR.undoPx+=w*h*2;
   while(DR.undo.length>1&&(DR.undo.length>60||DR.undoPx>90e6)){var o=DR.undo.shift();DR.undoPx-=o.w*o.h*2;}
-  DR.redo=[];drSync();drSaveSoon();
+  DR.redo=[];drSync();drSaveSoon();tlSoon();
 }
 /* restituie în afara selecției ce era înainte (pentru unelte care scriu direct pe strat) */
 function drSelRestore(L,bb){
@@ -4174,10 +4180,11 @@ function drAddRecent(c){
 }
 function drEndStroke(){
   var st=DR.stroke;if(!st)return;
-  clearTimeout(st.lp);
+  clearTimeout(st.lp);clearTimeout(st.qt);
   if(st.eye){drEyeEnd(st);return;}
   if(st.sel){drSelEnd(st);return;}
   if(st.fd){DR.stroke=null;drDirty();return;}
+  if(st.fo){DR.stroke=null;foEnd(st);return;}
   if(st.prd){DR.stroke=null;drSaveSoon();drDirty();return;}
   if(st.pc){DR.stroke=null;var pd=PC.drag;PC.drag=null;if(pd&&Math.hypot(pd.b[0]-pd.a[0],pd.b[1]-pd.a[1])>8/(DR.v.s||1)){PC.lines.push({a:pd.a,b:pd.b});pcAnalyze();}drSync();drDirty();return;}
   if(st.tool==='crack'){
@@ -4201,9 +4208,9 @@ function drEndStroke(){
 }
 function drCancelStroke(){
   var st=DR.stroke;if(!st)return;
-  clearTimeout(st.lp);
+  clearTimeout(st.lp);clearTimeout(st.qt);
   DR.stroke=null;
-  if(st.pc||st.prd){PC.drag=null;drDirty();return;}
+  if(st.pc||st.prd||st.fo){PC.drag=null;drDirty();return;}
   if(st.eye||st.sel||st.fd){drDirty();return;}
   var L=DR.layers[st.layer];
   st.tctx.restore();
@@ -4463,7 +4470,7 @@ function drUp(e){
     if(tg&&!tg.moved&&tg.n>=2&&!drTouches().length&&Date.now()-tg.t0<380){
       DR.tapG=null;DR.gest=null;
       DR.v.s=tg.v0.s;DR.v.x=tg.v0.x;DR.v.y=tg.v0.y;DR.v.r=tg.v0.r;DR.v.f=tg.v0.f;
-      if(tg.n===2){drUndo();drMsg('Anulat.');}else{drRedo();drMsg('Refăcut.');}
+      if(tg.n===2){drUndo();drMsg('Anulat.');}else if(tg.n===3){drRedo();drMsg('Refăcut.');}else fcSet(!DR.focus);
       drDirty();return;
     }
   }
@@ -5055,7 +5062,8 @@ function drThumbOf(snap){
   x.fillStyle='#ffffff';x.fillRect(0,0,snap.w,snap.h);
   snap.layers.forEach(function(L){if(!L.vis||L.draft||L.clip)return;x.globalAlpha=L.op;x.globalCompositeOperation=L.blend;x.drawImage(L.cv,0,0);});
   x.globalAlpha=1;x.globalCompositeOperation='source-over';
-  var k=Math.min(1,220/Math.max(snap.w,snap.h)),c=drMk(Math.max(1,Math.round(snap.w*k)),Math.max(1,Math.round(snap.h*k)));
+  var isPg=snap.kind==='page'&&snap.id===DR.id;if(isPg){try{drFrames(x);}catch(e){}}
+  var k=Math.min(1,(isPg?360:220)/Math.max(snap.w,snap.h)),c=drMk(Math.max(1,Math.round(snap.w*k)),Math.max(1,Math.round(snap.h*k)));
   c.getContext('2d').drawImage(f,0,0,c.width,c.height);
   return new Promise(function(res){c.toBlob(res,'image/jpeg',.7);});
 }
@@ -5154,7 +5162,7 @@ function drDeleteDoc(id){
   });
 }
 /* preferințe */
-var DPREFK=['cfg','color','color2','smooth','sens','stylusOnly','twist','longP','barrel','sym','fx','tone','shape','grad','fillTol','fillGap','fillMode','wandTol','text','grid','print','selKind','selMode','fillAll','pgset','expDpi','cbId','crack','taper','taperL','hiDpi','stab','rope','ropeEnd'];
+var DPREFK=['cfg','color','color2','smooth','sens','stylusOnly','twist','longP','barrel','sym','fx','tone','shape','grad','fillTol','fillGap','fillMode','wandTol','text','grid','print','selKind','selMode','fillAll','pgset','expDpi','cbId','crack','taper','taperL','hiDpi','stab','rope','ropeEnd','simple','qshape','rail','railSide','compact','favs','favOn','eraseTap','tourDone','tlOn','theme','notesOpen'];
 function drPrefSaveSoon(){
   if(!window.indexedDB)return;
   clearTimeout(DR.prefT);
@@ -5184,6 +5192,7 @@ function drSync(){
   drPrefSaveSoon();
 }
 function drShowEditor(){
+  var hm=$('#home');if(hm)hm.hidden=true;
   $('#drNew').hidden=true;$('#drSide').hidden=window.innerWidth<900;
   drSize();drFit();drSync();drRender();
 }
@@ -5193,8 +5202,10 @@ function drOpenUI(){
   if(DR.ready){drSize();drSync();drRender();$('#drNew').hidden=true;return;}
   $('#drNew').hidden=false;
   drSize();drLibRender();
+  if($('#home')&&!window.__persp)hmShow();
 }
 function drShowChooser(){
+  if(typeof hmShow==='function'&&$('#home')){hmShow();return;}
   if(DR.ready){if(DR.float)drFloatCommit();drSaveNow();}
   $('#drSide').hidden=true;$('#drNew').hidden=false;drLibRender();
 }
@@ -5437,7 +5448,8 @@ function drBuildCtx(){
   drBtn(s4,'Șterge',drSelDelete);drBtn(s4,'Umple',function(){drSelFill(false);},'solid');drBtn(s4,'Umple cu ton',function(){drSelFill(true);});drBtn(s4,'Pe strat nou',drSelToLayer);
   /* simetrie */
   var sY=sec('sym');
-  drSegBtn(sY,[['off','Fără simetrie'],['v','↔'],['h','↕'],['vh','✚'],['rad','Radial'],['radm','Caleidoscop']],function(){return DR.sym.mode;},function(v){DR.sym.mode=v;});
+  var syl=el('div','cxl');sY.appendChild(syl);syl.appendChild(el('span','cxlab','Simetrie'));
+  drSegBtn(syl,[['off','Fără'],['v','↔'],['h','↕'],['vh','✚'],['rad','Radial'],['radm','Caleidoscop']],function(){return DR.sym.mode;},function(v){DR.sym.mode=v;});
   var rn=drSlider(sY,'Segmente',2,16,1,function(){return DR.sym.n;},function(v){DR.sym.n=v;},function(v){return Math.round(v);});
   DR.sync.push(function(){rn.hidden=DR.sym.mode!=='rad'&&DR.sym.mode!=='radm';});
   /* pensulă personalizată */
@@ -5495,12 +5507,13 @@ function drBuildCtx(){
     vis.fx=!fl&&t==='fx';
     vis.crack=!fl&&t==='crack';
     vis.pcheck=!fl&&t==='pcheck';
+    vis.fore=!fl&&t==='fore';
     vis.gtone=!fl&&t==='grad'&&DR.grad.kind==='ton';
     var any=false;
     cx.querySelectorAll('.cx').forEach(function(d){var k=d.getAttribute('data-k');d.hidden=!vis[k];if(vis[k])any=true;});
     cx.hidden=!any;cx.classList.toggle('min',!!DR.ctxMin);hd.textContent=DR.ctxMin?'▴ Opțiuni':'▾';
     var wrap=$('#drWrap');wrap.classList.toggle('hasctx',any);
-    if(any)requestAnimationFrame(function(){wrap.style.setProperty('--ctxh',(cx.offsetHeight+14)+'px');});
+    if(any)requestAnimationFrame(function(){wrap.style.setProperty('--ctxh',(cx.offsetHeight+14)+'px');});else wrap.style.setProperty('--ctxh','0px');
   });
 }
 function drToneControls(parent,small){
@@ -5770,7 +5783,7 @@ function drBuildTop(){
   $('#drRot0').addEventListener('click',drResetRot);
   /* chooser */
   drBuildPageSet();
-  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();prInit();skInit();phInit();drTabify();
+  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();foInit();prInit();skInit();phInit();drTabify();fsInit();qsInit();smInit();cfInit();trInit();cbInit();shInit();hmInit();tdInit();if(!window.__persp)setTimeout(hmShow,0);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(err){}
   document.querySelectorAll('[data-drnew]').forEach(function(b){b.addEventListener('click',function(){
     var kd=b.getAttribute('data-drnew');
@@ -7537,13 +7550,17 @@ function chRender(){
     CH.list.forEach(function(c){c.pages=c.pages.filter(function(p){return by[p]||p===DR.id;});});
     box.innerHTML='';
     var hd=el('div','h','Capitole (mai multe pagini)');box.appendChild(hd);
+    var shb=el('button','btn solid','📚 Raftul cu capitole');shb.type='button';shb.style.marginBottom='10px';shb.addEventListener('click',shOpen);box.appendChild(shb);
     var msg=el('p','note');msg.id='drChapMsg';
     CH.list.forEach(function(ch){
       var card=el('div','chcard'),top=el('div','btns'),nm=el('input','txt');nm.type='text';nm.maxLength=40;nm.value=ch.name;nm.setAttribute('aria-label','Numele capitolului');
       nm.addEventListener('change',function(){ch.name=nm.value.trim()||'Capitol';chSave();});
       var op=el('button','btn sm'+(CH.open===ch.id?' solid':''),CH.open===ch.id?'Închide':'Deschide ('+ch.pages.length+')');op.type='button';
       op.addEventListener('click',function(){CH.open=CH.open===ch.id?'':ch.id;chRender();});
-      top.appendChild(nm);top.appendChild(op);card.appendChild(top);
+      top.appendChild(nm);top.appendChild(op);
+      var tbl=el('button','btn sm solid','⊞ Tabla');tbl.type='button';tbl.addEventListener('click',function(){cbBoard(ch.id);});top.appendChild(tbl);
+      if(ch.pages.length){var rd=el('button','btn sm','📖 Citește');rd.type='button';rd.addEventListener('click',function(){cbRead(ch.id,0);});top.appendChild(rd);}
+      card.appendChild(top);
       if(CH.open===ch.id){
         ch.pages.forEach(function(pid,i){
           var e=by[pid]||{name:'Pagina curentă'},row=el('div','libi'),th=el('div','libth');
@@ -7583,7 +7600,9 @@ function chRender(){
       box.appendChild(card);
     });
     var nb=el('button','btn sm','+ Capitol nou');nb.type='button';
-    nb.addEventListener('click',function(){
+    nb.textContent='+ Capitol nou…';nb.classList.add('solid');nb.addEventListener('click',function(e){e.stopImmediatePropagation();cbNewDialog();});
+    var nb2=el('button','btn sm','+ Capitol gol');nb2.type='button';box.appendChild(nb2);
+    nb2.addEventListener('click',function(){
       var first=(DR.ready&&DR.kind==='page'&&!chOf(DR.id))?DR.id:null;
       chNew('',first).then(function(c){CH.open=c.id;chRender();msg.textContent=first?'Capitol nou, cu pagina curentă. Apasă „+ Pagină nouă”.':'Capitol nou. Apasă „+ Pagină nouă” ca să adaugi prima pagină.';});
     });
@@ -8066,7 +8085,7 @@ function uiTabSync(T){
 var DRTABS=null,PGTABS=null;
 function drTabify(){
   var sd=$('#drSide');if(!sd||DRTABS)return;
-  var G={'Pagină dublă':'pg','Foaie de panou':'pg','Desen':'lay','Capitol':'pg','Straturi':'lay','Calc din perspectivă':'gd','Riglă de perspectivă':'gd','Schiță din text':'gd','Schiță din imagine':'gd','Puncte de fugă (1, 2, 3)':'gd','Panouri de manga':'pg','Simetrie':'gd','Ghiduri':'gd',
+  var G={'Pagină dublă':'pg','Foaie de panou':'pg','Desen':'lay','Capitol':'pg','Straturi':'lay','Calc din perspectivă':'gd','Riglă de perspectivă':'gd','Schiță din text':'gd','Schiță din imagine':'gd','Puncte de fugă (1, 2, 3)':'gd','Panouri de manga':'pg','Simetrie':'gd','Unelte preferate':'tl','Bara laterală':'tl','Ghiduri':'gd',
     'Ton de manga':'tl','Filtre pe strat':'tl','Pensulă și ecran':'tl','Export':'ex'};
   drNewTabify();
   DRTABS=uiTabify(sd,'dr',[['lay','Straturi'],['pg','Pagină'],['gd','Ghiduri'],['tl','Unelte'],['ex','Export']],function(t){return G[t]||null;},null);
@@ -8227,7 +8246,7 @@ function drCrackPaint(c,path,seed,preview){
 var DCATS=[['draw','Pensule',['gpen','fine','maru','turnip','kabura','school','pencil','brush','marker','air','chalk','cust']],
   ['fix','Radieră',['eraser','smudge','blur']],
   ['fill','Umplere și ton',['fill','grad','tone']],
-  ['fx','Efecte și forme',['fx','crack','shape','line','text']],
+  ['fx','Efecte și forme',['fx','crack','shape','line','text','fore']],
   ['sel','Mână și selecție',['hand','sel','move','eyedrop','pcheck']]];
 var DCATLAST={};
 function drCatOf(t){for(var i=0;i<DCATS.length;i++)if(DCATS[i][2].indexOf(t)>=0)return DCATS[i][0];return 'draw';}
@@ -8339,23 +8358,21 @@ function drFileMenu(ev){
   function hd(t){m.appendChild(el('div','fh',t));}
   function say(p){Promise.resolve(p).then(function(t){if(t)drMsg(t);},function(){drMsg('N-a mers. Încearcă din nou.');});}
   hd('Salvare');
-  it('Salvează acum','Desenul se salvează oricum singur pe dispozitiv',function(){say(drSaveNow().then(function(){return 'Salvat pe dispozitiv.';}));});
+  it('Salvează acum','Desenul se salvează oricum singur pe tabletă',function(){say(drSaveNow().then(function(){return 'Salvat pe tabletă.';}));});
   it('Salvează proiectul (.zip)','Cu toate straturile, ca să-l muți sau să-l păstrezi',function(){drExportZip();});
+  it('Copie de siguranță cu tot','Desene, capitole, bibliotecă, pensule',function(){drBackupNow();});
+  hd('Deschide');
   it('Deschide un proiect (.zip)…','',function(){var i=$('#drProjIn');if(i)i.click();});
   it('Deschide un desen început…','Imagine, PSD cu straturi sau poză cu o schiță',function(){var i=$('#drImpIn');if(i)i.click();});
   it('Schiță dintr-o poză…','Liniile pozei, pe un strat nou peste care desenezi',function(){var i=$('#phIn');if(i)i.click();});
   hd('Export');
-  it('Imagine PNG','Pagina completă, la rezoluția aleasă',function(){drExportPNG();});
+  it('Imagine PNG','La rezoluția aleasă',function(){drExportPNG();});
   it('PNG alb-negru pentru tipar','',function(){drExportPNG('bw');});
   if(DR.spread){it('Cum iese în carte','Previzualizare cu cotorul',spPreview);it('Cele 2 pagini (PNG)','Fiecare pagină separat, cu bleed',function(){spExport();});it('Pune în capitol ca 2 pagini','',function(){spToChapter();});}
-  it('PDF cu această pagină','',function(){say(drPagePDF().then(function(b){return saveBlob(b,drSafe(DR.name||'pagina')+'.pdf');}));});
-  var ch=(typeof chOf==='function'&&CH.loaded)?chOf(DR.id):null;
-  if(ch)it('PDF cu tot capitolul','„'+ch.name+'” · '+ch.pages.length+' pagini',function(){drMsg('Pregătesc capitolul…');say(chExportPDF(ch,function(t){drMsg(t);}).then(function(b){return saveBlob(b,drSafe(ch.name)+'.pdf');}));});
+  if(DR.kind==='page')it('PDF cu această pagină','',function(){say(drPagePDF().then(function(b){return saveBlob(b,drSafe(DR.name||'pagina')+'.pdf');}));});
   it('Fișier PSD (cu straturi)','Pentru tipografie, Photoshop, Krita, Clip Studio',function(){drExportPSD();});
-  it('Mai multe opțiuni de export…','Rezoluție, tăiere la format',function(){var s=$('#drSide');s.hidden=false;if(DRTABS)uiTabGo(DRTABS,'ex',true);drSync();});
-  hd('Siguranță');
-  it('Copie de siguranță cu tot','Desene, bibliotecă, pensule, capitole, scene',function(){drMsg('Pregătesc copia…');say(bkBuild().then(function(z){return saveBlob(z,'blocuri-copie-'+new Date().toISOString().slice(0,10)+'.zip');}).then(function(t){try{localStorage.setItem('blocuri-bk-t',String(Date.now()));}catch(e){}return t;}));});
-  it('Desene salvate și desen nou','',function(){drShowChooser();});
+  it('Time-lapse (video)','Clip accelerat cu cum ai desenat',tlOpen);
+  it('Opțiuni de export…','Rezoluție, tăiere la format',function(){var s=$('#drSide');s.hidden=false;if(DRTABS)uiTabGo(DRTABS,'tl',true);drSync();var h=[].filter.call(document.querySelectorAll('#drSide .h'),function(x){return x.textContent.trim().indexOf('Export')===0;})[0];if(h)setTimeout(function(){h.scrollIntoView({block:'start'});},50);});
   m.hidden=false;
   var b=$('#drExport').getBoundingClientRect();
   m.style.top=Math.round(b.bottom+6)+'px';m.style.right=Math.max(8,Math.round(window.innerWidth-b.right))+'px';
@@ -8674,9 +8691,30 @@ function drExportPSD(){
   return new Promise(function(r){setTimeout(r,30);}).then(function(){return saveBlob(psdBuild(),drFileBase()+'.psd');}).then(function(m){drMsg(m);},function(){drMsg('Nu am putut face PSD-ul (poate e prea mare pentru memoria disponibilă).');});
 }
 /* ---------- Anunț de versiune nouă ---------- */
-var APP_VER='2026.11.19e';
-var APP_NEWS=['Schiță dintr-o poză: alegi o imagine și o transform în linii (sau linii + hașuri/tonuri) pe un strat nou (Fișier → „Schiță dintr-o poză…” sau Ghiduri).',
-  'Schiță din text: scrii ce vrei în panou („două case și un turn, o fată aleargă, plan larg”) și primești un calc 3D din forme simple (Ghiduri → „Schiță din text”, sau din foaia de panou).',
+var APP_VER='2026.11.20g';
+var APP_NEWS=['Acasă: continui ce lucrai, capitolele, desenele libere și „+ Nou”. „Închide” e acum „← Acasă”.',
+  'Meniul are 4 file: Straturi, Pagină, Ajutoare, Setări. Fișier are doar salvare, deschidere și export.',
+  'Explicațiile lungi stau sub ⓘ (le poți arăta pe toate din Setări → Aspect).',
+  'Uneltele au iconițe; culoare de accent violet; temă întunecată (Setări → Aspect).',
+  'Capitol nou dintr-o dată (Fișier → „Capitol nou…”): alegi câte pagini și formatul; dacă lipești scenariul întregului capitol, îl împart pe pagini și fac panourile și bulele.',
+  'Tabla capitolului: toate paginile două câte două, starea fiecăreia (Schiță/Tuș/Ton/Gata), le muți trăgând de ele.',
+  '📖 Citește: răsfoiești capitolul ca un cititor, cu pagini duble pe orizontală.',
+  'Bandă de pagini în editor: ◀ ▶, numărul paginii și + pagină nouă, mereu la vedere.',
+  'Export capitol: numere de pagină, copertă și bandă verticală pentru webtoon.',
+  '📚 Raftul cu capitole: toate capitolele pe serii (foldere colorate), cu copertă, progres și căutare.',
+  'Bară lângă mână: mărime și opacitate (vezi cercul pensulei), anulează, refă, radieră. Se poate muta pe dreapta (Meniu → Setări → Bara laterală).',
+  '⤢ Doar foaia: ascunde barele (sau atinge cu patru degete). Bara de sus e mai compactă.',
+  '★ Unelte preferate lângă culori; atingi unealta deja aleasă = radieră, încă o dată = înapoi.',
+  'Siguranță: aplicația cere browserului să nu-i șteargă datele, arată când ai salvat ultima dată și îți amintește de copia de siguranță.',
+  'Time-lapse: Fișier → „Time-lapse (video)” face un clip accelerat cu cum ai desenat.',
+  'Turul aplicației: Fișier → „Turul aplicației”.',
+  'Ajutor pentru scurtare (Efecte și forme → Scurtare): tragi axa unui braț/picior/obiect, alegi cât vine spre tine și apare un tub sau o cutie în perspectivă, cu inele și partea din spate punctată. Îți spune și cât de scurt se vede și cât de mare e capătul apropiat.',
+  'Forme curate: desenezi un cerc, o linie, un dreptunghi, un triunghi sau un arc și ții creionul pe loc o clipă la final → forma se îndreaptă singură, cu aceeași pensulă.',
+  'Mod simplu (☰ Meniu, sus: Simplu / Complet): doar 13 unelte de bază și opțiunile de zi cu zi. Orice altceva îl găsești cu 🔍 Caută, care trece singur pe Complet când e nevoie.',
+  '🔍 Caută (sus): scrii „simetrie”, „bleed”, „hașuri”, „export” și ajungi direct la opțiune. Merge și fără diacritice.',
+  'Schiță din imagine mai bună: la poze netezește texturile și păstrează marginile obiectelor, cu linii curate; la desene și manga ia direct liniile de cerneală, fără contur dublu.',
+  'Schiță dintr-o poză: alegi o imagine și o transform în linii (sau linii + hașuri/tonuri) pe un strat nou (Fișier → „Schiță dintr-o poză…” sau Ghiduri).',
+  'Schiță din text: scrii ce vrei în panou („două case și un turn, o fată aleargă, plan larg”) și primești un calc 3D din forme simple (Ajutoare → „Schiță din text”, sau din foaia de panou).',
   'Puncte de fugă puse de tine (1–3) și verificator de perspectivă.','Pagina de manga și pagina din Desen sunt aceeași: „Desenează pe această pagină” și ◀ ▶ între paginile capitolului.',
   'Personaj compus: salvezi fața ca „Parte din” corp și se așază singură pe el; schimbi expresia fără să atingi corpul.',
   'Istoricul de anulare se păstrează când închizi și redeschizi.',
@@ -9705,7 +9743,7 @@ function skInit(){
 
 SKOBJ.forEach(function(r){r[0]=plU(r[0]);});SKFIG=plU(SKFIG);SKPOSE.forEach(function(r){r[0]=plU(r[0]);});
 /* ---------- Schiță din imagine: o poză sau o referință devine linii de schiță pe un strat nou ---------- */
-var PHO={style:'lines',det:5,thick:1,col:'blue',src:null,L:null,t:0};
+var PHO={kind:'auto',shade:'none',det:5,thick:1,col:'blue',src:null,L:null,t:0};
 function phBlur(a,w,h,r){
   /* 3 treceri de medie pe rânduri și coloane ≈ blur gaussian */
   r=Math.max(1,Math.round(r));var b=new Float32Array(a.length),src=a,dst=b,p,x,y,s,i;
@@ -9720,52 +9758,143 @@ function phBlur(a,w,h,r){
   return src;
 }
 function phPct(a,q){var n=Math.min(a.length,20000),st=Math.max(1,Math.floor(a.length/n)),v=[];for(var i=0;i<a.length;i+=st)v.push(a[i]);v.sort(function(x,y){return x-y;});return v[Math.floor(q*(v.length-1))];}
+/* filtru Kuwahara: netezește texturile (frunze, iarbă, zgomot) dar păstrează marginile obiectelor */
+function phKuwa(R,G,B,L,w,h,r){
+  var W=w+1,n=W*(h+1);
+  function sat(a,sq){var s=new Float64Array(n);for(var y=0;y<h;y++){var row=0;for(var x=0;x<w;x++){var v=a[y*w+x];row+=sq?v*v:v;s[(y+1)*W+x+1]=s[y*W+x+1]+row;}}return s;}
+  var SR=sat(R),SG=sat(G),SB=sat(B),SL=sat(L),SQ=sat(L,true),oR=new Float32Array(w*h),oG=new Float32Array(w*h),oB=new Float32Array(w*h);
+  function box(S,x0,y0,x1,y1){return S[y1*W+x1]-S[y0*W+x1]-S[y1*W+x0]+S[y0*W+x0];}
+  for(var y=0;y<h;y++)for(var x=0;x<w;x++){
+    var best=1e9,bi=0,Q=[[x-r,y-r,x+1,y+1],[x,y-r,x+r+1,y+1],[x-r,y,x+1,y+r+1],[x,y,x+r+1,y+r+1]],bq=null;
+    for(var q=0;q<4;q++){var a=Q[q],x0=Math.max(0,a[0]),y0=Math.max(0,a[1]),x1=Math.min(w,a[2]),y1=Math.min(h,a[3]),c=(x1-x0)*(y1-y0);if(c<=0)continue;
+      var m=box(SL,x0,y0,x1,y1)/c,v=box(SQ,x0,y0,x1,y1)/c-m*m;if(v<best){best=v;bq=[x0,y0,x1,y1,c];}}
+    var i=y*w+x;oR[i]=box(SR,bq[0],bq[1],bq[2],bq[3])/bq[4];oG[i]=box(SG,bq[0],bq[1],bq[2],bq[3])/bq[4];oB[i]=box(SB,bq[0],bq[1],bq[2],bq[3])/bq[4];
+  }
+  return [oR,oG,oB];
+}
+/* e desen (linii negre pe alb) sau poză? */
+function phIsInk(L){
+  var n=0,wh=0,dk=0,mid=0,st=Math.max(1,Math.floor(L.length/40000));
+  for(var i=0;i<L.length;i+=st){n++;var v=L[i];if(v>.82)wh++;else if(v<.35)dk++;else mid++;}
+  return wh/n>.55&&dk/n>.01&&dk/n<.3&&mid/n<.25;
+}
+/* urmărește liniile de 1 px și le transformă în trasee */
+function phChains(E,S,w,h){
+  var n=w*h,used=new Uint8Array(n),out=[],D=[1,w+1,w,w-1,-1,-w-1,-w,-w+1];
+  function nb(i){var c=0;for(var k=0;k<8;k++){var q=i+D[k];if(q>=0&&q<n&&E[q]&&!used[q])c++;}return c;}
+  function walk(i){
+    var pts=[],sum=0,dir=-1;
+    while(i>=0){used[i]=1;pts.push([i%w,(i/w)|0]);sum+=S[i];
+      var nx=-1,bs=-1;
+      for(var k=0;k<8;k++){var q=i+D[k],qx=(q%w);if(q<0||q>=n||!E[q]||used[q]||Math.abs(qx-i%w)>1)continue;
+        var sc=(dir<0?0:4-Math.min((k-dir+8)%8,(dir-k+8)%8))+(k%2?0:.5);if(sc>bs){bs=sc;nx=q;dir=k;}}
+      i=nx;
+    }
+    return {p:pts,s:sum/pts.length};
+  }
+  var i;
+  for(i=0;i<n;i++)if(E[i]&&!used[i]&&nb(i)<=1)out.push(walk(i));
+  for(i=0;i<n;i++)if(E[i]&&!used[i])out.push(walk(i));
+  return out;
+}
+function phRDP(p,eps){
+  if(p.length<3)return p;
+  var keep=new Uint8Array(p.length);keep[0]=keep[p.length-1]=1;var st=[[0,p.length-1]];
+  while(st.length){var s=st.pop(),a=p[s[0]],b=p[s[1]],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,mi=-1,md=0;
+    for(var i=s[0]+1;i<s[1];i++){var d=Math.abs(dy*(p[i][0]-a[0])-dx*(p[i][1]-a[1]))/L;if(d>md){md=d;mi=i;}}
+    if(md>eps){keep[mi]=1;st.push([s[0],mi],[mi,s[1]]);}}
+  return p.filter(function(_,i){return keep[i];});
+}
 /* img: canvas sau imagine; întoarce un canvas transparent cu liniile */
 function phProcess(img,opt){
   opt=Object.assign({},PHO,opt||{});
   var iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,mx=opt.max||1600,k=Math.min(2.5,mx/Math.max(iw,ih));
   var w=Math.max(8,Math.round(iw*k)),h=Math.max(8,Math.round(ih*k)),cv=drMk(w,h),x=cv.getContext('2d');
-  x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);
-  var im=x.getImageData(0,0,w,h),d=im.data,n=w*h,L=new Float32Array(n),i;
-  for(i=0;i<n;i++)L[i]=(.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2])/255;
-  /* contrast automat: întinde tonurile între percentilele 2% și 98% */
+  /* detecția se face pe o copie de max. 1000 px (rapid), liniile se desenează la mărimea finală */
+  var kd=Math.min(1,1000/Math.max(iw,ih),Math.max(w,h)/Math.max(iw,ih)),dw=Math.max(8,Math.round(iw*kd)),dh=Math.max(8,Math.round(ih*kd)),f=w/dw;
+  var wc=drMk(dw,dh),wx=wc.getContext('2d');wx.fillStyle='#fff';wx.fillRect(0,0,dw,dh);wx.drawImage(img,0,0,dw,dh);
+  var d=wx.getImageData(0,0,dw,dh).data,n=dw*dh,R=new Float32Array(n),G=new Float32Array(n),B=new Float32Array(n),L=new Float32Array(n),i,y,xx;
+  for(i=0;i<n;i++){R[i]=d[i*4]/255;G[i]=d[i*4+1]/255;B[i]=d[i*4+2]/255;L[i]=.299*R[i]+.587*G[i]+.114*B[i];}
   var lo=phPct(L,.02),hi=phPct(L,.98);if(hi-lo<.05){lo=0;hi=1;}
-  for(i=0;i<n;i++)L[i]=clamp((L[i]-lo)/(hi-lo),0,1);
-  var sc=Math.max(w,h)/1000,det=clamp(opt.det,1,10);
-  /* Canny: netezire, gradient Sobel, subțiere, prag dublu → linii continue de 1 px */
-  var g1=phBlur(L,w,h,Math.max(1,(.8+(10-det)*.22)*sc)),M=new Float32Array(n),G=new Uint8Array(n),y,xx;
-  for(y=1;y<h-1;y++)for(xx=1;xx<w-1;xx++){i=y*w+xx;
-    var gx=(g1[i-w+1]+2*g1[i+1]+g1[i+w+1])-(g1[i-w-1]+2*g1[i-1]+g1[i+w-1]),gy=(g1[i+w-1]+2*g1[i+w]+g1[i+w+1])-(g1[i-w-1]+2*g1[i-w]+g1[i-w+1]);
-    M[i]=Math.hypot(gx,gy);var an=Math.atan2(gy,gx);if(an<0)an+=Math.PI;G[i]=Math.round(an/(Math.PI/4))%4;}
-  var N=new Float32Array(n);
-  for(y=1;y<h-1;y++)for(xx=1;xx<w-1;xx++){i=y*w+xx;var m=M[i];if(!m)continue;var o=[1,w+1,w,w-1][G[i]];
-    if(m>=M[i-o]&&m>=M[i+o])N[i]=m;}
-  var hiT=phPct(M,clamp(.97-det*.022,.7,.96)),loT=hiT*.45,E=new Uint8Array(n),stk=[];
-  if(hiT<=0)hiT=1e-6;
-  for(i=0;i<n;i++)if(N[i]>=hiT&&!E[i]){E[i]=1;stk.push(i);
-    while(stk.length){var j=stk.pop();for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++){var q=j+dy*w+dx;if(q>0&&q<n&&!E[q]&&N[q]>=loT){E[q]=1;stk.push(q);}}}}
-  /* scoate bucățile foarte scurte */
-  var minLen=Math.round(6*sc+(10-det)),seen=new Uint8Array(n),A=new Float32Array(n);
-  for(i=0;i<n;i++)if(E[i]&&!seen[i]){var comp=[i];seen[i]=1;for(var ci=0;ci<comp.length;ci++){var c0=comp[ci];for(dy=-1;dy<=1;dy++)for(dx=-1;dx<=1;dx++){q=c0+dy*w+dx;if(q>0&&q<n&&E[q]&&!seen[q]){seen[q]=1;comp.push(q);}}}
-    if(comp.length>=minLen)comp.forEach(function(p){A[p]=1;});}
-  /* grosime și margini netede */
-  var th=Math.round(clamp(opt.thick,1,4)*Math.max(1,sc*.9))-1;
-  for(var it=0;it<th;it++){var C=new Float32Array(n);
-    for(y=1;y<h-1;y++)for(xx=1;xx<w-1;xx++){i=y*w+xx;C[i]=Math.max(A[i],A[i-1],A[i+1],A[i-w],A[i+w]);}A=C;}
-  var Ab=phBlur(A,w,h,1);for(i=0;i<n;i++)A[i]=Math.max(A[i]*.85,Math.min(1,Ab[i]*1.6));
-  /* umbrele: hașuri (manga) sau tonuri plate */
-  var tone=null;
-  if(opt.style!=='lines'){
-    var g3=phBlur(L,w,h,2.5*sc),q1=Math.min(.42,phPct(g3,.3)),q2=Math.min(.22,phPct(g3,.12)),per=Math.max(5,Math.round(7*sc)),lw=Math.max(1.2,1.4*sc);
-    tone=new Float32Array(n);
-    for(y=0;y<h;y++)for(xx=0;xx<w;xx++){i=y*w+xx;var v=g3[i];if(v>=q1)continue;
-      if(opt.style==='flat'){tone[i]=v<q2?.55:.28;continue;}
-      var a1=((xx+y)%per)<lw?.75:0,a2=v<q2&&((xx-y+9999*per)%per)<lw?.75:0;tone[i]=Math.max(a1,a2);}
+  for(i=0;i<n;i++){L[i]=clamp((L[i]-lo)/(hi-lo),0,1);}
+  var det=clamp(opt.det,1,10),sc=Math.max(dw,dh)/1000,kind=opt.kind||'auto';
+  if(kind==='auto')kind=phIsInk(L)?'ink':'photo';
+  PHO.lastKind=kind;
+  var rgb=opt.col==='black'?'rgb(17,24,39)':opt.col==='gray'?'rgb(110,116,128)':'rgb(37,99,215)';
+  var base=(.9+.55*(clamp(opt.thick,1,4)-1))*Math.max(1,w/1000);
+  x.clearRect(0,0,w,h);x.strokeStyle=rgb;x.fillStyle=rgb;x.lineCap='round';x.lineJoin='round';
+  var E=new Uint8Array(n),S=new Float32Array(n);
+  if(kind==='ink'){
+    /* desen/manga: păstrează liniile întunecate, nu marginile lor (altfel apar linii duble) */
+    var m=phBlur(L,dw,dh,Math.max(4,8*sc)),t=.04+(10-det)*.012;
+    for(i=0;i<n;i++){var a=clamp((m[i]-L[i]-t)/.18,0,1);if(L[i]>.7)a=0;S[i]=a;}
+    /* liniile desenului sunt deja linii: le păstrăm forma și grosimea, doar curățate și netezite la mărimea finală */
+    var sm=drMk(dw,dh),sx=sm.getContext('2d'),si=sx.createImageData(dw,dh);
+    for(i=0;i<n;i++){si.data[i*4+3]=Math.round(S[i]*255);}
+    sx.putImageData(si,0,0);
+    var big=drMk(w,h),bx=big.getContext('2d');bx.imageSmoothingEnabled=true;bx.imageSmoothingQuality='high';
+    var gr=Math.max(0,clamp(opt.thick,1,4)-1)*Math.max(1,w/1000)*.8;
+    if(gr>0){for(var a2=0;a2<8;a2++)bx.drawImage(sm,Math.cos(a2*Math.PI/4)*gr,Math.sin(a2*Math.PI/4)*gr,w,h);}
+    bx.drawImage(sm,0,0,w,h);
+    var bd=bx.getImageData(0,0,w,h),bb=bd.data,col=opt.col==='black'?[17,24,39]:opt.col==='gray'?[110,116,128]:[37,99,215];
+    for(i=0;i<w*h;i++){var al=bb[i*4+3]/255;al=clamp((al-.22)/.3,0,1);al=al*al*(3-2*al);bb[i*4]=col[0];bb[i*4+1]=col[1];bb[i*4+2]=col[2];bb[i*4+3]=Math.round(al*255);}
+    x.putImageData(bd,0,0);
+  }else{
+    /* poză: netezire care păstrează marginile, apoi Canny pe culoare */
+    var kr=Math.max(1,Math.round((1.5+(10-det)*.3)*sc)),K=phKuwa(R,G,B,L,dw,dh,kr),C=[K[0],K[1],K[2]].map(function(a){return phBlur(a,dw,dh,Math.max(1,.8*sc));});
+    var M=new Float32Array(n),Dr=new Uint8Array(n);
+    for(y=1;y<dh-1;y++)for(xx=1;xx<dw-1;xx++){i=y*dw+xx;var bm=0,bgx=0,bgy=0;
+      for(var c=0;c<3;c++){var g=C[c],gx=(g[i-dw+1]+2*g[i+1]+g[i+dw+1])-(g[i-dw-1]+2*g[i-1]+g[i+dw-1]),gy=(g[i+dw-1]+2*g[i+dw]+g[i+dw+1])-(g[i-dw-1]+2*g[i-dw]+g[i-dw+1]),mm=gx*gx+gy*gy;if(mm>bm){bm=mm;bgx=gx;bgy=gy;}}
+      M[i]=Math.sqrt(bm);var an=Math.atan2(bgy,bgx);if(an<0)an+=Math.PI;Dr[i]=Math.round(an/(Math.PI/4))%4;}
+    var N=new Float32Array(n);
+    for(y=1;y<dh-1;y++)for(xx=1;xx<dw-1;xx++){i=y*dw+xx;var mv=M[i];if(!mv)continue;var o=[1,dw+1,dw,dw-1][Dr[i]];if(mv>=M[i-o]&&mv>=M[i+o])N[i]=mv;}
+    var hiT=Math.max(1e-4,phPct(M,clamp(.95-det*.025,.65,.93))),loT=hiT*.4;
+    /* zonele cu multe margini mărunte (frunziș, iarbă) cer margini mai puternice */
+    var Eg=new Float32Array(n);for(i=0;i<n;i++)Eg[i]=N[i]>loT?1:0;
+    var De=phBlur(Eg,dw,dh,Math.max(5,10*sc)),sup=.25+(10-det)*.25;
+    for(i=0;i<n;i++)N[i]=N[i]/(1+sup*Math.max(0,De[i]-.06)*8);
+    var stk=[];
+    for(i=0;i<n;i++)if(N[i]>=hiT&&!E[i]){E[i]=1;stk.push(i);
+      while(stk.length){var j=stk.pop();for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++){var q=j+dy*dw+dx;if(q>0&&q<n&&!E[q]&&N[q]>=loT){E[q]=1;stk.push(q);}}}}
+    for(i=0;i<n;i++)S[i]=E[i]?clamp(N[i]/(hiT*2.2),.25,1):0;
   }
-  var rgb=opt.col==='black'?[17,24,39]:opt.col==='gray'?[110,116,128]:[37,99,215];
-  for(i=0;i<n;i++){var al=A[i];if(tone)al=Math.max(al,tone[i]*(opt.style==='flat'?1:.9));
-    d[i*4]=rgb[0];d[i*4+1]=rgb[1];d[i*4+2]=rgb[2];d[i*4+3]=Math.round(clamp(al,0,1)*255);}
-  x.clearRect(0,0,w,h);x.putImageData(im,0,0);
+  /* trasee netede în loc de pixeli în scară */
+  var ch=kind==='ink'?[]:phChains(E,S,dw,dh),minL=kind==='ink'?3:Math.round(4*sc+(10-det)*1);
+  ch.forEach(function(c){
+    if(c.p.length<minL)return;
+    var p=phRDP(c.p,.7);
+    var lw=base*(kind==='ink'?1:(.55+.75*c.s));x.lineWidth=lw;x.globalAlpha=kind==='ink'?1:clamp(.55+.6*c.s,0,1);
+    x.beginPath();x.moveTo((p[0][0]+.5)*f,(p[0][1]+.5)*f);
+    if(p.length===2)x.lineTo((p[1][0]+.5)*f,(p[1][1]+.5)*f);
+    for(var q=1;q<p.length-1;q++){var a=p[q],b=p[q+1];x.quadraticCurveTo((a[0]+.5)*f,(a[1]+.5)*f,((a[0]+b[0])/2+.5)*f,((a[1]+b[1])/2+.5)*f);}
+    if(p.length>2){var e=p[p.length-1];x.lineTo((e[0]+.5)*f,(e[1]+.5)*f);}
+    x.stroke();
+  });
+  x.globalAlpha=1;
+  /* umbrele: hașuri (manga) sau tonuri plate */
+  if(opt.shade&&opt.shade!=='none'){
+    var g3=phBlur(L,dw,dh,2.5*sc),q1=Math.min(.42,phPct(g3,.3)),q2=Math.min(.22,phPct(g3,.12));
+    var tc=drMk(dw,dh),tx=tc.getContext('2d'),ti=tx.createImageData(dw,dh),td=ti.data;
+    for(i=0;i<n;i++){var v=g3[i];if(v>=q1)continue;td[i*4+3]=v<q2?255:128;}
+    tx.putImageData(ti,0,0);
+    var mk=drMk(w,h),mx2=mk.getContext('2d');mx2.imageSmoothingEnabled=true;mx2.drawImage(tc,0,0,w,h);
+    var pc=drMk(w,h),px=pc.getContext('2d');px.strokeStyle=rgb;px.fillStyle=rgb;
+    if(opt.shade==='flat'){
+      /* două tonuri: jumătate de alfa pentru semiton, alfa plin pentru umbra adâncă */
+      px.globalAlpha=.32;px.fillRect(0,0,w,h);px.globalCompositeOperation='destination-in';px.drawImage(mk,0,0);
+    }else{
+      var per=Math.max(6,Math.round(7*w/1000)),lw2=Math.max(1,.9*w/1000);px.lineWidth=lw2;px.beginPath();
+      for(var s2=-h;s2<w;s2+=per){px.moveTo(s2,h);px.lineTo(s2+h,0);}px.stroke();
+      /* hașura încrucișată doar unde e foarte întunecat */
+      var cc=drMk(w,h),cx2=cc.getContext('2d');cx2.strokeStyle=rgb;cx2.lineWidth=lw2;cx2.beginPath();
+      for(s2=0;s2<w+h;s2+=per){cx2.moveTo(s2,h);cx2.lineTo(s2-h,0);}cx2.stroke();
+      var dk2=drMk(w,h),dx2=dk2.getContext('2d');dx2.drawImage(mk,0,0);var dd=dx2.getImageData(0,0,w,h);for(i=3;i<dd.data.length;i+=4)dd.data[i]=dd.data[i]>200?255:0;dx2.putImageData(dd,0,0);
+      cx2.globalCompositeOperation='destination-in';cx2.drawImage(dk2,0,0);
+      px.globalCompositeOperation='destination-in';px.drawImage(mk,0,0);px.globalCompositeOperation='source-over';px.drawImage(cc,0,0);
+      px.globalAlpha=1;
+    }
+    x.globalAlpha=.8;x.drawImage(pc,0,0);x.globalAlpha=1;
+  }
   return cv;
 }
 function phLoad(file){
@@ -9793,7 +9922,7 @@ function phPlace(src){
   DR.float={cv:cv,w:cv.width,h:cv.height,cx:cx,cy:cy,sx:k,sy:k,rot:0,L:L,bb0:[1e9,1e9,-1e9,-1e9],text:0,ph:true};
   if(!DR.link&&DR.kind!=='page'&&!DR.sketch&&DR.trace&&/^scene/.test(DR.trace.mode))DR.trace.on=false;
   PHO.L=L;DR.tool='move';drSync();drDirty();
-  drMsg('Mută și scalează schița, schimbă detaliile din „Schiță din imagine”, apoi apasă „Gata”.');
+  drMsg((PHO.lastKind==='ink'?'Am luat-o ca desen. ':'Am luat-o ca poză. ')+'Mută și scalează schița, schimbă detaliile din „Schiță din imagine”, apoi apasă „Gata”.');
   return true;
 }
 /* cutia panoului curent (pe pagină sau în foaia de panou) */
@@ -9827,15 +9956,16 @@ function phInit(){
     sec.appendChild(el('div','sub',lab));
     var s=el('div','seg');sec.appendChild(s);
     opts.forEach(function(o){var b=el('button',null,o[1]);b.type='button';b.addEventListener('click',function(){PHO[key]=o[0];paint();phSoon();});b.dataset.v=o[0];s.appendChild(b);});
-    function paint(){[].forEach.call(s.children,function(b){b.classList.toggle('on',b.dataset.v===String(PHO[key]));});}
+    function paint(){[].forEach.call(s.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.v===String(PHO[key])));});}
     paint();DR.sync.push(paint);
   }
-  seg('Stil','style',[['lines','Doar linii'],['hatch','Linii + hașuri'],['flat','Linii + tonuri']]);
+  seg('Ce fel de imagine','kind',[['auto','Ghicește'],['photo','Poză'],['ink','Desen / manga']]);
+  seg('Umbre','shade',[['none','Fără'],['hatch','Hașuri'],['flat','Tonuri']]);
   seg('Culoare','col',[['blue','Albastru (ciornă)'],['gray','Gri'],['black','Negru']]);
   var box=el('div');sec.appendChild(box);
   drSlider(box,'Detalii',1,10,1,function(){return PHO.det;},function(v){PHO.det=v;phSoon();},function(v){return v<=3?'puține':v>=8?'multe':'medii';});
   drSlider(box,'Grosime',1,4,1,function(){return PHO.thick;},function(v){PHO.thick=v;phSoon();},function(v){return v+'';});
-  sec.appendChild(el('p','note','Cât timp schița e selectată (înainte de „Gata”), schimbările de mai sus se văd imediat. Albastrul e strat de ciornă: se vede, dar nu iese la export. Merge cel mai bine cu poze clare, cu contrast; fundalurile încărcate dau multe linii — scade „Detalii” sau șterge cu radiera.'));
+  sec.appendChild(el('p','note','Cât timp schița e selectată (înainte de „Gata”), schimbările de mai sus se văd imediat. Albastrul e strat de ciornă: se vede, dar nu iese la export. La poze, aplicația netezește întâi texturile (frunze, iarbă) și păstrează marginile obiectelor. La desene și pagini de manga ia direct liniile de cerneală, fără contur dublu. Dacă ies prea multe linii, scade „Detalii”.'));
   hs.parentNode.insertBefore(sec,hs);
   DR.sync.push(function(){rf.hidden=!phRefCanvas();});
 }
@@ -9843,6 +9973,1653 @@ function phInit(){
 function phRefCanvas(){
   try{var it=typeof rfCur==='function'?rfCur():null,s=it&&it.src;if(s&&(s.naturalWidth||s.width))return s;}catch(e){}
   return null;
+}
+/* ---------- Caută o funcție: scrii „simetrie”, „bleed”, „hașuri” și ajungi direct la ea ---------- */
+var FSYN={oglind:'simetrie',mirror:'simetrie',symmetr:'simetrie',undo:'anuleaza',redo:'refa',pipet:'pipeta',culoar:'culoare',
+  salv:'salveaza copie',backup:'copie de siguranta',rezerv:'copie de siguranta',export:'exporta',png:'png',jpg:'png',zoom:'potriveste',marire:'potriveste',
+  hasur:'hasuri ton',umbr:'ton hasuri',raster:'ton',screentone:'ton',bleed:'bleed panou',cadru:'panou cadru',chenar:'panou',
+  balon:'bule replica sunete',bula:'bule replica',dialog:'replica bule',onomatop:'sunete',sfx:'sunete',perspectiv:'perspectiva fuga',
+  fuga:'puncte de fuga',linie:'linie',rigl:'rigla',stabil:'stabilizare',tremur:'stabilizare',presiun:'presiune',
+  radier:'radiera',sterg:'radiera sterge',strat:'strat',layer:'strat',import:'importa deschide',poz:'poza imagine',
+  imagin:'imagine',referint:'referinta',schit:'schita',calc:'calc',pagin:'pagina',capitol:'capitol',psd:'psd',pdf:'pdf',
+  pensul:'pensule',brush:'pensule',creion:'creion',penit:'penita',gpen:'g-pen',umple:'umplere',galeat:'umplere',
+  selec:'selectie lasou',lasou:'lasou',muta:'muta',rotest:'roteste',grila:'grila',grid:'grila',personaj:'figura',
+  manechin:'figura',poza3d:'figura',deform:'deformeaza',efect:'efecte',viteza:'linii de viteza',focus:'focus',crapat:'crapatura'};
+function fsNorm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9+\- ]+/g,' ').replace(/\s+/g,' ').trim();}
+function fsVisible(n,stop){
+  for(var e=n;e&&e!==stop&&e!==document.body;e=e.parentElement){
+    if(e.classList&&e.classList.contains('tabpane'))return true;
+    if(e.hidden||e.getAttribute('data-hid'))return false;
+    if(e.style&&e.style.display==='none')return false;
+  }
+  return true;
+}
+function fsLabel(n){
+  var t='';
+  if(n.matches('button,a'))t=(n.querySelector('b')||n).textContent;
+  else if(n.matches('label'))t=n.textContent;
+  else t=n.textContent;
+  return String(t||'').replace(/\s+/g,' ').trim();
+}
+/* adună tot ce se poate găsi, din ce e pe ecran acum */
+function fsIndex(){
+  var R=[],seen={};
+  function add(o){var k=o.where+'|'+o.label;if(!o.label||o.label.length<2||o.label.length>60||seen[k])return;seen[k]=1;o.n=fsNorm(o.label+' '+(o.extra||''));o.w=fsNorm(o.where);R.push(o);}
+  /* unelte */
+  document.querySelectorAll('#drTools button[data-tool]').forEach(function(b){
+    var t=b.getAttribute('data-tool');add({label:fsLabel(b),where:'Unealtă · '+((DCATS.filter(function(c){return c[2].indexOf(t)>=0;})[0]||[0,''])[1]),kind:'tool',tool:t});
+  });
+  /* butoanele de sus */
+  document.querySelectorAll('.drtop button').forEach(function(b){if(b.id==='fsBtn'||b.disabled)return;add({label:fsLabel(b).replace(/^[↶↷☰]\s*/,'').replace(/\s*▾$/,''),where:'Bara de sus',kind:'click',el:b});});
+  /* meniul lateral și foaia paginii, pe file */
+  function tabs(T,pre,kind){
+    if(!T)return;
+    Object.keys(T.panes).forEach(function(k){
+      var pane=T.panes[k],tab=pre+T.btn[k].textContent;
+      pane.querySelectorAll('.h, button, label').forEach(function(n){
+        if(!fsVisible(n,pane))return;
+        if(n.classList.contains('h')){add({label:fsLabel(n),where:tab,kind:kind,T:T,tab:k,el:n,head:true});return;}
+        if(n.closest('.tabbar'))return;
+        var lab=fsLabel(n);if(/^[\d\s%px.,−+\-‹›↔↕✚▾▴]+$/.test(lab))return;
+        var h=fsSecOf(n,pane);add({label:lab,where:tab+(h?' › '+h:''),kind:kind,T:T,tab:k,el:n});
+      });
+    });
+  }
+  tabs(DRTABS,'',  'side');
+  if(DR.kind==='page'&&!DR.link)tabs(PGTABS,'Pagina de manga › ','page');
+  /* setările uneltei de sus (Mărime, Stabilizare…) și bara de jos */
+  document.querySelectorAll('#drSliders label, .drtools label, .drtools button:not([data-tool]), #drCtx label, #drCtx .cxlab, #drCtx button').forEach(function(n){
+    if(!fsVisible(n,document.body)||n.closest('.drcats'))return;var lab=fsLabel(n);if(/^[\d\s%px.,−+\-‹›↔↕✚▾▴]+$/.test(lab))return;
+    add({label:lab,where:n.closest('#drCtx')?'Bara de jos (opțiunile uneltei)':'Bara uneltei',kind:'click',el:n});
+  });
+  /* meniul Fișier */
+  var m=$('#drFileM'),wasHidden=!m||m.hidden;
+  if(!m||!m.children.length){try{drFileMenu();}catch(e){}m=$('#drFileM');if(m&&wasHidden)m.hidden=true;}
+  if(m)m.querySelectorAll('.fitem').forEach(function(b){add({label:fsLabel(b),extra:(b.querySelector('small')||{}).textContent,where:'Fișier',kind:'file',text:fsLabel(b)});});
+  return R;
+}
+function fsSecOf(n,pane){
+  var hs=pane.querySelectorAll('.h'),best=null;
+  for(var i=0;i<hs.length;i++){if(hs[i].compareDocumentPosition(n)&Node.DOCUMENT_POSITION_FOLLOWING)best=hs[i];else break;}
+  return best?fsLabel(best):'';
+}
+function fsSearch(q,R){
+  q=fsNorm(q);if(!q)return [];
+  var words=q.split(' '),extra=[];
+  words.forEach(function(w){Object.keys(FSYN).forEach(function(k){if(w.length>=3&&(w.indexOf(k)===0||k.indexOf(w)===0))extra.push(FSYN[k]);});});
+  var ex=fsNorm(extra.join(' ')).split(' ').filter(Boolean);
+  return R.map(function(o){
+    var s=0,all=true;
+    words.forEach(function(w){
+      var ws=' '+o.n;
+      if(ws.indexOf(' '+w)>=0)s+=10;else if(o.n.indexOf(w)>=0)s+=5;else if(o.w.indexOf(w)>=0)s+=2;else all=false;
+    });
+    if(!all)s=0;
+    ex.forEach(function(w){if((' '+o.n).indexOf(' '+w)>=0)s+=4;});
+    if(s&&o.head)s+=3;if(s&&o.kind==='tool')s+=2;
+    if(s&&fsNorm(o.label)===q)s+=8;
+    return [s,o];
+  }).filter(function(a){return a[0]>0;}).sort(function(a,b){return b[0]-a[0];}).slice(0,14).map(function(a){return a[1];});
+}
+function fsFlash(n){
+  if(!n)return;
+  n.scrollIntoView({block:'center',behavior:'smooth'});
+  n.classList.remove('fsflash');void n.offsetWidth;n.classList.add('fsflash');
+  setTimeout(function(){n.classList.remove('fsflash');},2600);
+}
+function fsGo(o){
+  fsClose();
+  smReveal(o.el,o.kind==='tool'?o.tool:null);
+  if(o.kind==='tool'){drSetTool(o.tool);drSync();drMsg(o.label+' e selectat.');return;}
+  if(o.kind==='click'){if(o.el.closest('#drCtx')){DR.ctxMin=false;drSync();}fsFlash(o.el);return;}
+  if(o.kind==='page'){$('#pg').hidden=false;try{pgSize();pgDraw();}catch(e){}uiTabGo(PGTABS,o.tab,true);setTimeout(function(){fsFlash(o.el);},80);return;}
+  if(o.kind==='side'){$('#drSide').hidden=false;uiTabGo(DRTABS,o.tab,true);drSync();setTimeout(function(){fsFlash(o.el);},60);return;}
+  if(o.kind==='file'){var m=$('#drFileM');if(!m||m.hidden)drFileMenu();m=$('#drFileM');
+    var b=[].filter.call(m.querySelectorAll('.fitem'),function(x){return fsLabel(x)===o.text;})[0];setTimeout(function(){fsFlash(b);},60);}
+}
+function fsClose(){var d=$('#fsDlg');if(d)d.hidden=true;}
+function fsOpen(){
+  var d=$('#fsDlg');
+  if(!d){
+    d=el('div','fsdlg');d.id='fsDlg';d.setAttribute('role','dialog');d.setAttribute('aria-label','Caută o funcție');
+    var box=el('div','fsbox');d.appendChild(box);
+    var top=el('div','fstop');box.appendChild(top);
+    var inp=el('input');inp.id='fsIn';inp.type='search';inp.placeholder='Ce cauți? ex. simetrie, bleed, hașuri, export';inp.setAttribute('autocomplete','off');top.appendChild(inp);
+    var x=el('button','btn','Închide');x.type='button';x.addEventListener('click',fsClose);top.appendChild(x);
+    var ul=el('div','fslist');ul.id='fsList';ul.setAttribute('role','listbox');box.appendChild(ul);
+    d.addEventListener('pointerdown',function(e){if(e.target===d)fsClose();});
+    var R=[],sel=0;
+    function show(){
+      var L=inp.value.trim()?fsSearch(inp.value,R):[];ul.innerHTML='';sel=0;
+      if(!inp.value.trim()){
+        ul.appendChild(el('p','note','Scrie numele unei funcții sau ce vrei să faci. Merge și fără diacritice.'));
+        var rec=el('div','fsrec');['simetrie','bleed','hașuri','puncte de fugă','export','schiță din imagine','copie de rezervă','stabilizare'].forEach(function(w){var b=el('button','btn',w);b.type='button';b.addEventListener('click',function(){inp.value=w;show();inp.focus();});rec.appendChild(b);});
+        ul.appendChild(rec);return;
+      }
+      if(!L.length){ul.appendChild(el('p','note','N-am găsit nimic. Încearcă alt cuvânt (ex. „oglindă” → simetrie).'));return;}
+      L.forEach(function(o,i){var b=el('button','fsit');b.type='button';b.setAttribute('role','option');
+        b.appendChild(el('b',null,o.label));b.appendChild(el('small',null,o.where+(o.kind==='tool'?' — o alege':'')));
+        b.addEventListener('click',function(){fsGo(o);});ul.appendChild(b);});
+      mark();
+      function mark(){[].forEach.call(ul.querySelectorAll('.fsit'),function(b,i){b.classList.toggle('on',i===sel);});}
+      inp.onkeydown=function(e){var n=L.length;if(e.key==='ArrowDown'){sel=(sel+1)%n;mark();e.preventDefault();}else if(e.key==='ArrowUp'){sel=(sel-1+n)%n;mark();e.preventDefault();}else if(e.key==='Enter'){fsGo(L[sel]);}else if(e.key==='Escape')fsClose();};
+    }
+    inp.addEventListener('input',show);
+    d.fsRe=function(){R=fsIndex();inp.value='';show();};
+    document.body.appendChild(d);
+  }
+  d.hidden=false;d.fsRe();setTimeout(function(){var i=$('#fsIn');if(i)i.focus();},30);
+}
+function fsInit(){
+  if($('#fsBtn'))return;
+  var mb=$('#drMenu');if(!mb)return;
+  var b=el('button','btn','🔍 Caută');b.id='fsBtn';b.type='button';b.setAttribute('aria-label','Caută o funcție');b.addEventListener('click',fsOpen);
+  mb.parentNode.insertBefore(b,mb);
+  var st=document.createElement('style');
+  st.textContent='.fsdlg{position:fixed;inset:0;z-index:300;background:rgba(15,23,42,.35);display:flex;align-items:flex-start;justify-content:center;padding:6vh 12px}'+
+  '.fsdlg[hidden]{display:none}.fsbox{background:var(--bg,#f4f4f1);color:inherit;border-radius:14px;width:min(560px,100%);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.25);overflow:hidden}'+
+  '.fstop{display:flex;gap:8px;padding:12px;border-bottom:1px solid rgba(0,0,0,.08)}.fstop input{flex:1;font:inherit;font-size:17px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff;color:#111;min-width:0}'+
+  '.fslist{overflow:auto;padding:8px 12px 14px}.fsit{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:inherit;font:inherit;cursor:pointer;min-height:48px}'+
+  '.fsit small{opacity:.65;font-size:13px;margin-top:2px}.fsit.on,.fsit:hover{background:rgba(37,99,235,.1)}.fsrec{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}'+
+  '@keyframes fsfl{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}20%,60%{box-shadow:0 0 0 4px rgba(37,99,235,.75)}}.fsflash{animation:fsfl 1.2s ease 2;border-radius:8px;position:relative;z-index:2}';
+  document.head.appendChild(st);
+}
+/* ---------- Mod simplu: doar uneltele și opțiunile de zi cu zi; restul rămâne la un buton distanță ---------- */
+var SIMPLE_TOOLS=['gpen','pencil','brush','marker','eraser','fill','line','shape','text','sel','move','hand','eyedrop'];
+var SIMPLE_SEC=['Desen','Straturi','Simetrie','Calc din perspectivă','Schiță din imagine','Schiță din text','Panouri de manga','Foaie de panou','Capitol','Export','Pensulă și ecran','Unelte preferate','Bara laterală','Aspect','Ajutor'];
+function smOn(){return !!DR.simple;}
+/* marchează ce e avansat în meniul lateral (după titlul secțiunii din care face parte) */
+function smMark(){
+  if(!DRTABS)return;
+  Object.keys(DRTABS.panes).forEach(function(k){
+    var keep=true;
+    [].forEach.call(DRTABS.panes[k].children,function(c){
+      var h=c.classList.contains('h')?c:c.querySelector(':scope > .h');
+      if(h)keep=SIMPLE_SEC.indexOf(h.textContent.trim())>=0;
+      var adv=!keep;
+      if(!adv){
+        var sel=c.querySelector&&c.querySelector('select');
+        if(sel&&sel.options[0]&&/^Grup:/.test(sel.options[0].text))adv=true;
+        if(/^Memorie:/.test((c.textContent||'').trim()))adv=true;
+      }
+      if(adv)c.setAttribute('data-adv','1');else c.removeAttribute('data-adv');
+    });
+  });
+  document.querySelectorAll('#drTools button[data-tool]').forEach(function(b){
+    if(SIMPLE_TOOLS.indexOf(b.getAttribute('data-tool'))>=0)b.setAttribute('data-simok','1');else b.removeAttribute('data-simok');
+  });
+}
+function smSet(v,quiet){
+  DR.simple=!!v;
+  document.body.classList.toggle('drsimple',DR.simple);
+  /* o unealtă ascunsă în modul simplu → trecem pe G-Pen */
+  if(DR.simple&&DR.ready&&SIMPLE_TOOLS.indexOf(DR.tool)<0&&!DR.float)drSetTool('gpen');
+  drSync();drPrefSaveSoon();
+  if(!quiet)drMsg(DR.simple?'Mod simplu: doar uneltele de bază. Restul îl găsești cu 🔍 Caută sau trecând înapoi pe „Complet”.':'Mod complet: toate uneltele și opțiunile.');
+}
+/* dacă ceva căutat e ascuns de modul simplu, trecem pe complet ca să se vadă */
+function smReveal(n,tool){
+  if(!DR.simple)return false;
+  if((tool&&SIMPLE_TOOLS.indexOf(tool)<0)||(n&&n.closest&&n.closest('[data-adv]'))){smSet(false,true);drMsg('Am trecut pe modul complet ca să-ți arăt opțiunea.');return true;}
+  return false;
+}
+function smInit(){
+  if($('#smRow'))return;
+  var sd=$('#drSide');if(!sd||!DRTABS)return;
+  var row=el('div','smrow');row.id='smRow';
+  row.appendChild(el('span','smlab','Mod'));
+  var seg=el('div','seg');row.appendChild(seg);
+  [['1','Simplu'],['0','Complet']].forEach(function(o){var b=el('button',null,o[1]);b.type='button';b.dataset.v=o[0];
+    b.addEventListener('click',function(){smSet(o[0]==='1');});seg.appendChild(b);});
+  sd.insertBefore(row,DRTABS.bar);
+  var st=document.createElement('style');
+  st.textContent='.smrow{display:flex;align-items:center;gap:10px;margin:0 0 10px}.smrow .smlab{font-size:13px;opacity:.7}.smrow .seg{flex:1}'+
+    'body.drsimple #drSide [data-adv]{display:none!important}'+
+    'body.drsimple .drcats{display:none!important}'+
+    'body.drsimple #drTools .sep{display:none!important}'+
+    'body.drsimple #drTools button[data-tool]:not([data-simok]){display:none!important}'+
+    'body.drsimple #drTools button[data-tool][data-simok][data-hid]{display:inline-flex!important}'+
+    'body.drsimple #drLibB{display:none!important}';
+  document.head.appendChild(st);
+  smMark();
+  DR.sync.push(function(){
+    smMark();
+    document.body.classList.toggle('drsimple',!!DR.simple);
+    [].forEach.call(seg.children,function(b){b.classList.toggle('on',(b.dataset.v==='1')===!!DR.simple);b.setAttribute('aria-pressed',String((b.dataset.v==='1')===!!DR.simple));});
+  });
+}
+/* ---------- Forme curate: desenezi un cerc strâmb, ții creionul pe loc la final → devine cerc perfect ---------- */
+var QS_HOLD=480;
+function qsTrack(st,e){
+  if(DR.qshape===false||st.direct||st.gest||st.rail||st.qsDone)return;
+  var p=drToDoc(e);
+  if(!st.qs){st.qs=[st.p0];st.qa=[e.clientX,e.clientY];}
+  var lq=st.qs[st.qs.length-1];if(Math.hypot(p[0]-lq[0],p[1]-lq[1])*(DR.v.s||1)>1.5)st.qs.push(p);
+  /* creionul s-a mișcat → repornește numărătoarea pentru „ținut pe loc” */
+  if(Math.hypot(e.clientX-st.qa[0],e.clientY-st.qa[1])>5){
+    st.qa=[e.clientX,e.clientY];clearTimeout(st.qt);
+    st.qt=setTimeout(function(){qsFire(st);},QS_HOLD);
+  }
+}
+function qsLen(P){var s=0;for(var i=1;i<P.length;i++)s+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return s;}
+function qsRDP(P,eps){return phRDP(P,eps);}
+/* recunoaște forma; întoarce {name, pts, closed} sau null */
+function qsFit(P){
+  if(P.length<6)return null;
+  var s=DR.v.s||1,len=qsLen(P);if(len*s<40)return null;
+  var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(function(p){x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);});
+  var diag=Math.hypot(x1-x0,y1-y0),a=P[0],b=P[P.length-1],gap=Math.hypot(b[0]-a[0],b[1]-a[1]);
+  /* linie dreaptă */
+  var dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,md=0;
+  P.forEach(function(p){md=Math.max(md,Math.abs(dy*(p[0]-a[0])-dx*(p[1]-a[1]))/L);});
+  if(L>.8*len&&md<Math.max(.045*L,3/s))return {name:'Linie',pts:[a,b],closed:false};
+  var closed=gap<Math.max(.22*diag,18/s)&&len>2.2*diag*.9;
+  if(closed){
+    /* elipsă / cerc prin axele principale */
+    var cx=0,cy=0;P.forEach(function(p){cx+=p[0];cy+=p[1];});cx/=P.length;cy/=P.length;
+    var sxx=0,syy=0,sxy=0;P.forEach(function(p){var u=p[0]-cx,v=p[1]-cy;sxx+=u*u;syy+=v*v;sxy+=u*v;});
+    var th=.5*Math.atan2(2*sxy,sxx-syy),co=Math.cos(th),si=Math.sin(th),ra=0,rb=0;
+    P.forEach(function(p){var u=p[0]-cx,v=p[1]-cy,pu=u*co+v*si,pv=-u*si+v*co;ra=Math.max(ra,Math.abs(pu));rb=Math.max(rb,Math.abs(pv));});
+    /* raze robuste: media extremelor pe fiecare axă */
+    var A=[],B=[];P.forEach(function(p){var u=p[0]-cx,v=p[1]-cy;A.push(Math.abs(u*co+v*si));B.push(Math.abs(-u*si+v*co));});
+    A.sort(function(m,n){return n-m;});B.sort(function(m,n){return n-m;});
+    var k=Math.max(1,Math.round(P.length*.08));ra=A.slice(0,k).reduce(function(m,n){return m+n;},0)/k;rb=B.slice(0,k).reduce(function(m,n){return m+n;},0)/k;
+    var ee=0;P.forEach(function(p){var u=p[0]-cx,v=p[1]-cy,pu=(u*co+v*si)/ra,pv=(-u*si+v*co)/rb;ee+=Math.abs(Math.hypot(pu,pv)-1);});ee/=P.length;
+    /* poligon (triunghi, pătrat/dreptunghi…) */
+    /* contur închis: îl tăiem în punctul cel mai depărtat de start, ca simplificarea să aibă două capete distincte */
+    var far=0,fd=0;P.forEach(function(p,i){var d=Math.hypot(p[0]-P[0][0],p[1]-P[0][1]);if(d>fd){fd=d;far=i;}});
+    var eps=Math.max(.09*diag,4/s),R=qsRDP(P.slice(0,far+1),eps).concat(qsRDP(P.slice(far).concat([P[0]]),eps).slice(1));R.pop();
+    /* scoate colțurile „false” (unghi aproape drept la 180°) */
+    for(var z=0;z<R.length&&R.length>3;){var p0=R[(z+R.length-1)%R.length],p1=R[z],p2=R[(z+1)%R.length],v1=[p0[0]-p1[0],p0[1]-p1[1]],v2=[p2[0]-p1[0],p2[1]-p1[1]],cs=(v1[0]*v2[0]+v1[1]*v2[1])/(Math.hypot(v1[0],v1[1])*Math.hypot(v2[0],v2[1])||1);if(cs<-.94)R.splice(z,1);else z++;}
+    while(R.length>3){var q0=R[0],qn=R[R.length-1];if(Math.hypot(q0[0]-qn[0],q0[1]-qn[1])<.15*diag)R.pop();else break;}
+    var pe=0;if(R.length>=3&&R.length<=6){P.forEach(function(p){var m=1e9;for(var i=0;i<R.length;i++){var c=R[i],d=R[(i+1)%R.length],ex=d[0]-c[0],ey=d[1]-c[1],l2=ex*ex+ey*ey||1,t=clamp(((p[0]-c[0])*ex+(p[1]-c[1])*ey)/l2,0,1);m=Math.min(m,Math.hypot(p[0]-c[0]-ex*t,p[1]-c[1]-ey*t));}pe+=m;});pe/=P.length*diag;}
+    else pe=1;
+    if(R.length>=3&&R.length<=5&&pe<(R.length===5?.015:.03)&&pe<ee*.5&&!qsSelfX(R)){
+      if(R.length===4){
+        /* aproape unghiuri drepte → dreptunghi curat (păstrând rotirea) */
+        var right=true;for(var i=0;i<4;i++){var p0=R[(i+3)%4],p1=R[i],p2=R[(i+1)%4],v1=[p0[0]-p1[0],p0[1]-p1[1]],v2=[p2[0]-p1[0],p2[1]-p1[1]],cs=(v1[0]*v2[0]+v1[1]*v2[1])/(Math.hypot(v1[0],v1[1])*Math.hypot(v2[0],v2[1])||1);if(Math.abs(cs)>.26)right=false;}
+        if(right){
+          var ang=Math.atan2(R[1][1]-R[0][1],R[1][0]-R[0][0]),sn=Math.round(ang/(Math.PI/2))*(Math.PI/2);if(Math.abs(ang-sn)<.12)ang=sn;
+          var c2=Math.cos(ang),s2=Math.sin(ang),mx=0,my=0;R.forEach(function(p){mx+=p[0]/4;my+=p[1]/4;});
+          var hu=0,hv=0;R.forEach(function(p){var u=p[0]-mx,v=p[1]-my;hu+=Math.abs(u*c2+v*s2)/4;hv+=Math.abs(-u*s2+v*c2)/4;});
+          if(Math.abs(hu-hv)<.08*Math.max(hu,hv))hu=hv=(hu+hv)/2;
+          var C=[[-hu,-hv],[hu,-hv],[hu,hv],[-hu,hv]].map(function(q){return [mx+q[0]*c2-q[1]*s2,my+q[0]*s2+q[1]*c2];});
+          return {name:hu===hv?'Pătrat':'Dreptunghi',pts:C,closed:true};
+        }
+      }
+      return {name:R.length===3?'Triunghi':R.length===4?'Patrulater':'Poligon',pts:R,closed:true};
+    }
+    if(ee<.14){
+      var circ=Math.min(ra,rb)/Math.max(ra,rb)>.86;if(circ)ra=rb=(ra+rb)/2;
+      var n=Math.max(48,Math.round((ra+rb)*s/2)),E=[];
+      /* axe aproape orizontale/verticale → le îndreptăm */
+      var sn2=Math.round(th/(Math.PI/2))*(Math.PI/2);if(Math.abs(th-sn2)<.1){th=sn2;co=Math.cos(th);si=Math.sin(th);}
+      for(var j=0;j<n;j++){var t=j/n*Math.PI*2,u=Math.cos(t)*ra,v=Math.sin(t)*rb;E.push([cx+u*co-v*si,cy+u*si+v*co]);}
+      return {name:circ?'Cerc':'Elipsă',pts:E,closed:true};
+    }
+    return null;
+  }
+  /* arc de cerc (Kasa) */
+  var n2=P.length,mx2=0,my2=0;P.forEach(function(p){mx2+=p[0]/n2;my2+=p[1]/n2;});
+  var Suu=0,Suv=0,Svv=0,Suuu=0,Svvv=0,Suvv=0,Svuu=0;
+  P.forEach(function(p){var u=p[0]-mx2,v=p[1]-my2;Suu+=u*u;Suv+=u*v;Svv+=v*v;Suuu+=u*u*u;Svvv+=v*v*v;Suvv+=u*v*v;Svuu+=v*u*u;});
+  var det=Suu*Svv-Suv*Suv;
+  if(Math.abs(det)>1e-6){
+    var r1=.5*(Suuu+Suvv),r2=.5*(Svvv+Svuu),uc=(r1*Svv-r2*Suv)/det,vc=(Suu*r2-Suv*r1)/det,ccx=mx2+uc,ccy=my2+vc,rr=Math.sqrt(uc*uc+vc*vc+(Suu+Svv)/n2);
+    var ae=0;P.forEach(function(p){ae+=Math.abs(Math.hypot(p[0]-ccx,p[1]-ccy)-rr);});ae/=n2*rr;
+    if(ae<.035&&rr<diag*3){
+      var t0=Math.atan2(a[1]-ccy,a[0]-ccx),sw=0,pt=t0;
+      P.forEach(function(p){var t=Math.atan2(p[1]-ccy,p[0]-ccx),d=t-pt;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;sw+=d;pt=t;});
+      if(Math.abs(sw)>.5){var m3=Math.max(16,Math.round(Math.abs(sw)*rr*s/4)),Ar=[];for(var q=0;q<=m3;q++){var tt=t0+sw*q/m3;Ar.push([ccx+Math.cos(tt)*rr,ccy+Math.sin(tt)*rr]);}
+        return {name:'Arc',pts:Ar,closed:false};}
+    }
+  }
+  /* linie frântă (2–5 segmente drepte) */
+  var R2=qsRDP(P,Math.max(.03*diag,3/s));
+  if(R2.length>=3&&R2.length<=5&&!qsSelfX(R2,true)){
+    var pe2=0;P.forEach(function(p){var m=1e9;for(var i=0;i<R2.length-1;i++){var c=R2[i],d=R2[i+1],ex=d[0]-c[0],ey=d[1]-c[1],l2=ex*ex+ey*ey||1,t=clamp(((p[0]-c[0])*ex+(p[1]-c[1])*ey)/l2,0,1);m=Math.min(m,Math.hypot(p[0]-c[0]-ex*t,p[1]-c[1]-ey*t));}pe2+=m;});pe2/=P.length*diag;
+    if(pe2<.008)return {name:'Linie frântă',pts:R2,closed:false};
+  }
+  return null;
+}
+function qsFire(st){
+  if(DR.stroke!==st||st.qsDone||!st.qs)return;
+  var f=qsFit(st.qs);if(!f)return;
+  st.qsDone=true;clearTimeout(st.lp);
+  /* șterge trăsătura strâmbă și o redesenează curat, cu aceeași pensulă */
+  drClearBuf(st.bb);st.bb=[1e9,1e9,-1e9,-1e9];
+  var pts=f.pts.slice();if(f.closed)pts.push(pts[0]);
+  var pp=clamp(st.sp||.6,.35,1);st.dist=1e6;
+  drStrokeDab(st,pts[0],pp);
+  for(var i=1;i<pts.length;i++)drStrokeSeg(st,pts[i-1],pp,pts[i],pp);
+  var e=pts[pts.length-1];st.sx=e[0];st.sy=e[1];st.raw=e;st.rawP=pp;st.sp=pp;
+  drDirty();drMsg(f.name+' — ridică creionul ca să păstrezi forma.');
+}
+function qsInit(){
+  if(DR.qshape==null)DR.qshape=true;
+  var h=[].filter.call(document.querySelectorAll('#drSide .h'),function(x){return x.textContent==='Pensulă și ecran';})[0];if(!h)return;
+  var box=el('div');h.parentNode.insertBefore(box,h.nextSibling);
+  drToggle(box,'Forme curate: ține creionul pe loc la finalul liniei (cerc, elipsă, linie, dreptunghi, triunghi, arc)',function(){return DR.qshape!==false;},function(v){DR.qshape=v;drPrefSaveSoon();});
+}
+/* laturile se taie între ele? (cifra 8, bucle) */
+function qsSelfX(R,open){
+  var n=R.length,m=open?n-1:n;
+  function X(a,b,c,d){function o(p,q,r){return (q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]);}return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0;}
+  for(var i=0;i<m;i++)for(var j=i+2;j<m;j++){if(!open&&i===0&&j===n-1)continue;if(X(R[i],R[(i+1)%n],R[j],R[(j+1)%n]))return true;}
+  return false;
+}
+/* ---------- Ajutor pentru scurtare (foreshortening): un tub sau o cutie în perspectivă peste brațe, picioare, degete, obiecte ---------- */
+var FO={it:null,kind:'tube',tilt:45,rad:.22,taper:.15,pers:.5,rings:4,drag:null};
+/* geometria: capetele A și B sunt fixe pe ecran; înclinarea spune cât de mult vine B spre tine */
+function foGeom(it){
+  var A=it.a,B=it.b,dx=B[0]-A[0],dy=B[1]-A[1],Ls=Math.hypot(dx,dy);if(Ls<4)return null;
+  var th=clamp(it.tilt,-78,78)*Math.PI/180,Z0=Ls*(7-5.5*clamp(it.pers,0,1)),h=Ls/2*Math.tan(th);
+  var C=[DR.w/2,DR.h/2],zA=Z0+h,zB=Z0-h;
+  if(zB<Ls*.35){zB=Ls*.35;zA=2*Z0-zB;}
+  function to3(S,z){return [(S[0]-C[0])*z/Z0,(S[1]-C[1])*z/Z0,z];}
+  function pr(P){return [C[0]+P[0]*Z0/P[2],C[1]+P[1]*Z0/P[2]];}
+  var PA=to3(A,zA),PB=to3(B,zB),ax=[PB[0]-PA[0],PB[1]-PA[1],PB[2]-PA[2]],L3=Math.hypot(ax[0],ax[1],ax[2]);
+  ax=[ax[0]/L3,ax[1]/L3,ax[2]/L3];
+  /* baza secțiunii: e1 ⟂ axei și paralel cu ecranul cât se poate, e2 = ax × e1 */
+  var e1=[-ax[1],ax[0],0],n1=Math.hypot(e1[0],e1[1]);if(n1<1e-4)e1=[1,0,0];else e1=[e1[0]/n1,e1[1]/n1,0];
+  var e2=[ax[1]*e1[2]-ax[2]*e1[1],ax[2]*e1[0]-ax[0]*e1[2],ax[0]*e1[1]-ax[1]*e1[0]];
+  var r0=it.rad*L3,r1=r0*(1-clamp(it.taper,0,.9));
+  function ring(t,n){
+    var c=[PA[0]+(PB[0]-PA[0])*t,PA[1]+(PB[1]-PA[1])*t,PA[2]+(PB[2]-PA[2])*t],r=r0+(r1-r0)*t,o=[];
+    for(var i=0;i<n;i++){var f=it.kind==='box'?Math.PI/4+i*Math.PI/2:i/n*Math.PI*2,cs=Math.cos(f)*r,sn=Math.sin(f)*r;
+      var P=[c[0]+e1[0]*cs+e2[0]*sn,c[1]+e1[1]*cs+e2[1]*sn,c[2]+e1[2]*cs+e2[2]*sn];o.push({s:pr(P),z:P[2],f:f});}
+    return {pts:o,c:pr(c),cz:c[2]};
+  }
+  return {A:A,B:B,Ls:Ls,L3:L3,ratio:Ls/L3,near:zB<zA?'B':'A',scale:Math.max(zA,zB)/Math.min(zA,zB),ring:ring,ax:ax};
+}
+/* desenează ghidul; T(p) transformă din coordonatele foii în ale contextului */
+function foDraw(x,it,T,lw,col){
+  var G=foGeom(it);if(!G)return;
+  var N=it.kind==='box'?4:48,K=Math.max(2,Math.round(it.rings)),R=[];
+  for(var i=0;i<=K;i++)R.push(G.ring(i/K,N));
+  x.save();x.lineJoin='round';x.lineCap='round';x.strokeStyle=col;
+  function path(P,close){x.beginPath();P.forEach(function(p,i){var q=T(p);if(i)x.lineTo(q[0],q[1]);else x.moveTo(q[0],q[1]);});if(close)x.closePath();}
+  /* „spatele” fiecărui inel e punctat: partea mai depărtată decât centrul inelului */
+  var nearI=R[K].cz<R[0].cz?K:0;
+  function ringDraw(r,main,near){
+    var n=r.pts.length;
+    for(var i=0;i<n;i++){var a=r.pts[i],b=r.pts[(i+1)%n],back=!near&&(a.z+b.z)/2>r.cz+1e-6;
+      x.setLineDash(back?[lw*3,lw*3]:[]);x.globalAlpha=back?.45:(main?1:.75);x.lineWidth=main?lw*1.4:lw;
+      var p=T(a.s),q=T(b.s);x.beginPath();x.moveTo(p[0],p[1]);x.lineTo(q[0],q[1]);x.stroke();}
+  }
+  R.forEach(function(r,i){ringDraw(r,i===0||i===K,i===nearI);});
+  x.setLineDash([]);x.globalAlpha=1;x.lineWidth=lw*1.4;
+  if(it.kind==='box'){
+    for(var c=0;c<4;c++){var P=R.map(function(r){return r.pts[c].s;}),back=R[0].pts[c].z>R[0].cz+1e-6&&R[K].pts[c].z>R[K].cz+1e-6;
+      x.setLineDash(back?[lw*3,lw*3]:[]);x.globalAlpha=back?.45:1;path(P);x.stroke();}
+  }else{
+    /* conturul tubului: punctele extreme ale fiecărui inel, perpendicular pe axa de pe ecran */
+    var ux=G.B[0]-G.A[0],uy=G.B[1]-G.A[1],ul=Math.hypot(ux,uy);ux/=ul;uy/=ul;var nx=-uy,ny=ux,L=[],Rr=[];
+    for(i=0;i<=K*3;i++){var r=G.ring(i/(K*3),N),mn=1e9,mx=-1e9,pm=null,pM=null;
+      r.pts.forEach(function(p){var d=(p.s[0]-r.c[0])*nx+(p.s[1]-r.c[1])*ny;if(d<mn){mn=d;pm=p.s;}if(d>mx){mx=d;pM=p.s;}});L.push(pm);Rr.push(pM);}
+    path(L);x.stroke();path(Rr);x.stroke();
+  }
+  /* axa */
+  x.globalAlpha=.6;x.lineWidth=lw;x.setLineDash([lw*5,lw*4]);path([R[0].c,R[K].c]);x.stroke();
+  x.restore();
+  return G;
+}
+function foOverlay(x){
+  var it=FO.it;if(!it||(DR.tool!=='fore'&&!it.keep))return;
+  var G=foDraw(x,it,function(p){return drV2S(p);},1.6,'rgba(124,58,237,.95)');
+  if(!G||DR.tool!=='fore')return;
+  /* mânerele capetelor */
+  x.save();[['a',it.a],['b',it.b]].forEach(function(h){var q=drV2S(h[1]);x.fillStyle='#fff';x.strokeStyle='rgba(124,58,237,1)';x.lineWidth=2;x.beginPath();x.arc(q[0],q[1],9,0,7);x.fill();x.stroke();
+    x.fillStyle='rgba(124,58,237,1)';x.font='bold 11px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(h[0].toUpperCase(),q[0],q[1]);});
+  x.restore();
+}
+function foHit(sp){
+  var it=FO.it;if(!it)return null;
+  var a=drV2S(it.a),b=drV2S(it.b);
+  if(Math.hypot(a[0]-sp[0],a[1]-sp[1])<26)return 'a';
+  if(Math.hypot(b[0]-sp[0],b[1]-sp[1])<26)return 'b';
+  return null;
+}
+function foBegin(e,p){
+  var r=DR.disp.getBoundingClientRect(),sp=[e.clientX-r.left,e.clientY-r.top],h=foHit(sp);
+  if(!h){FO.it={a:p,b:p,kind:FO.kind,tilt:FO.tilt,rad:FO.rad,taper:FO.taper,pers:FO.pers,rings:FO.rings,keep:FO.it&&FO.it.keep};h='b';}
+  DR.stroke={fo:true,h:h,pid:e.pointerId,layer:DR.cur,bb:[0,0,0,0],sc:[e.clientX,e.clientY]};
+  drDirty();
+}
+function foMove(st,p){var it=FO.it;if(!it)return;it[st.h]=p;if(FO.msg)FO.msg.textContent=foInfo();drDirty();}
+function foEnd(st){
+  var it=FO.it;
+  if(it&&Math.hypot(it.b[0]-it.a[0],it.b[1]-it.a[1])*(DR.v.s||1)<12){FO.it=null;}
+  drSync();drDirty();
+}
+function foSet(k,v){FO[k]=v;if(FO.it)FO.it[k]=v;if(FO.msg)FO.msg.textContent=foInfo();drDirty();}
+/* pune ghidul pe un strat de ciornă, ca să desenezi peste el */
+function foStamp(){
+  var it=FO.it;if(!it){drMsg('Trage întâi axa (de la umăr la cot, de exemplu).');return;}
+  var L=null;DR.layers.forEach(function(l){if(l.name==='Ghid scurtare')L=l;});
+  if(!L){L=drAddLayer('Ghid scurtare',DR.cur);L.op=.7;L.draft=true;}
+  drBeginSnap(L);
+  foDraw(L.ctx,it,function(p){return p;},Math.max(2,DR.w/520),'rgb(124,58,237)');
+  drPush(L,[0,0,DR.w,DR.h]);
+  DR.cur=DR.layers.indexOf(L)>0?DR.layers.indexOf(L)+1:DR.cur;if(DR.cur>=DR.layers.length)DR.cur=DR.layers.length-1;
+  FO.it=null;drSync();drDirty();drSaveSoon();
+  drMsg('Ghidul e pe stratul „Ghid scurtare” (ciornă, nu iese la export). Poți trage următorul.');
+}
+function foInfo(){
+  var it=FO.it,G=it&&foGeom(it);
+  if(!G)return 'Trage de-a lungul membrului: de la capătul din spate (A) spre cel din față (B), de ex. umăr → cot. Apoi alege cât vine spre tine.';
+  var pc=Math.round(G.ratio*100),sc=G.scale.toFixed(2).replace('.',',');
+  return 'Pe hârtie se vede '+pc+'% din lungimea reală. Capătul '+(G.near==='B'?'B':'A')+' e mai aproape: desenează-l de ~'+sc+'× mai mare și peste celălalt (îl acoperă). Inelele se îngrămădesc spre capătul îndepărtat.';
+}
+function foInit(){
+  var cx=document.querySelector('.cx[data-k="sel"]');if(!cx||document.querySelector('.cx[data-k="fore"]'))return;
+  var box=cx.parentNode,sec=el('div','cx');sec.setAttribute('data-k','fore');box.appendChild(sec);
+  var l0=el('div','cxl');sec.appendChild(l0);l0.appendChild(el('span','cxlab','Formă'));
+  drSegBtn(l0,[['tube','Tub (braț, picior, deget)'],['box','Cutie (trunchi, palmă, obiect)']],function(){return FO.kind;},function(v){foSet('kind',v);});
+  drSlider(sec,'Spre tine / de la tine',-75,75,1,function(){return FO.tilt;},function(v){foSet('tilt',v);},function(v){v=Math.round(v);return v===0?'drept':v>0?'B spre tine '+v+'°':'B de la tine '+(-v)+'°';});
+  drSlider(sec,'Grosime',5,60,1,function(){return Math.round(FO.rad*100);},function(v){foSet('rad',v/100);},function(v){return Math.round(v)+'%';});
+  drSlider(sec,'Se subțiază spre B',0,80,1,function(){return Math.round(FO.taper*100);},function(v){foSet('taper',v/100);},function(v){return Math.round(v)+'%';});
+  drSlider(sec,'Perspectivă',0,100,1,function(){return Math.round(FO.pers*100);},function(v){foSet('pers',v/100);},function(v){return v<30?'slabă':v>70?'puternică (aproape)':'medie';});
+  var l1=el('div','cxl');sec.appendChild(l1);
+  drBtn(l1,'Pune ghidul pe strat',foStamp,'solid');drBtn(l1,'Șterge',function(){FO.it=null;drSync();drDirty();});
+  var msg=el('p','note');msg.id='foMsg';sec.appendChild(msg);FO.msg=msg;
+  DR.sync.push(function(){msg.textContent=foInfo();});
+  /* și în Ghiduri, lângă verificatorul de perspectivă */
+  var hs=[].filter.call(document.querySelectorAll('#drSide .h'),function(h){return h.textContent==='Riglă de perspectivă';})[0];
+  if(hs){var r=el('div','btns');drBtn(r,'Ajutor pentru scurtare (foreshortening)',function(){drSetTool('fore');var s=$('#drSide');if(window.innerWidth<900)s.hidden=true;});hs.parentNode.insertBefore(r,hs.nextSibling);}
+}
+/* ---------- Confort: bară laterală, mod „doar foaia”, bară de sus compactă, unelte preferate, siguranța desenelor ---------- */
+
+/* ===== 1. Bară laterală lângă mână ===== */
+function rlSize2t(v){return Math.log(v)/Math.log(160);}
+function rlT2size(t){return Math.max(1,Math.round(Math.exp(clamp(t,0,1)*Math.log(160))));}
+function rlSlider(parent,label,get,set,fmt,cls){
+  var w=el('div','rsl '+(cls||'')),tr=el('div','rtr'),fill=el('div','rfill'),kn=el('div','rkn'),tip=el('div','rtip');
+  w.setAttribute('role','slider');w.setAttribute('aria-label',label);w.tabIndex=0;
+  tr.appendChild(fill);tr.appendChild(kn);w.appendChild(tr);w.appendChild(tip);parent.appendChild(w);
+  function show(){var t=clamp(get(),0,1);kn.style.bottom=(t*100)+'%';fill.style.height=(t*100)+'%';tip.textContent=fmt();w.setAttribute('aria-valuetext',fmt());}
+  function at(e){var r=tr.getBoundingClientRect();set(clamp((r.bottom-e.clientY)/r.height,0,1));show();rlPreview(cls);drDirty();}
+  w.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();try{w.setPointerCapture(e.pointerId);}catch(x){}w.classList.add('drag');at(e);});
+  w.addEventListener('pointermove',function(e){if(w.classList.contains('drag'))at(e);});
+  function up(){if(!w.classList.contains('drag'))return;w.classList.remove('drag');RL.prev=null;drSync();drDirty();drPrefSaveSoon();}
+  w.addEventListener('pointerup',up);w.addEventListener('pointercancel',up);
+  w.addEventListener('keydown',function(e){var d=e.key==='ArrowUp'?.03:e.key==='ArrowDown'?-.03:0;if(!d)return;set(clamp(get()+d,0,1));show();drSync();e.preventDefault();});
+  DR.sync.push(show);
+  return w;
+}
+var RL={prev:null};
+/* cât tragi de mărime, în mijlocul foii apare cercul pensulei la mărimea reală */
+function rlPreview(k){RL.prev=k==='rsz'?'size':k==='rop'?'op':null;}
+function rlOverlay(x){
+  if(!RL.prev||DNOSIZE[DR.tool])return;
+  var c=drC(),r=Math.max(1,c.size/2*(DR.v.s||1)),W=DR.disp.clientWidth||DR.disp.width,H=DR.disp.clientHeight||DR.disp.height;
+  x.save();x.translate(W/2,H/2);
+  x.fillStyle=DR.tool==='eraser'?'rgba(255,255,255,.9)':DR.color;x.globalAlpha=RL.prev==='op'?c.op:.85;
+  x.beginPath();x.arc(0,0,Math.min(r,Math.min(W,H)*.4),0,7);x.fill();
+  x.globalAlpha=1;x.strokeStyle='rgba(0,0,0,.45)';x.lineWidth=1;x.stroke();
+  x.restore();
+}
+function drToggleEraser(){
+  if(DR.tool==='eraser'){drSetTool(DR.eraseBack&&DR.eraseBack!=='eraser'?DR.eraseBack:'gpen');drMsg(drToolName(DR.tool)+'.');}
+  else{DR.eraseBack=DR.tool;drSetTool('eraser');drMsg('Radieră. Atinge din nou ca să revii la '+drToolName(DR.eraseBack)+'.');}
+}
+function drToolName(t){var r=DTOOLS.filter(function(x){return x&&x[0]===t;})[0];return r?r[1]:t;}
+function rlBuild(){
+  if($('#drRail'))return;
+  var wrap=$('#drWrap'),r=el('div','drrail');r.id='drRail';r.setAttribute('role','group');r.setAttribute('aria-label','Bară laterală');
+  wrap.appendChild(r);
+  r.appendChild(el('span','rlab','Mărime'));
+  rlSlider(r,'Mărime',function(){return rlSize2t(drC().size);},function(t){drC().size=rlT2size(t);},function(){return Math.round(drC().size)+'';},'rsz');
+  r.appendChild(el('span','rlab','Opac.'));
+  rlSlider(r,'Opacitate',function(){return (drC().op-.05)/.95;},function(t){drC().op=Math.round((.05+t*.95)*100)/100;},function(){return Math.round(drC().op*100)+'%';},'rop');
+  function b(txt,lab,fn,id){var x=el('button','rbtn',txt);x.type='button';x.setAttribute('aria-label',lab);if(id)x.id=id;
+    x.addEventListener('pointerdown',function(e){e.stopPropagation();});x.addEventListener('click',fn);r.appendChild(x);return x;}
+  var u=b('↶','Anulează',function(){drUndo();});var re=b('↷','Refă',function(){drRedo();});
+  var er=b('⌫','Radieră / înapoi la pensulă',drToggleEraser,'rlEr');
+  DR.sync.push(function(){
+    var on=DR.rail!==false&&DR.ready;r.hidden=!on;
+    document.body.classList.toggle('railR',DR.railSide==='R');document.body.classList.toggle('hasrail',on);
+    var noSz=!!DNOSIZE[DR.tool];r.classList.toggle('nosz',noSz);
+    u.disabled=!DR.undo.length;re.disabled=!DR.redo.length;
+    er.textContent=DR.tool==='eraser'?'✎':'⌫';er.setAttribute('aria-pressed',String(DR.tool==='eraser'));
+  });
+}
+
+/* ===== 2. Mod „doar foaia” ===== */
+function fcSet(v){
+  DR.focus=!!v;document.body.classList.toggle('drfocus',DR.focus);
+  if(DR.focus){var s=$('#drSide');if(s)s.hidden=true;}
+  drSync();drDirty();
+  if(DR.focus)drMsg('Doar foaia. Atinge ⤢ sau cu patru degete ca să revii.');
+}
+function fcBuild(){
+  if($('#drFocusB'))return;
+  var b=el('button','btn','⤢ Foaie');b.id='drFocusB';b.type='button';b.setAttribute('aria-label','Doar foaia (ascunde barele)');
+  b.addEventListener('click',function(){fcSet(true);});
+  var mb=$('#fsBtn')||$('#drMenu');mb.parentNode.insertBefore(b,mb);
+  var x=el('button','drfocx','⤢');x.id='drFocusX';x.type='button';x.setAttribute('aria-label','Arată din nou barele');
+  x.addEventListener('pointerdown',function(e){e.stopPropagation();});x.addEventListener('click',function(){fcSet(false);});
+  $('#drWrap').appendChild(x);
+}
+
+/* ===== 3. Bară de sus compactă + 4. Unelte preferate ===== */
+var FAVDEF=['gpen','pencil','brush','marker','eraser'];
+function fvList(){var f=Array.isArray(DR.favs)?DR.favs:FAVDEF;return f.filter(function(t){return DTOOLS.some(function(x){return x&&x[0]===t;});}).slice(0,6);}
+function fvBuild(){
+  if($('#drFav'))return;
+  var bar=document.querySelector('.drbar'),sw=$('#drSw'),fv=el('div','drfav');fv.id='drFav';fv.setAttribute('role','group');fv.setAttribute('aria-label','Unelte preferate');
+  bar.insertBefore(fv,sw);
+  function paint(){
+    var L=fvList(),key=L.join(',')+'|'+DR.tool;if(fv.dataset.k===key)return;fv.dataset.k=key;fv.innerHTML='';
+    fv.appendChild(el('span','fvstar','★'));
+    L.forEach(function(t){var b=el('button','fvb',drToolName(t));b.type='button';b.setAttribute('aria-pressed',String(DR.tool===t));
+      b.addEventListener('click',function(){if(DR.tool===t&&t!=='eraser'&&DBRUSH[t]){drToggleEraser();return;}if(t==='eraser'&&DR.tool==='eraser'){drToggleEraser();return;}if(t==='eraser')DR.eraseBack=DR.tool;drSetTool(t);});fv.appendChild(b);});
+  }
+  DR.sync.push(function(){fv.hidden=DR.favOn===false;paint();});
+  /* atingi unealta deja aleasă → radieră; încă o dată → înapoi */
+  $('#drTools').addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('button[data-tool]');if(!b)return;var t=b.getAttribute('data-tool');
+    if(DR.eraseTap===false)return;
+    if(t===DR.tool&&t!=='cust'&&(DBRUSH[t]||t==='eraser')){e.stopImmediatePropagation();e.preventDefault();drToggleEraser();}
+    else if(t==='eraser')DR.eraseBack=DR.tool;
+  },true);
+  /* alegerea preferatelor, în Meniu → Setări */
+  var hs=[].filter.call(document.querySelectorAll('#drSide .h'),function(h){return h.textContent==='Pensulă și ecran';})[0];if(!hs)return;
+  var frag=document.createDocumentFragment();
+  frag.appendChild(el('div','h','Unelte preferate'));
+  frag.appendChild(el('p','note','Alege până la 6. Apar mereu sus, lângă culori, și în modul simplu.'));
+  var box=el('div','fvpick');frag.appendChild(box);
+  DTOOLS.forEach(function(x){if(!x)return;var b=el('button','btn sm',x[1]);b.type='button';b.dataset.t=x[0];
+    b.addEventListener('click',function(){var L=fvList().slice(),i=L.indexOf(x[0]);if(i>=0)L.splice(i,1);else{if(L.length>=6){drMsg('Maxim 6. Scoate una mai întâi.');return;}L.push(x[0]);}DR.favs=L;drSync();drPrefSaveSoon();});box.appendChild(b);});
+  DR.sync.push(function(){var L=fvList();[].forEach.call(box.children,function(b){b.setAttribute('aria-pressed',String(L.indexOf(b.dataset.t)>=0));});});
+  var opt=el('div');frag.appendChild(opt);
+  drToggle(opt,'Arată preferatele sus',function(){return DR.favOn!==false;},function(v){DR.favOn=v;drPrefSaveSoon();});
+  drToggle(opt,'Atingi unealta deja aleasă = radieră (încă o atingere = înapoi)',function(){return DR.eraseTap!==false;},function(v){DR.eraseTap=v;drPrefSaveSoon();});
+  frag.appendChild(el('div','h','Bara laterală'));
+  var o2=el('div');frag.appendChild(o2);
+  drToggle(o2,'Bară laterală cu mărime, opacitate, anulează și radieră',function(){return DR.rail!==false;},function(v){DR.rail=v;drPrefSaveSoon();});
+  drToggle(o2,'Pune bara pe dreapta (pentru stângaci)',function(){return DR.railSide==='R';},function(v){DR.railSide=v?'R':'L';drPrefSaveSoon();});
+  drToggle(o2,'Bara de sus compactă (mărimea și opacitatea doar în bara laterală)',function(){return DR.compact!==false;},function(v){DR.compact=v;drPrefSaveSoon();});
+  hs.parentNode.insertBefore(frag,hs);
+}
+function cpSync(){
+  var c=DR.compact!==false&&DR.rail!==false;document.body.classList.toggle('drcompact',c);document.body.classList.toggle('narrow',innerWidth<1000);
+}
+window.addEventListener('resize',function(){document.body.classList.toggle('narrow',innerWidth<1000);});
+
+/* ===== 5. Siguranța desenelor ===== */
+var SF={persist:null,lastBk:0};
+function sfAgo(t){if(!t)return 'niciodată';var m=Math.round((Date.now()-t)/60000);if(m<1)return 'chiar acum';if(m<60)return 'acum '+m+' min';var h=Math.round(m/60);if(h<24)return 'acum '+h+' h';var d=Math.round(h/24);return 'acum '+d+(d===1?' zi':' zile');}
+function sfBkTime(){try{return +localStorage.getItem('blocuri-bk-t')||0;}catch(e){return 0;}}
+function drBackupNow(){
+  drMsg('Pregătesc copia de siguranță…');
+  return bkBuild().then(function(z){return saveBlob(z,'blocuri-copie-'+new Date().toISOString().slice(0,10)+'.zip');}).then(function(t){
+    try{localStorage.setItem('blocuri-bk-t',String(Date.now()));}catch(e){}
+    var b=$('#sfBan');if(b)b.hidden=true;drSync();if(t)drMsg(t);return t;
+  },function(){drMsg('Copia n-a mers. Încearcă din nou.');});
+}
+function sfPersist(){
+  try{
+    if(navigator.storage&&navigator.storage.persisted)navigator.storage.persisted().then(function(p){
+      if(p){SF.persist=true;return;}
+      if(navigator.storage.persist)return navigator.storage.persist().then(function(ok){SF.persist=!!ok;drSync();});
+    }).catch(function(){});
+  }catch(e){}
+}
+function sfBuild(){
+  if($('#sfLine'))return;
+  sfPersist();
+  /* rândul de stare, în Meniu → Straturi → Desen */
+  var hs=[].filter.call(document.querySelectorAll('#drSide .h'),function(h){return h.textContent==='Desen';})[0];
+  if(hs){
+    var box=el('div','sfbox'),ln=el('p','note');ln.id='sfLine';box.appendChild(ln);
+    var r=el('div','btns');box.appendChild(r);drBtn(r,'Fă o copie de siguranță acum',drBackupNow);
+    var nx=hs.nextElementSibling;hs.parentNode.insertBefore(box,nx?nx.nextElementSibling:null);
+    var paint=function(){ln.textContent='Salvat pe tabletă: '+sfAgo(DR.savedAt)+'. Ultima copie de siguranță: '+sfAgo(sfBkTime())+'.'+(SF.persist===false?' Atenție: browserul poate șterge datele dacă rămâne fără spațiu — fă copii des.':SF.persist?' Browserul păstrează datele aplicației.':'');};
+    DR.sync.push(paint);setInterval(function(){if(DR.on)paint();},30000);
+  }
+  /* aminitirea pentru copie, cel mult o dată pe zi */
+  var ban=el('div','sfban');ban.id='sfBan';ban.hidden=true;ban.setAttribute('role','status');
+  var tx=el('span');ban.appendChild(tx);
+  var b1=el('button','btn sm solid','Fă copia acum');b1.type='button';b1.addEventListener('click',drBackupNow);ban.appendChild(b1);
+  var b2=el('button','btn sm','Mai târziu');b2.type='button';b2.addEventListener('click',function(){ban.hidden=true;});ban.appendChild(b2);
+  ban.addEventListener('pointerdown',function(e){e.stopPropagation();});
+  $('#drWrap').appendChild(ban);
+  SF.ban=ban;SF.tx=tx;
+}
+function sfMaybeRemind(){
+  if(!SF.ban)return;
+  var today=new Date().toISOString().slice(0,10),last=sfBkTime(),days=last?(Date.now()-last)/864e5:1e9;
+  try{if(localStorage.getItem('blocuri-bk-rem')===today)return;}catch(e){}
+  if(days<7)return;
+  drIdx().then(function(ix){
+    var n=(ix||[]).length;if(n<1)return;
+    try{localStorage.setItem('blocuri-bk-rem',today);}catch(e){}
+    SF.tx.textContent=last?'Ultima copie de siguranță e de acum '+Math.round(days)+' zile. Fă una ca să nu pierzi desenele.':'N-ai făcut încă nicio copie de siguranță ('+n+(n===1?' desen':' desene')+'). Durează câteva secunde.';
+    SF.ban.hidden=false;
+  }).catch(function(){});
+}
+
+/* ===== legături ===== */
+function cfInit(){
+  rlBuild();fcBuild();fvBuild();sfBuild();
+  var st=document.createElement('style');
+  st.textContent=
+  '.drrail{position:absolute;left:8px;top:calc((100% - var(--ctxh,0px)) / 2);transform:translateY(-50%);max-height:calc(100% - var(--ctxh,0px) - 16px);z-index:4;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;border-radius:14px;background:rgba(244,244,241,.92);box-shadow:0 2px 10px rgba(0,0,0,.18);touch-action:none;user-select:none}'+
+  'body.railR .drrail{left:auto;right:8px}body.railR .drview{right:auto;left:10px}'+
+  '.drrail[hidden]{display:none}.drrail .rlab{font-size:10px;opacity:.65;line-height:1}'+
+  '.rsl{position:relative;width:34px;height:clamp(60px,17vh,150px);cursor:ns-resize;touch-action:none;flex:0 1 auto;min-height:50px}.rsl.rop{height:clamp(50px,12vh,110px)}'+
+  '.rtr{position:absolute;left:14px;top:6px;bottom:6px;width:6px;border-radius:3px;background:rgba(0,0,0,.15)}'+
+  '.rfill{position:absolute;left:0;right:0;bottom:0;border-radius:3px;background:var(--ink,#17202b)}'+
+  '.rkn{position:absolute;left:50%;width:24px;height:24px;margin:0 0 -12px -12px;border-radius:50%;background:#fff;border:2px solid var(--ink,#17202b);box-shadow:0 1px 3px rgba(0,0,0,.3)}'+
+  '.rtip{position:absolute;left:40px;top:50%;transform:translateY(-50%);background:var(--ink,#17202b);color:#fff;font-size:12px;padding:3px 6px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s}'+
+  'body.railR .rtip{left:auto;right:40px}.rsl.drag .rtip{opacity:1}'+
+  '.drrail.nosz .rsl,.drrail.nosz .rlab{display:none}'+
+  '.rbtn{width:40px;height:40px;border-radius:10px;border:1px solid rgba(0,0,0,.18);background:#fff;font-size:18px;cursor:pointer;color:inherit}.rbtn:disabled{opacity:.35}.rbtn[aria-pressed="true"]{background:var(--ink,#17202b);color:#fff}'+
+  'body.drcompact.hasrail #drSliders .row:nth-child(1),body.drcompact.hasrail #drSliders .row:nth-child(2){display:none}'+
+  'body.drcompact.narrow #drLibB{display:none}body.drcompact.narrow #drFocusB,body.drcompact.narrow #fsBtn{font-size:0;padding:0 12px}body.drcompact.narrow #drFocusB::before{content:"⤢";font-size:18px}body.drcompact.narrow #fsBtn::before{content:"🔍";font-size:16px}'+
+  'body.drcompact .drbar{flex-wrap:nowrap;overflow-x:auto}body.drcompact #drSliders{flex:0 1 330px;min-width:200px}'+
+  '.drfav{display:flex;gap:4px;align-items:center;flex:0 1 auto;overflow-x:auto}.drfav[hidden]{display:none}.fvstar{opacity:.5;font-size:13px;margin-right:2px}'+
+  '.fvb{border:1px solid var(--rule,#ccc);background:transparent;border-radius:999px;padding:6px 10px;font:inherit;font-size:13px;white-space:nowrap;cursor:pointer;color:inherit;min-height:34px}.fvb[aria-pressed="true"]{background:var(--ink,#17202b);color:#fff;border-color:transparent}'+
+  '.fvpick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.fvpick .btn[aria-pressed="true"]{background:var(--ink,#17202b);color:#fff}'+
+  'body.drfocus .drtop,body.drfocus .drcats,body.drfocus #drTools,body.drfocus .drbar,body.drfocus #drSide,body.drfocus #drCtx,body.drfocus #sfBan{display:none!important}'+
+  '.drfocx{display:none;position:absolute;top:10px;left:10px;z-index:6;width:44px;height:44px;border-radius:12px;border:1px solid rgba(0,0,0,.2);background:rgba(255,255,255,.92);font-size:20px;cursor:pointer}'+
+  'body.drfocus .drfocx{display:block}body.drfocus.hasrail:not(.railR) .drfocx{left:auto;right:10px;top:auto;bottom:10px}'+
+  '.sfban{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:6;display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:min(640px,92%);background:#fff7e0;border:1px solid #e7c76a;border-radius:12px;padding:8px 10px;box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:14px}.sfban[hidden]{display:none}.sfban span{flex:1 1 220px}';
+  document.head.appendChild(st);
+  DR.sync.push(cpSync);
+  /* deschiderea unui desen: amintire de copie, o dată pe zi */
+  var lastId=null;
+  DR.sync.push(function(){if(DR.ready&&DR.id&&DR.id!==lastId){lastId=DR.id;setTimeout(sfMaybeRemind,1500);}});
+}
+/* ora ultimei salvări */
+(function(){var f=drSaveNow;drSaveNow=function(){var p=f.apply(this,arguments);return Promise.resolve(p).then(function(r){if(DR.ready)DR.savedAt=Date.now();return r;});};})();
+/* ---------- Turul aplicației: câțiva pași la prima deschidere ---------- */
+var TOUR=[
+  {s:'#drTools',t:'Unelte',x:'Pensulele sunt grupate pe categorii, deasupra. Atingi din nou unealta aleasă și treci pe radieră; încă o atingere te duce înapoi.'},
+  {s:'#drFav',t:'Preferatele tale',x:'Uneltele pe care le folosești des, mereu la îndemână. Le alegi din ☰ Meniu → Setări → „Unelte preferate”.'},
+  {s:'#drRail',t:'Bara de lângă mână',x:'Tragi în sus sau în jos pentru mărime și opacitate (vezi cercul pensulei în mijlocul foii). Dedesubt: anulează, refă și radieră. O poți muta pe dreapta din Meniu → Setări.'},
+  {s:'#drMenu',t:'Meniu',x:'Patru file: Straturi, Pagină (panouri, cadre, bule), Ajutoare (perspectivă, simetrie, scurtare, schițe din text sau poze) și Setări (creion, bară, preferate, temă). Sus alegi modul Simplu sau Complet. Explicațiile stau sub ⓘ.'},
+  {s:'#fsBtn',t:'Caută',x:'Nu știi unde e ceva? Scrie „simetrie”, „bleed”, „hașuri”… și te duce direct acolo.'},
+  {s:'#drFocusB',t:'Doar foaia',x:'Ascunde toate barele ca să ai foaia întreagă. Revii cu butonul ⤢ sau atingând cu patru degete.'},
+  {s:'#drExport',t:'Fișier',x:'Salvare, deschidere și export: PNG, PDF, PSD, time-lapse. Desenele se salvează oricum singure pe tabletă.'},
+  {s:'#drClose',t:'Acasă',x:'Aici găsești ce lucrai, capitolele (pe serii) și desenele libere, plus „+ Nou”.'},
+  {s:'#drCv',t:'Gesturi',x:'Două degete atinse scurt = anulează, trei = refă, ciupești ca să mărești și să rotești. Ții creionul pe loc = pipetă. Ții creionul pe loc la finalul unei linii = formă curată (cerc, linie, dreptunghi).'}
+];
+function trStart(){
+  var steps=TOUR.filter(function(s){var n=$(s.s);return n&&n.offsetParent!==null&&n.getBoundingClientRect().width>0;});
+  if(!steps.length)return;
+  var ov=$('#trOv');
+  if(!ov){
+    ov=el('div','trov');ov.id='trOv';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','Turul aplicației');
+    ov.appendChild(el('div','trhole'));var card=el('div','trcard');ov.appendChild(card);document.body.appendChild(ov);
+    var st=document.createElement('style');
+    st.textContent='.trov{position:fixed;inset:0;z-index:400}.trov[hidden]{display:none}.trhole{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(15,23,42,.6);outline:3px solid #a78bfa;transition:all .25s;pointer-events:none}'+
+      '.trcard{position:fixed;width:min(360px,calc(100vw - 24px));background:#fff;color:#17202b;border-radius:14px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:15px;line-height:1.4}'+
+      '.trcard h3{margin:0 0 6px;font-size:17px}.trcard p{margin:0 0 12px}.trcard .trnav{display:flex;gap:8px;align-items:center}.trcard .trnav span{flex:1;font-size:12px;opacity:.6}';
+    document.head.appendChild(st);
+  }
+  var i=0,card=ov.querySelector('.trcard'),hole=ov.querySelector('.trhole');
+  function done(){ov.hidden=true;DR.tourDone=true;drPrefSaveSoon();window.removeEventListener('resize',show);}
+  function show(){
+    var s=steps[i],n=$(s.s),r=n.getBoundingClientRect(),pad=6,W=innerWidth,H=innerHeight;
+    var big=r.width*r.height>W*H*.35;
+    if(big){hole.style.left=(r.left+r.width*.2)+'px';hole.style.top=(r.top+r.height*.2)+'px';hole.style.width=(r.width*.6)+'px';hole.style.height=(r.height*.5)+'px';}
+    else{hole.style.left=(r.left-pad)+'px';hole.style.top=(r.top-pad)+'px';hole.style.width=(r.width+pad*2)+'px';hole.style.height=(r.height+pad*2)+'px';}
+    card.innerHTML='';card.appendChild(el('h3',null,s.t));card.appendChild(el('p',null,s.x));
+    var nav=el('div','trnav');nav.appendChild(el('span',null,(i+1)+' din '+steps.length));
+    var sk=el('button','btn sm','Sari peste');sk.type='button';sk.addEventListener('click',done);nav.appendChild(sk);
+    var nx=el('button','btn sm solid',i<steps.length-1?'Mai departe':'Gata');nx.type='button';nx.addEventListener('click',function(){if(i<steps.length-1){i++;show();}else done();});nav.appendChild(nx);
+    card.appendChild(nav);
+    /* cardul sub țintă, sau deasupra dacă nu încape; la ținte mari, în mijloc */
+    var cw=card.offsetWidth,ch=card.offsetHeight,hr=hole.getBoundingClientRect();
+    var top=big?(H-ch)/2:(r.bottom+14+ch<H?r.bottom+14:Math.max(10,r.top-14-ch)),left=big?(W-cw)/2:clamp(r.left+r.width/2-cw/2,12,W-cw-12);
+    if(!big&&r.width<120&&r.height>200){top=clamp(r.top+r.height/2-ch/2,10,H-ch-10);left=r.right+14+cw<W?r.right+14:Math.max(12,r.left-14-cw);}
+    card.style.top=top+'px';card.style.left=left+'px';
+    setTimeout(function(){nx.focus();},30);
+  }
+  ov.hidden=false;show();window.addEventListener('resize',show);
+}
+function trInit(){
+  var lastReady=false;
+  DR.sync.push(function(){
+    if(DR.ready&&!lastReady&&!DR.tourDone&&!window.__persp){lastReady=true;setTimeout(function(){if(DR.on&&!DR.tourDone&&$('#drNew').hidden)trStart();},700);}
+    if(!DR.ready)lastReady=false;
+  });
+}
+/* ---------- Time-lapse: aplicația ține minte cum a crescut desenul și face din asta un clip accelerat ---------- */
+var TL={id:null,n:0,cnt:0,last:0,t:0,busy:false,max:720};
+function tlKey(id){return 'tl:'+id;}
+function tlMeta(id){return idbGet(tlKey(id)).then(function(m){return m||{n:0,w:0,h:0};}).catch(function(){return {n:0};});}
+/* după fiecare schimbare: o poză mică a desenului, cel mult o dată la 1,5 s */
+function tlSoon(){
+  if(DR.tlOn===false||!DR.ready||!DR.id||!window.indexedDB)return;
+  clearTimeout(TL.t);
+  var wait=Math.max(0,1500-(Date.now()-TL.last));
+  TL.t=setTimeout(function(){if(window.requestIdleCallback)requestIdleCallback(tlCapture,{timeout:1500});else tlCapture();},Math.max(700,wait));
+}
+function tlCapture(){
+  if(TL.busy||!DR.ready||!DR.id){return;}
+  TL.busy=true;TL.last=Date.now();
+  var id=DR.id;
+  var go=function(m){
+    TL.id=id;TL.n=m.n||0;TL.cnt=(TL.cnt||0)+1;
+    /* cu cât desenul are mai multe cadre, cu atât înregistrăm mai rar, ca să nu umplem tableta */
+    var step=1<<Math.min(4,Math.floor(TL.n/400));
+    if(TL.cnt%step!==0){TL.busy=false;return;}
+    var k=Math.min(1,TL.max/Math.max(DR.w,DR.h)),w=Math.max(2,Math.round(DR.w*k)),h=Math.max(2,Math.round(DR.h*k));
+    var c=drMk(w,h),x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(drFlat(DR.kind==='page'),0,0,w,h);
+    c.toBlob(function(b){
+      if(!b){TL.busy=false;return;}
+      var n=TL.n;
+      idbPut(tlKey(id)+':'+n,b).then(function(){TL.n=n+1;return idbPut(tlKey(id),{n:n+1,w:w,h:h,t:Date.now()});}).then(function(){TL.busy=false;},function(){TL.busy=false;});
+    },'image/webp',.72);
+  };
+  if(TL.id===id)go({n:TL.n});else tlMeta(id).then(go,function(){TL.busy=false;});
+}
+function tlClear(id){
+  return tlMeta(id).then(function(m){var ps=[];for(var i=0;i<(m.n||0);i++)ps.push(idbDel(tlKey(id)+':'+i));ps.push(idbDel(tlKey(id)));return Promise.all(ps);}).then(function(){if(TL.id===id){TL.n=0;TL.cnt=0;}});
+}
+function tlLoadFrames(id){
+  return tlMeta(id).then(function(m){var ps=[];for(var i=0;i<(m.n||0);i++)ps.push(idbGet(tlKey(id)+':'+i).catch(function(){return null;}));return Promise.all(ps);}).then(function(a){return a.filter(Boolean);});
+}
+function tlMime(){
+  if(!window.MediaRecorder)return null;
+  var L=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  for(var i=0;i<L.length;i++)if(MediaRecorder.isTypeSupported(L[i]))return L[i];
+  return null;
+}
+/* face clipul: fiecare cadru ține cât trebuie ca totul să dureze „sec” secunde, iar desenul final stă 2 s */
+function tlRender(frames,sec,onProg){
+  var mime=tlMime();if(!mime)return Promise.reject(new Error('Browserul nu poate face video aici.'));
+  return Promise.all(frames.map(function(b){return createImageBitmap(b);})).then(function(imgs){
+    var fin=drFlat(DR.kind==='page'),W=imgs.length?imgs[0].width:Math.min(720,DR.w),H=imgs.length?imgs[0].height:Math.min(720,DR.h);
+    /* video: laturi pare, max. 1080 */
+    var k=Math.min(1080/Math.max(W,H),2),vw=Math.round(W*k/2)*2,vh=Math.round(H*k/2)*2;
+    var cv=drMk(vw,vh),x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,vw,vh);
+    var stream=cv.captureStream(30),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:4e6}),chunks=[];
+    rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
+    var all=imgs.concat([fin]),per=Math.max(33,sec*1000/Math.max(1,imgs.length));
+    return new Promise(function(res,rej){
+      rec.onstop=function(){res(new Blob(chunks,{type:mime.split(';')[0]}));};
+      rec.onerror=function(e){rej(e.error||new Error('rec'));};
+      rec.start(250);
+      var i=0,t0=performance.now();
+      function draw(){
+        var tgt=Math.min(all.length-1,Math.floor((performance.now()-t0)/per));
+        if(tgt!==i||i===0){i=tgt;x.fillStyle='#fff';x.fillRect(0,0,vw,vh);x.imageSmoothingQuality='high';x.drawImage(all[i],0,0,vw,vh);if(onProg)onProg(i/(all.length-1||1));}
+        if(i>=all.length-1){setTimeout(function(){rec.stop();},2000);return;}
+        requestAnimationFrame(draw);
+      }
+      draw();
+    });
+  });
+}
+function tlOpen(){
+  if(!DR.ready){drMsg('Deschide întâi un desen.');return;}
+  var d=$('#tlDlg');
+  if(!d){
+    d=el('div','fsdlg');d.id='tlDlg';d.setAttribute('role','dialog');d.setAttribute('aria-label','Time-lapse');
+    var box=el('div','fsbox');d.appendChild(box);var pad=el('div');pad.style.padding='14px 16px';box.appendChild(pad);
+    pad.appendChild(el('div','h','Time-lapse'));
+    var info=el('p','note');info.id='tlInfo';pad.appendChild(info);
+    var pv=el('canvas');pv.id='tlPrev';pv.style.cssText='width:100%;max-height:40vh;object-fit:contain;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:8px;display:block;margin:8px 0';pad.appendChild(pv);
+    pad.appendChild(el('div','sub','Durata clipului'));
+    var seg=el('div','seg');pad.appendChild(seg);
+    [[10,'10 s'],[20,'20 s'],[30,'30 s'],[60,'1 min']].forEach(function(o){var b=el('button',null,o[1]);b.type='button';b.dataset.v=o[0];b.addEventListener('click',function(){TL.sec=o[0];paint();});seg.appendChild(b);});
+    function paint(){[].forEach.call(seg.children,function(b){b.setAttribute('aria-pressed',String(+b.dataset.v===(TL.sec||20)));});}
+    paint();
+    var r=el('div','btns');pad.appendChild(r);
+    var mk=drBtn(r,'Fă clipul',function(){
+      mk.disabled=true;info.textContent='Pregătesc cadrele…';
+      tlLoadFrames(DR.id).then(function(fr){
+        if(fr.length<3)throw new Error('Încă sunt prea puține cadre. Desenează puțin și încearcă din nou.');
+        info.textContent='Fac clipul… ('+fr.length+' cadre, durează cât clipul)';
+        return tlRender(fr,TL.sec||20,function(p){info.textContent='Fac clipul… '+Math.round(p*100)+'%';});
+      }).then(function(b){
+        var ext=/mp4/.test(b.type)?'mp4':'webm';
+        return saveBlob(b,(DR.name||'desen').replace(/[^\w\-ăâîșțĂÂÎȘȚ ]+/g,'').trim().replace(/\s+/g,'-')+'-timelapse.'+ext).then(function(t){info.textContent=(t||'Gata.')+(ext==='webm'?' (format WebM: se deschide în Chrome, VLC și pe majoritatea telefoanelor)':'');});
+      }).catch(function(e){info.textContent=e&&e.message?e.message:'N-a mers. Încearcă din nou.';}).then(function(){mk.disabled=false;});
+    },'solid');
+    drBtn(r,'Șterge înregistrarea',function(){if(!confirmSoft('Ștergi înregistrarea time-lapse a acestui desen? Desenul rămâne.'))return;tlClear(DR.id).then(function(){refresh();});});
+    drBtn(r,'Închide',function(){d.hidden=true;});
+    var tg=el('div');pad.appendChild(tg);
+    drToggle(tg,'Înregistrează time-lapse în timp ce desenez',function(){return DR.tlOn!==false;},function(v){DR.tlOn=v;drPrefSaveSoon();});
+    pad.appendChild(el('p','note','Înregistrarea e o serie de poze mici, salvate pe tabletă pentru fiecare desen. Nu încetinește desenul; la desene foarte lungi pozele se răresc singure.'));
+    d.addEventListener('pointerdown',function(e){if(e.target===d)d.hidden=true;});
+    document.body.appendChild(d);
+    d.refresh=refresh;
+    function refresh(){
+      tlMeta(DR.id).then(function(m){
+        var n=m.n||0;info.textContent=n?n+' cadre înregistrate pentru „'+(DR.name||'desen')+'”.':(DR.tlOn===false?'Înregistrarea e oprită.':'Încă nu e nimic înregistrat. Începe să desenezi: fiecare linie intră în clip.');
+        var pv2=$('#tlPrev');if(!n){pv2.hidden=true;return;}
+        idbGet(tlKey(DR.id)+':'+Math.floor(n/2)).then(function(b){if(!b)return createImageBitmap(new Blob());return createImageBitmap(b);}).then(function(im){pv2.hidden=false;pv2.width=im.width;pv2.height=im.height;pv2.getContext('2d').drawImage(im,0,0);}).catch(function(){pv2.hidden=true;});
+      });
+    }
+  }
+  d.hidden=false;d.refresh();
+}
+/* confirmare fără fereastra blocantă a browserului: a doua apăsare în 4 s confirmă */
+function confirmSoft(msg){
+  var now=Date.now();if(TL.cf&&now-TL.cf<4000){TL.cf=0;return true;}
+  TL.cf=now;drMsg(msg+' Apasă din nou ca să confirmi.');return false;
+}
+/* ---------- Capitolul ca întreg: capitol nou dintr-o dată, tabla capitolului, citire, bandă de pagini, export mai bun ---------- */
+var CB={cache:{},busy:false,rd:null};
+var CBST=[['','—'],['schita','Schiță'],['tus','Tuș'],['ton','Ton'],['gata','Gata']];
+function cbDlg(id,title){
+  var d=$('#'+id);
+  if(!d){d=el('div','fsdlg cbdlg');d.id=id;d.setAttribute('role','dialog');d.setAttribute('aria-label',title);
+    var box=el('div','fsbox');d.appendChild(box);var pad=el('div','cbpad');box.appendChild(pad);d.pad=pad;
+    d.addEventListener('pointerdown',function(e){if(e.target===d)d.hidden=true;});document.body.appendChild(d);}
+  d.pad.innerHTML='';d.hidden=false;return d;
+}
+
+/* ===== 1. Capitol nou dintr-o dată (opțional din scenariul întregului capitol) ===== */
+/* împarte scenariul pe pagini: după „Pagina 2:”, „Page 3” sau „--- ”; altfel câte ~5 panouri pe pagină */
+function cbSplitPages(txt,want){
+  txt=String(txt||'').replace(/\r/g,'');
+  var lines=txt.split('\n'),hdr=/^\s*(?:pagina|pagină|page|pag\.?)\s*(\d+)\s*[:.)\-–—]?\s*(.*)$/i,pages=[],cur=null;
+  if(lines.some(function(l){return hdr.test(l)||/^\s*-{3,}\s*$/.test(l);})){
+    lines.forEach(function(l){
+      var m=l.match(hdr);
+      if(m||/^\s*-{3,}\s*$/.test(l)){cur=[];pages.push(cur);if(m&&m[2].trim())cur.push(m[2].trim());}
+      else{if(!cur){cur=[];pages.push(cur);}cur.push(l);}
+    });
+    return pages.map(function(p){return p.join('\n').trim();}).filter(function(p){return p;});
+  }
+  var P=plSplit(txt);if(!P.length)return [];
+  var n=want>0?want:Math.max(1,Math.round(P.length/5)),per=Math.ceil(P.length/n),out=[];
+  /* panourile mari (plan larg, splash) contează dublu, ca o pagină să nu se umple prea tare */
+  var i=0;
+  while(i<P.length){
+    var pg=[],w=0;
+    while(i<P.length&&(pg.length===0||w+(PLBIG.test(P[i].lines.join(' '))?2:1)<=per)){w+=PLBIG.test(P[i].lines.join(' '))?2:1;pg.push(P[i]);i++;}
+    out.push(pg.map(function(p,k){return 'Panou '+(k+1)+': '+p.lines.join('\n');}).join('\n\n'));
+  }
+  return out;
+}
+function cbCreate(opt,say){
+  var pages=opt.script?cbSplitPages(opt.script,opt.n):[];
+  var n=pages.length||clamp(opt.n|0,1,60);
+  if(DR.ready&&DR.float)drFloatCommit();
+  var o=drPgOpt();
+  return chLoad().then(function(){return chNew(opt.name||'',null);}).then(function(ch){
+    ch.pg={fmt:opt.fmt||o.fmt,bl:opt.bl==null?o.bl:opt.bl,cw:o.cw,ch:o.ch,dpi:opt.dpi||o.dpi};ch.rtl=!!opt.rtl;ch.st={};
+    var seq=(DR.ready?drSaveNow():Promise.resolve());
+    for(var i=0;i<n;i++)(function(i){
+      seq=seq.then(function(){
+        if(say)say('Fac pagina '+(i+1)+' din '+n+'…');
+        var np=defPage();np.rtl=!!opt.rtl;S.page=np;pgSel=0;DR.panel=0;
+        drNew('page',ch.pg);DR.name=(ch.name+' · pagina '+(i+1)).slice(0,40);
+        if(pages[i]){try{plGenerate(pages[i],true);}catch(e){}}
+        ch.pages.push(DR.id);
+        return drSaveNow();
+      });
+    })(i);
+    return seq.then(function(){return chSave();}).then(function(){
+      return chOpenDoc(ch.pages[0]);
+    }).then(function(){schedSave();chRender();drSync();return {ch:ch,n:n,fromScript:pages.length>0};});
+  });
+}
+function cbNewDialog(){
+  var d=cbDlg('cbNew','Capitol nou'),p=d.pad,o=drPgOpt();
+  p.appendChild(el('div','h','Capitol nou'));
+  var nm=el('input','txt');nm.type='text';nm.maxLength=40;nm.placeholder='Numele capitolului';nm.value='Capitol '+(CH.list.length+1);p.appendChild(nm);
+  p.appendChild(el('div','sub','Câte pagini'));
+  var nr=el('div','cbrow'),ni=el('input','txt');ni.type='number';ni.min=1;ni.max=60;ni.value=8;ni.style.width='90px';nr.appendChild(ni);
+  nr.appendChild(el('span','note','Dacă lipești scenariul, numărul vine din el.'));p.appendChild(nr);
+  p.appendChild(el('div','sub','Format'));
+  var fs=el('select','pick-sel');Object.keys(DPRINT).forEach(function(k){var op=el('option',null,DPRINT[k].n||k);op.value=k;if(k===o.fmt)op.selected=true;fs.appendChild(op);});p.appendChild(fs);
+  p.appendChild(el('div','sub','Cum se citește'));
+  var dir='ltr',sg=el('div','seg');p.appendChild(sg);
+  [['ltr','Stânga → dreapta'],['rtl','Dreapta → stânga (manga japoneză)']].forEach(function(x){var b=el('button',null,x[1]);b.type='button';b.dataset.v=x[0];b.addEventListener('click',function(){dir=x[0];paint();});sg.appendChild(b);});
+  function paint(){[].forEach.call(sg.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.v===dir));});}paint();
+  p.appendChild(el('div','sub','Scenariul capitolului (opțional)'));
+  var ta=el('textarea','txt');ta.rows=8;ta.placeholder='Pagina 1:\nPanou 1: Oraș noaptea, plan larg. Legendă: Era a treia noapte fără somn.\nPanou 2: Kai pe acoperiș, de jos.\n\nPagina 2:\nPanou 1: Prim-plan cu ochii lui Kai.\nKAI: Iar ei…\n…';p.appendChild(ta);
+  p.appendChild(el('p','note','Scrie „Pagina 1:”, „Pagina 2:”… (sau desparte paginile cu ---). Fără ele, împart eu panourile, cam câte 5 pe pagină. Fiecare pagină primește panourile, cadrele și bulele de text, ca la „Generează” pe o singură pagină.'));
+  var msg=el('p','note');p.appendChild(msg);
+  var r=el('div','btns');p.appendChild(r);
+  var go=drBtn(r,'Fă capitolul',function(){
+    go.disabled=true;
+    cbCreate({name:nm.value.trim(),n:+ni.value||1,fmt:fs.value,rtl:dir==='rtl',script:ta.value.trim()},function(t){msg.textContent=t;}).then(function(res){
+      d.hidden=true;go.disabled=false;
+      drMsg('„'+res.ch.name+'”: '+res.n+' pagini'+(res.fromScript?', cu panourile din scenariu':'')+'. Deschid tabla capitolului.');
+      cbBoard(res.ch.id);
+    },function(e){go.disabled=false;msg.textContent='N-a mers: '+(e&&e.message||'eroare');});
+  },'solid');
+  drBtn(r,'Renunță',function(){d.hidden=true;});
+  /* previzualizare: câte pagini ies din scenariu */
+  ta.addEventListener('input',function(){var pp=cbSplitPages(ta.value,+ni.value||0);msg.textContent=ta.value.trim()?(pp.length+' pagini din scenariu.'):'';});
+  setTimeout(function(){nm.focus();nm.select();},30);
+}
+
+/* ===== 2. Tabla capitolului ===== */
+function cbFind(id){return CH.list.filter(function(c){return c.id===id;})[0]||null;}
+function cbSpreads(ch){
+  var P=ch.pages.slice(),out=[];if(!P.length)return out;
+  out.push([P[0]]);for(var i=1;i<P.length;i+=2)out.push(P.slice(i,i+2));
+  return out;
+}
+function cbBoard(chId){
+  chLoad().then(function(){
+    var ch=cbFind(chId)||(DR.ready&&chOf(DR.id));if(!ch){drMsg('Nu găsesc capitolul.');return;}
+    CB.ch=ch.id;
+    var bd=$('#cbBoard');
+    if(!bd){bd=el('div','cbboard');bd.id='cbBoard';bd.setAttribute('role','dialog');bd.setAttribute('aria-label','Tabla capitolului');document.body.appendChild(bd);}
+    bd.hidden=false;cbBoardRender();
+  });
+}
+function cbBoardRender(){
+  var bd=$('#cbBoard'),ch=cbFind(CB.ch);if(!bd||!ch)return;
+  ch.st=ch.st||{};
+  Promise.all([drIdx()]).then(function(r){
+    var by={};(r[0]||[]).forEach(function(e){by[e.id]=e;});
+    ch.pages=ch.pages.filter(function(p){return by[p]||p===DR.id;});
+    CB.urls&&CB.urls.forEach(function(u){URL.revokeObjectURL(u);});CB.urls=[];
+    bd.innerHTML='';
+    var top=el('div','cbtop');bd.appendChild(top);
+    var nm=el('input','txt cbname');nm.type='text';nm.maxLength=40;nm.value=ch.name;nm.setAttribute('aria-label','Numele capitolului');
+    nm.addEventListener('change',function(){ch.name=nm.value.trim()||'Capitol';chSave();});top.appendChild(nm);
+    var done=ch.pages.filter(function(p){return ch.st[p]==='gata';}).length;
+    top.appendChild(el('span','cbprog',done+' din '+ch.pages.length+' gata'));
+    var gap=el('span','gap');gap.style.flex='1';top.appendChild(gap);
+    function tb(t,fn,cls){var b=el('button','btn'+(cls?' '+cls:''),t);b.type='button';b.addEventListener('click',fn);top.appendChild(b);return b;}
+    tb('📚 Raft',function(){bd.hidden=true;shOpen();});
+    tb('📖 Citește',function(){cbRead(ch.id,0);},'solid');
+    tb('+ Pagină',function(){cbAddPage(ch);});
+    tb('Export…',function(){cbExportDlg(ch);});
+    var dirB=tb(ch.rtl?'Dreapta → stânga':'Stânga → dreapta',function(){ch.rtl=!ch.rtl;chSave().then(cbBoardRender);});dirB.title='Sensul de citire';
+    tb('Închide',function(){bd.hidden=true;});
+    var grid=el('div','cbgrid'+(ch.rtl?' rtl':''));bd.appendChild(grid);
+    if(!ch.pages.length)grid.appendChild(el('p','note','Capitolul n-are încă pagini. Apasă „+ Pagină”.'));
+    cbSpreads(ch).forEach(function(sp,si){
+      var sw=el('div','cbspread');grid.appendChild(sw);
+      if(si===0){sw.classList.add('first');}
+      sp.forEach(function(pid){
+        var i=ch.pages.indexOf(pid),e=by[pid]||{name:'Pagină'},card=el('div','cbcard');card.dataset.id=pid;
+        var th=el('div','cbth');
+        if(e.thumb){var im=el('img'),u=URL.createObjectURL(e.thumb);CB.urls.push(u);im.src=u;im.alt='Pagina '+(i+1);im.draggable=false;th.appendChild(im);}
+        card.appendChild(th);
+        var ft=el('div','cbft');card.appendChild(ft);
+        ft.appendChild(el('b',null,String(i+1)));
+        var st=ch.st[pid]||'',sb=el('button','cbst st-'+(st||'none'),(CBST.filter(function(x){return x[0]===st;})[0]||CBST[0])[1]);sb.type='button';sb.title='Starea paginii (atinge ca s-o schimbi)';
+        sb.addEventListener('click',function(ev){ev.stopPropagation();var k=CBST.map(function(x){return x[0];}).indexOf(st);ch.st[pid]=CBST[(k+1)%CBST.length][0];if(!ch.st[pid])delete ch.st[pid];chSave().then(cbBoardRender);});
+        ft.appendChild(sb);
+        var mv=el('span','cbmv');
+        function mb(t,lab,d){var b=el('button','cbm',t);b.type='button';b.setAttribute('aria-label',lab);b.addEventListener('click',function(ev){ev.stopPropagation();cbMove(ch,i,i+d);});mv.appendChild(b);return b;}
+        mb(ch.rtl?'›':'‹','Mută mai devreme',-1).disabled=i===0;mb(ch.rtl?'‹':'›','Mută mai târziu',1).disabled=i===ch.pages.length-1;
+        ft.appendChild(mv);
+        if(e.plan||e.name){var sm=el('small','cbnote',(e.plan||'').slice(0,70));card.appendChild(sm);}
+        cbDragable(card,ch,pid);
+        sw.appendChild(card);
+      });
+    });
+    bd.appendChild(el('p','note cbhelp','Atinge o pagină ca s-o deschizi. Ține apăsat și trage ca s-o muți (sau folosește ‹ ›). Eticheta de sub pagină îi schimbă starea: Schiță → Tuș → Ton → Gata.'));
+  });
+}
+function cbMove(ch,i,j){
+  if(j<0||j>=ch.pages.length||i===j)return;
+  var p=ch.pages.splice(i,1)[0];ch.pages.splice(j,0,p);chSave().then(cbBoardRender);
+}
+/* trage de o pagină ca s-o muți: ține apăsat 250 ms sau mișcă după ce ai apăsat */
+function cbDragable(card,ch,pid){
+  var st=null;
+  card.addEventListener('pointerdown',function(e){
+    if(e.target.closest('button'))return;
+    st={x:e.clientX,y:e.clientY,t:Date.now(),on:false,id:e.pointerId};
+    st.tm=setTimeout(function(){if(st)start();},260);
+    try{card.setPointerCapture(e.pointerId);}catch(x){}
+  });
+  function start(){if(!st||st.on)return;st.on=true;card.classList.add('drag');var r=card.getBoundingClientRect();st.ox=st.x-r.left;st.oy=st.y-r.top;st.ghost=card.cloneNode(true);st.ghost.className='cbcard ghost';st.ghost.style.width=r.width+'px';document.body.appendChild(st.ghost);mvG(st.x,st.y);}
+  function mvG(x,y){if(st.ghost){st.ghost.style.left=(x-st.ox)+'px';st.ghost.style.top=(y-st.oy)+'px';}
+    document.querySelectorAll('.cbcard.over').forEach(function(c){c.classList.remove('over');});
+    var t=cbCardAt(x,y);if(t&&t!==card)t.classList.add('over');}
+  card.addEventListener('pointermove',function(e){if(!st)return;if(!st.on&&Math.hypot(e.clientX-st.x,e.clientY-st.y)>12&&Date.now()-st.t>120)start();if(st.on)mvG(e.clientX,e.clientY);});
+  function end(e){
+    if(!st)return;clearTimeout(st.tm);var s=st;st=null;
+    if(s.ghost)s.ghost.remove();card.classList.remove('drag');document.querySelectorAll('.cbcard.over').forEach(function(c){c.classList.remove('over');});
+    if(!s.on){if(e.type==='pointerup'&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<12)cbOpenPage(pid);return;}
+    var t=cbCardAt(e.clientX,e.clientY);if(t&&t!==card){cbMove(ch,ch.pages.indexOf(pid),ch.pages.indexOf(t.dataset.id));}
+  }
+  card.addEventListener('pointerup',end);card.addEventListener('pointercancel',end);
+}
+function cbCardAt(x,y){var r=null;document.querySelectorAll('#cbBoard .cbcard').forEach(function(c){var b=c.getBoundingClientRect();if(x>=b.left&&x<=b.right&&y>=b.top&&y<=b.bottom)r=c;});return r;}
+function cbOpenPage(pid){
+  var bd=$('#cbBoard');if(bd)bd.hidden=true;
+  $('#dr').hidden=false;DR.on=true;
+  chOpenDoc(pid).then(function(){drSync();});
+}
+function cbAddPage(ch){
+  var last=ch.pages[ch.pages.length-1];
+  var go=last&&(!DR.ready||DR.id!==last)?chOpenDoc(last):Promise.resolve();
+  go.then(function(){return chNewPage(ch,last||null);}).then(function(){drMsg('Pagina '+ch.pages.length+' e gata, cu aceeași aranjare de panouri.');cbBoardRender();});
+}
+
+/* ===== 3. Mod de citire ===== */
+/* randează paginile capitolului ca imagini, cu memorie (se refac doar paginile schimbate) */
+function cbRenderPages(ch,onPage){
+  return drIdx().then(function(ix){
+    var by={};ix.forEach(function(e){by[e.id]=e;});
+    var need=ch.pages.filter(function(p){var c=CB.cache[p];return !c||c.t!==(by[p]&&by[p].t);});
+    ch.pages.forEach(function(p,i){if(CB.cache[p]&&need.indexOf(p)<0&&onPage)onPage(i,CB.cache[p].url);});
+    if(!need.length)return;
+    var sub={pages:need};
+    var H=Math.min(2200,Math.round(Math.max(innerWidth,innerHeight)*(window.devicePixelRatio||1)*1.1));
+    return chEachPage(sub,function(k){
+      var r=chPageCanvas(),c=r.cv,s=Math.min(1,H/c.height);if(s<1)c=drResample(c,Math.round(c.width*s),Math.round(c.height*s));
+      var pid=need[k];
+      return new Promise(function(res){c.toBlob(function(b){
+        if(CB.cache[pid])URL.revokeObjectURL(CB.cache[pid].url);
+        var u=URL.createObjectURL(b);CB.cache[pid]={t:by[pid]&&by[pid].t,url:u,w:c.width,h:c.height};
+        if(onPage)onPage(ch.pages.indexOf(pid),u);res();
+      },'image/jpeg',.9);});
+    });
+  });
+}
+function cbRead(chId,start){
+  var ch=cbFind(chId);if(!ch||!ch.pages.length)return;
+  var R=$('#cbRead');
+  if(!R){
+    R=el('div','cbread');R.id='cbRead';R.setAttribute('role','dialog');R.setAttribute('aria-label','Citire capitol');document.body.appendChild(R);
+    R.innerHTML='<div class="cbrst"></div><div class="cbrbar"><button type="button" class="btn sm" data-a="x">Închide</button><span class="cbrinfo"></span><button type="button" class="btn sm" data-a="v">Pagini duble</button><button type="button" class="btn sm" data-a="e">Deschide pagina</button></div><div class="cbrmsg"></div>';
+    R.addEventListener('click',function(e){
+      var a=e.target.getAttribute&&e.target.getAttribute('data-a');
+      if(a==='x'){R.hidden=true;return;}
+      if(a==='v'){CB.rd.dbl=!CB.rd.dbl;cbReadShow();return;}
+      if(a==='e'){var c=cbFind(CB.rd.ch);R.hidden=true;cbOpenPage(c.pages[CB.rd.i]);return;}
+    });
+    var sx=0,sy=0,st=0;
+    R.querySelector('.cbrst').addEventListener('pointerdown',function(e){sx=e.clientX;sy=e.clientY;st=Date.now();});
+    R.querySelector('.cbrst').addEventListener('pointerup',function(e){
+      var dx=e.clientX-sx,dy=e.clientY-sy,rtl=cbFind(CB.rd.ch).rtl,W=innerWidth;
+      if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){cbReadStep((dx<0)!==rtl?1:-1);return;}
+      if(Date.now()-st<400&&Math.abs(dx)<12&&Math.abs(dy)<12){var left=e.clientX<W*.33,right=e.clientX>W*.67;if(left)cbReadStep(rtl?1:-1);else if(right)cbReadStep(rtl?-1:1);else R.classList.toggle('chrome');}
+    });
+    document.addEventListener('keydown',function(e){if(R.hidden)return;var rtl=cbFind(CB.rd.ch).rtl;if(e.key==='ArrowRight')cbReadStep(rtl?-1:1);else if(e.key==='ArrowLeft')cbReadStep(rtl?1:-1);else if(e.key==='Escape')R.hidden=true;});
+  }
+  CB.rd={ch:ch.id,i:start||0,urls:{},dbl:innerWidth>innerHeight};
+  R.hidden=false;R.classList.add('chrome');cbReadShow();
+  var msg=R.querySelector('.cbrmsg');msg.textContent='Pregătesc paginile…';
+  var n=0;
+  cbRenderPages(ch,function(i,u){CB.rd.urls[i]=u;n++;msg.textContent=n<ch.pages.length?'Pregătesc paginile… '+n+' din '+ch.pages.length:'';cbReadShow();}).then(function(){msg.textContent='';drSync();},function(){msg.textContent='Unele pagini nu s-au putut pregăti.';});
+}
+function cbReadSpreadOf(ch,i){
+  if(!CB.rd.dbl)return [i];
+  if(i===0)return [0];
+  var a=i%2===1?i:i-1;return a+1<ch.pages.length?[a,a+1]:[a];
+}
+function cbReadStep(d){
+  var ch=cbFind(CB.rd.ch),sp=cbReadSpreadOf(ch,CB.rd.i);
+  var j=d>0?sp[sp.length-1]+1:sp[0]-1;
+  if(j<0||j>=ch.pages.length)return;
+  CB.rd.i=d>0?j:cbReadSpreadOf(ch,j)[0];cbReadShow();
+}
+function cbReadShow(){
+  var R=$('#cbRead'),ch=cbFind(CB.rd.ch);if(!R||!ch)return;
+  var sp=cbReadSpreadOf(ch,CB.rd.i),stg=R.querySelector('.cbrst');stg.innerHTML='';
+  var order=ch.rtl?sp.slice().reverse():sp;
+  if(sp.length===1&&CB.rd.dbl&&sp[0]===0){stg.classList.add('single');}else stg.classList.remove('single');
+  order.forEach(function(i){var u=CB.rd.urls[i];var f=el('div','cbrpg');if(u){var im=el('img');im.src=u;im.alt='Pagina '+(i+1);im.draggable=false;f.appendChild(im);}else f.appendChild(el('span','note','Se pregătește pagina '+(i+1)+'…'));stg.appendChild(f);});
+  R.querySelector('.cbrinfo').textContent=ch.name+' · '+(sp.length>1?'paginile '+(sp[0]+1)+'–'+(sp[1]+1):'pagina '+(sp[0]+1))+' din '+ch.pages.length;
+  R.querySelector('[data-a="v"]').textContent=CB.rd.dbl?'O pagină':'Pagini duble';
+}
+
+/* ===== 4. Banda de pagini în editor ===== */
+function cbStripBuild(){
+  if($('#cbStrip'))return;
+  var s=el('div','cbstrip');s.id='cbStrip';s.setAttribute('role','group');s.setAttribute('aria-label','Paginile capitolului');
+  var pv=el('button','cbsb','◀');pv.type='button';pv.setAttribute('aria-label','Pagina anterioară');
+  var inf=el('button','cbsi');inf.type='button';inf.setAttribute('aria-label','Tabla capitolului');
+  var nx=el('button','cbsb','▶');nx.type='button';nx.setAttribute('aria-label','Pagina următoare');
+  var ad=el('button','cbsb','+');ad.type='button';ad.setAttribute('aria-label','Pagină nouă după aceasta');
+  [pv,inf,nx,ad].forEach(function(b){b.addEventListener('pointerdown',function(e){e.stopPropagation();});s.appendChild(b);});
+  function step(d){var c=chOf(DR.id);if(!c)return;if(c.rtl)d=-d;chStep(d);}
+  pv.addEventListener('click',function(){step(-1);});nx.addEventListener('click',function(){step(1);});
+  inf.addEventListener('click',function(){var c=chOf(DR.id);if(c){if(DR.float)drFloatCommit();drSaveNow().then(function(){cbBoard(c.id);});}});
+  ad.addEventListener('click',function(){var c=chOf(DR.id);if(c)chNewPage(c,DR.id).then(function(){drShowEditor();drMsg('Pagină nouă, cu aceeași aranjare de panouri.');});});
+  $('#drWrap').appendChild(s);
+  DR.sync.push(function(){
+    var c=DR.ready&&DR.kind==='page'&&CH.loaded?chOf(DR.id):null;s.hidden=!c;document.body.classList.toggle('haschstrip',!!c);if(!c)return;
+    var i=c.pages.indexOf(DR.id),L=c.rtl;
+    inf.textContent='⊞ '+c.name+' · '+(i+1)+'/'+c.pages.length;
+    var canPrev=i>0,canNext=i<c.pages.length-1;
+    pv.disabled=L?!canNext:!canPrev;nx.disabled=L?!canPrev:!canNext;
+  });
+}
+
+/* ===== 5. Export mai bun: numere de pagină, copertă, bandă webtoon ===== */
+function cbNumber(cv,num,o){
+  if(num==null)return cv;
+  var x=cv.getContext('2d'),fs=Math.max(12,Math.round(cv.height*.016)),y=cv.height-Math.round(cv.height*.022);
+  x.save();x.font='600 '+fs+'px system-ui,sans-serif';x.textBaseline='middle';
+  var X=cv.width/2;x.textAlign='center';
+  if(o.pos==='out'){var right=o.rtl?(num%2===0):(num%2===1);x.textAlign=right?'right':'left';X=right?cv.width-Math.round(cv.width*.05):Math.round(cv.width*.05);}
+  var t=String(num),w=x.measureText(t).width+fs*.8;
+  x.fillStyle='rgba(255,255,255,.85)';var bx=x.textAlign==='center'?X-w/2:x.textAlign==='right'?X-w+fs*.4:X-fs*.4;x.fillRect(bx,y-fs*.7,w,fs*1.4);
+  x.fillStyle='#111';x.fillText(t,X,y);x.restore();return cv;
+}
+function cbExport(ch,o,say){
+  var cover=!!o.cover,start=o.start||1;
+  function numOf(i){if(!o.nums)return null;if(cover&&i===0)return null;return start+i-(cover?1:0);}
+  if(o.kind==='webtoon'){
+    var W=o.ww||800,gap=o.gap==null?60:o.gap,cvs=[];
+    return chEachPage(ch,function(i){
+      var r=chPageCanvas(),c=r.cv,k=W/c.width,s=drResample(c,W,Math.round(c.height*k));cvs.push(s);
+    },say).then(function(){
+      if(say)say('Lipesc paginile într-o bandă…');
+      var H=cvs.reduce(function(a,c){return a+c.height;},0)+gap*(cvs.length-1),seg=o.seg||1280,files=[],y=0,ci=0,cy=0,n=0;
+      /* felii de câte „seg” px înălțime, cum cer platformele de webtoon */
+      while(y<H){
+        var h=Math.min(seg,H-y),f=drMk(W,h),fx=f.getContext('2d');fx.fillStyle='#fff';fx.fillRect(0,0,W,h);
+        var oy=0,yy=y,ci2=0,acc=0;
+        for(var j=0;j<cvs.length;j++){var top=acc,bot=acc+cvs[j].height;if(bot>y&&top<y+h)fx.drawImage(cvs[j],0,top-y);acc=bot+gap;}
+        files.push(f);y+=h;n++;
+      }
+      return Promise.all(files.map(function(f,i){return new Promise(function(res){f.toBlob(function(b){b.arrayBuffer().then(function(ab){res({name:'webtoon-'+('00'+(i+1)).slice(-3)+'.jpg',data:new Uint8Array(ab)});});},'image/jpeg',.92);});})).then(function(fs){return makeZip(fs);});
+    });
+  }
+  var scale=DR.expDpi||0;
+  return chEachPage(ch,function(i){
+    var r=chPageCanvas(),cv=r.cv,dpi=r.dpi;
+    var tgt=scale&&r.dpi?scale:Math.min(r.dpi,300);
+    if(tgt&&r.dpi&&Math.abs(tgt/r.dpi-1)>.004){var k=tgt/r.dpi;cv=drResample(cv,Math.round(cv.width*k),Math.round(cv.height*k));dpi=tgt;}
+    cbNumber(cv,numOf(i),{pos:o.pos,rtl:ch.rtl});
+    if(o.kind==='png')return new Promise(function(res){cv.toBlob(function(b){b.arrayBuffer().then(function(ab){res({name:(cover&&i===0?'00-coperta':('pagina-'+('0'+(i+1)).slice(-2)))+'.png',data:new Uint8Array(ab)});});},'image/png');});
+    return new Promise(function(res,rej){cv.toBlob(function(b){if(!b){rej(new Error('jpeg'));return;}b.arrayBuffer().then(function(ab){res({jpg:new Uint8Array(ab),w:cv.width,h:cv.height,wpt:cv.width/dpi*72,hpt:cv.height/dpi*72});});},'image/jpeg',.93);});
+  },say).then(function(pages){
+    if(!pages.length)throw new Error('gol');
+    if(o.kind==='png')return makeZip(pages);
+    /* la citire dreapta → stânga, PDF-ul rămâne în ordinea paginilor; cititoarele de PDF au opțiune RTL */
+    return pdfBuild(pages);
+  });
+}
+function cbExportDlg(ch){
+  var d=cbDlg('cbExp','Export capitol'),p=d.pad;ch.exp=ch.exp||{kind:'pdf',nums:true,pos:'center',cover:false,start:1};var o=ch.exp;
+  p.appendChild(el('div','h','Export „'+ch.name+'”'));
+  function seg(lab,key,opts){p.appendChild(el('div','sub',lab));var s=el('div','seg');p.appendChild(s);
+    opts.forEach(function(x){var b=el('button',null,x[1]);b.type='button';b.dataset.v=String(x[0]);b.addEventListener('click',function(){o[key]=x[0];paint();chSave();});s.appendChild(b);});
+    function paint(){[].forEach.call(s.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.v===String(o[key])));});vis();}
+    paint();return s;}
+  seg('Ce faci',"kind",[['pdf','PDF'],['png','PNG-uri (.zip)'],['webtoon','Bandă webtoon (.zip)']]);
+  var opts=el('div');p.appendChild(opts);
+  var tg=el('div');opts.appendChild(tg);
+  drToggle(tg,'Numere de pagină',function(){return !!o.nums;},function(v){o.nums=v;chSave();vis();});
+  drToggle(tg,'Prima pagină e coperta (fără număr)',function(){return !!o.cover;},function(v){o.cover=v;chSave();});
+  var ps=el('div');opts.appendChild(ps);
+  ps.appendChild(el('div','sub','Unde stă numărul'));var s2=el('div','seg');ps.appendChild(s2);
+  [['center','Jos, la mijloc'],['out','Jos, spre margine']].forEach(function(x){var b=el('button',null,x[1]);b.type='button';b.dataset.v=x[0];b.addEventListener('click',function(){o.pos=x[0];chSave();pp();});s2.appendChild(b);});
+  function pp(){[].forEach.call(s2.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.v===o.pos));});}pp();
+  var sr=el('div','cbrow');ps.appendChild(sr);sr.appendChild(el('span','sub','Prima pagină are numărul'));var si=el('input','txt');si.type='number';si.min=1;si.value=o.start||1;si.style.width='80px';si.addEventListener('change',function(){o.start=Math.max(1,+si.value||1);chSave();});sr.appendChild(si);
+  var wn=el('p','note','Bandă verticală de 800 px lățime, tăiată în felii de 1280 px (cum cer Webtoon/Tapas). Paginile se pun una sub alta, cu un spațiu alb între ele.');p.appendChild(wn);
+  function vis(){if(!ps)return;opts.hidden=false;ps.hidden=!o.nums||o.kind==='webtoon';tg.hidden=o.kind==='webtoon';wn.hidden=o.kind!=='webtoon';}
+  vis();
+  var msg=el('p','note');p.appendChild(msg);
+  var r=el('div','btns');p.appendChild(r);
+  var go=drBtn(r,'Exportă',function(){
+    if(CH.busy)return;CH.busy=true;go.disabled=true;
+    var sf=drSafe(ch.name),fn=o.kind==='pdf'?sf+'.pdf':o.kind==='png'?sf+'-pagini.zip':sf+'-webtoon.zip';
+    cbExport(ch,o,function(t){msg.textContent=t;}).then(function(b){return saveBlob(b,fn);}).then(function(m){msg.textContent=m||'Gata.';},function(e){msg.textContent='Nu am putut exporta. '+(e&&e.message||'');}).then(function(){CH.busy=false;go.disabled=false;cbBoardRender();});
+  },'solid');
+  drBtn(r,'Închide',function(){d.hidden=true;});
+}
+
+/* ===== legături ===== */
+function cbInit(){
+  cbStripBuild();
+  var st=document.createElement('style');
+  st.textContent=
+  '.cbdlg .fsbox{width:min(620px,100%)}.cbpad{padding:14px 16px;overflow:auto}.cbpad textarea{width:100%;font:inherit;font-size:14px;box-sizing:border-box}.cbpad .txt{box-sizing:border-box}.cbrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}'+
+  '.cbboard{position:fixed;inset:0;z-index:250;background:var(--bg,#f4f4f1);color:inherit;display:flex;flex-direction:column;overflow:auto}.cbboard[hidden]{display:none}'+
+  '.cbtop{position:sticky;top:0;z-index:2;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;background:var(--bg,#f4f4f1);border-bottom:1px solid rgba(0,0,0,.1)}.cbname{font-size:18px;font-weight:600;max-width:260px}.cbprog{font-size:13px;opacity:.7}'+
+  '.cbboard{--cw:clamp(140px,22vw,210px)}.cbgrid{display:flex;flex-wrap:wrap;gap:22px 28px;padding:18px;align-items:flex-start;justify-content:flex-start}.cbgrid.rtl{flex-direction:row-reverse}'+
+  '.cbspread{display:flex;gap:2px;padding:6px;border-radius:10px;background:rgba(0,0,0,.05)}.cbgrid.rtl .cbspread{flex-direction:row-reverse}.cbspread.first{padding-left:calc(6px + var(--cw,150px) + 2px)}.cbgrid.rtl .cbspread.first{padding-left:6px;padding-right:calc(6px + var(--cw,150px) + 2px)}'+
+  '.cbcard{width:var(--cw,150px);display:flex;flex-direction:column;gap:4px;cursor:pointer;touch-action:none;user-select:none;border-radius:6px}.cbcard.drag{opacity:.35}.cbcard.over{outline:3px solid #7c3aed;outline-offset:2px}'+
+  '.cbcard.ghost{position:fixed;z-index:300;pointer-events:none;opacity:.9;transform:rotate(-2deg);box-shadow:0 10px 30px rgba(0,0,0,.3);background:#fff}'+
+  '.cbth{aspect-ratio:0.7;background:#fff;border:1px solid rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;overflow:hidden}.cbth img{width:100%;height:100%;object-fit:contain}'+
+  '.cbft{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.cbft b{min-width:20px}.cbst{border:0;border-radius:999px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer;background:rgba(0,0,0,.08);color:inherit}'+
+  '.cbst.st-schita{background:#fde68a;color:#78350f}.cbst.st-tus{background:#bfdbfe;color:#1e3a8a}.cbst.st-ton{background:#ddd6fe;color:#4c1d95}.cbst.st-gata{background:#bbf7d0;color:#14532d}'+
+  '.cbmv{margin-left:auto;display:flex;gap:2px}.cbm{width:28px;height:28px;border-radius:8px;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;color:inherit}.cbm:disabled{opacity:.3}.cbnote{font-size:11px;opacity:.65;line-height:1.25;max-height:2.6em;overflow:hidden}.cbhelp{padding:0 18px 18px}'+
+  '.cbread{position:fixed;inset:0;z-index:260;background:#111;color:#eee;display:flex;flex-direction:column}.cbread[hidden]{display:none}'+
+  '.cbrst{flex:1;display:flex;align-items:center;justify-content:center;gap:0;min-height:0;touch-action:none;user-select:none}.cbrpg{height:100%;display:flex;align-items:center;justify-content:center;max-width:50%}.cbrst.single .cbrpg,.cbrst .cbrpg:only-child{max-width:100%}'+
+  '.cbrpg img{max-height:calc(100vh - 8px);max-width:100%;object-fit:contain;background:#fff;display:block}'+
+  '.cbrbar{position:absolute;left:0;right:0;top:0;display:flex;gap:8px;align-items:center;padding:8px 10px;background:linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,0));opacity:0;transition:opacity .2s;pointer-events:none}.cbread.chrome .cbrbar{opacity:1;pointer-events:auto}.cbrbar .btn{background:rgba(255,255,255,.9);color:#111}.cbrinfo{flex:1;font-size:14px}'+
+  '.cbrmsg{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:13px;opacity:.8}'+
+  '.cbstrip{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:4;display:flex;gap:4px;align-items:center;padding:4px;border-radius:999px;background:rgba(244,244,241,.94);box-shadow:0 2px 10px rgba(0,0,0,.18)}.cbstrip[hidden]{display:none}'+
+  '.cbsb{width:38px;height:38px;border-radius:50%;border:0;background:transparent;font-size:15px;cursor:pointer;color:inherit}.cbsb:disabled{opacity:.3}.cbsi{border:0;background:transparent;font:inherit;font-size:13px;padding:0 8px;cursor:pointer;white-space:nowrap;max-width:46vw;overflow:hidden;text-overflow:ellipsis;color:inherit}'+
+  'body.haschstrip #sfBan{top:58px}';
+  document.head.appendChild(st);
+  /* Meniu → Capitol: tabla, citirea, capitol nou */
+  var cs=$('#drChapSide');
+  if(cs){var r=el('div','btns');cs.appendChild(r);
+    var b1=drBtn(r,'⊞ Tabla capitolului',function(){var c=chOf(DR.id);if(c){drSaveNow().then(function(){cbBoard(c.id);});}},'solid');
+    var b2=drBtn(r,'📖 Citește capitolul',function(){var c=chOf(DR.id);if(c)drSaveNow().then(function(){cbRead(c.id,c.pages.indexOf(DR.id));});});
+    drBtn(r,'+ Capitol nou…',cbNewDialog);drBtn(r,'📚 Raft',shOpen);
+    DR.sync.push(function(){var c=CH.loaded&&chOf(DR.id);b1.hidden=b2.hidden=!c;});
+  }
+}
+/* ---------- Raftul cu capitole: toate capitolele, grupate pe serii (foldere), cu copertă și progres ---------- */
+var SH={ser:[],loaded:false,open:{},urls:[]};
+var SHCOL=['#7c3aed','#2563eb','#0d9488','#d97706','#dc2626','#db2777','#4b5563'];
+function shLoad(){
+  if(SH.loaded)return Promise.resolve(SH.ser);
+  var p=window.indexedDB?idbGet('chseries').then(function(a){return Array.isArray(a)?a:[];},function(){return [];}):Promise.resolve([]);
+  return p.then(function(a){SH.ser=a;SH.loaded=true;return a;});
+}
+function shSave(){return window.indexedDB?idbPut('chseries',SH.ser).catch(function(){}):Promise.resolve();}
+function shNewSeries(name){
+  var s={id:'s'+Date.now().toString(36),name:name||('Serie '+(SH.ser.length+1)),col:SHCOL[SH.ser.length%SHCOL.length]};
+  SH.ser.push(s);return shSave().then(function(){return s;});
+}
+function shOpen(){
+  Promise.all([chLoad(),shLoad()]).then(function(){
+    var d=$('#shShelf');
+    if(!d){d=el('div','cbboard shshelf');d.id='shShelf';d.setAttribute('role','dialog');d.setAttribute('aria-label','Raftul cu capitole');document.body.appendChild(d);}
+    d.hidden=false;shRender();
+  });
+}
+function shRender(){
+  var d=$('#shShelf');if(!d)return;
+  drIdx().then(function(ix){
+    var by={};(ix||[]).forEach(function(e){by[e.id]=e;});
+    SH.urls.forEach(function(u){URL.revokeObjectURL(u);});SH.urls=[];
+    var q=(SH.q||'').toLowerCase();
+    d.innerHTML='';
+    var top=el('div','cbtop');d.appendChild(top);
+    top.appendChild(el('b','shtitle','📚 Capitolele mele'));
+    var srch=el('input','txt shq');srch.type='search';srch.placeholder='Caută un capitol…';srch.value=SH.q||'';
+    srch.addEventListener('input',function(){SH.q=srch.value;clearTimeout(SH.qt);SH.qt=setTimeout(function(){shRender();setTimeout(function(){var s=d.querySelector('.shq');if(s){s.focus();s.setSelectionRange(s.value.length,s.value.length);}},0);},250);});
+    top.appendChild(srch);
+    var gap=el('span');gap.style.flex='1';top.appendChild(gap);
+    function tb(t,fn,cls){var b=el('button','btn'+(cls?' '+cls:''),t);b.type='button';b.addEventListener('click',fn);top.appendChild(b);return b;}
+    tb('+ Capitol nou…',function(){cbNewDialog();},'solid');
+    tb('+ Serie (folder)',function(){shNewSeries('').then(function(s){SH.open[s.id]=true;SH.edit=s.id;shRender();});});
+    tb('Închide',function(){d.hidden=true;});
+    var total=CH.list.length,pagesAll=0,doneAll=0;
+    CH.list.forEach(function(c){pagesAll+=c.pages.length;doneAll+=c.pages.filter(function(p){return c.st&&c.st[p]==='gata';}).length;});
+    var sum=el('p','note shsum',total?(total+(total===1?' capitol':' capitole')+' · '+pagesAll+' pagini · '+doneAll+' gata'):'N-ai încă niciun capitol. Apasă „+ Capitol nou…”.');d.appendChild(sum);
+    var groups=SH.ser.map(function(s){return {s:s,list:CH.list.filter(function(c){return c.ser===s.id;})};});
+    groups.push({s:{id:'',name:'Fără serie',col:'#9ca3af'},list:CH.list.filter(function(c){return !c.ser||!SH.ser.some(function(s){return s.id===c.ser;});})});
+    groups.forEach(function(g,gi){
+      var list=g.list.filter(function(c){return !q||c.name.toLowerCase().indexOf(q)>=0;});
+      if(!g.s.id&&!g.list.length&&SH.ser.length)return;
+      if(q&&!list.length)return;
+      var sec=el('section','shser');sec.style.setProperty('--sc',g.s.col);d.appendChild(sec);
+      var hd=el('div','shhd');sec.appendChild(hd);
+      var isOpen=SH.open[g.s.id]!==false;
+      var tg=el('button','shtg',isOpen?'▾':'▸');tg.type='button';tg.setAttribute('aria-label',isOpen?'Strânge':'Deschide');tg.addEventListener('click',function(){SH.open[g.s.id]=!isOpen;shRender();});hd.appendChild(tg);
+      var dot=el('span','shdot');hd.appendChild(dot);
+      if(g.s.id&&SH.edit===g.s.id){
+        var ni=el('input','txt');ni.value=g.s.name;ni.maxLength=40;hd.appendChild(ni);
+        var fin=function(){g.s.name=ni.value.trim()||g.s.name;SH.edit=null;shSave().then(shRender);};
+        ni.addEventListener('keydown',function(e){if(e.key==='Enter')fin();});ni.addEventListener('blur',fin);setTimeout(function(){ni.focus();ni.select();},20);
+      }else{var nm=el('b','shname',g.s.name);hd.appendChild(nm);if(g.s.id)nm.addEventListener('click',function(){SH.edit=g.s.id;shRender();});}
+      var pp=0,dd=0;g.list.forEach(function(c){pp+=c.pages.length;dd+=c.pages.filter(function(p){return c.st&&c.st[p]==='gata';}).length;});
+      hd.appendChild(el('span','shcnt',g.list.length+(g.list.length===1?' capitol':' capitole')+(pp?' · '+Math.round(dd/pp*100)+'% gata':'')));
+      if(g.s.id){
+        var acts=el('span','shacts');hd.appendChild(acts);
+        function hb(t,lab,fn){var b=el('button','cbm',t);b.type='button';b.setAttribute('aria-label',lab);b.title=lab;b.addEventListener('click',fn);acts.appendChild(b);return b;}
+        hb('✎','Redenumește seria',function(){SH.edit=g.s.id;shRender();});
+        hb('●','Altă culoare',function(){var i=SHCOL.indexOf(g.s.col);g.s.col=SHCOL[(i+1)%SHCOL.length];shSave().then(shRender);});
+        var si=SH.ser.indexOf(g.s);
+        hb('↑','Mută seria mai sus',function(){if(si>0){SH.ser.splice(si,1);SH.ser.splice(si-1,0,g.s);shSave().then(shRender);}}).disabled=si===0;
+        hb('↓','Mută seria mai jos',function(){if(si<SH.ser.length-1){SH.ser.splice(si,1);SH.ser.splice(si+1,0,g.s);shSave().then(shRender);}}).disabled=si===SH.ser.length-1;
+        var del=hb('🗑','Șterge seria (capitolele rămân)',function(){
+          if(del.getAttribute('data-armed')!=='1'){del.setAttribute('data-armed','1');del.textContent='Sigur?';setTimeout(function(){del.removeAttribute('data-armed');del.textContent='🗑';},3000);return;}
+          CH.list.forEach(function(c){if(c.ser===g.s.id)c.ser='';});SH.ser.splice(si,1);Promise.all([shSave(),chSave()]).then(shRender);
+        });
+      }
+      if(!isOpen)return;
+      var grid=el('div','shgrid');sec.appendChild(grid);
+      if(!list.length)grid.appendChild(el('p','note','Niciun capitol aici. Mută unul cu „Mută în…” de pe capitol.'));
+      list.forEach(function(c){
+        var card=el('div','shcard'),cv=el('div','shcov');card.appendChild(cv);
+        var cid=(c.cover&&c.pages.indexOf(c.cover)>=0)?c.cover:c.pages[0],e=cid&&by[cid];
+        if(e&&e.thumb){var im=el('img'),u=URL.createObjectURL(e.thumb);SH.urls.push(u);im.src=u;im.alt='';cv.appendChild(im);}else cv.appendChild(el('span','note','fără pagini'));
+        cv.addEventListener('click',function(){d.hidden=true;cbBoard(c.id);});
+        var n=c.pages.length,dn=c.pages.filter(function(p){return c.st&&c.st[p]==='gata';}).length;
+        var bar=el('div','shbar'),fill=el('i');fill.style.width=(n?dn/n*100:0)+'%';bar.appendChild(fill);card.appendChild(bar);
+        var nm=el('b','shcn',c.name);card.appendChild(nm);
+        var last=0;c.pages.forEach(function(p){if(by[p]&&by[p].t>last)last=by[p].t;});
+        card.appendChild(el('small','note',n+(n===1?' pagină':' pagini')+' · '+dn+' gata'+(last?' · '+sfAgo(last):'')));
+        var r=el('div','shbtn');card.appendChild(r);
+        function cb(t,fn,cls){var b=el('button','btn sm'+(cls?' '+cls:''),t);b.type='button';b.addEventListener('click',fn);r.appendChild(b);return b;}
+        cb('⊞ Tabla',function(){d.hidden=true;cbBoard(c.id);},'solid');
+        if(n)cb('📖',function(){d.hidden=true;cbRead(c.id,0);}).setAttribute('aria-label','Citește');
+        var sel=el('select','pick-sel shmv');sel.setAttribute('aria-label','Mută în serie');
+        var o0=el('option',null,'Mută în…');o0.value='#';sel.appendChild(o0);
+        SH.ser.forEach(function(s){var o=el('option',null,s.name);o.value=s.id;if(c.ser===s.id)o.disabled=true;sel.appendChild(o);});
+        var on=el('option',null,'Fără serie');on.value='';if(!c.ser)on.disabled=true;sel.appendChild(on);
+        var onew=el('option',null,'+ Serie nouă');onew.value='+';sel.appendChild(onew);
+        sel.addEventListener('change',function(){
+          var v=sel.value;if(v==='#')return;
+          var go=v==='+'?shNewSeries('').then(function(s){SH.edit=s.id;return s.id;}):Promise.resolve(v);
+          go.then(function(id){c.ser=id;SH.open[id]=true;return Promise.all([chSave(),shSave()]);}).then(shRender);
+        });
+        r.appendChild(sel);
+        /* ordinea capitolelor în serie */
+        var li=CH.list.indexOf(c),same=CH.list.filter(function(x){return (x.ser||'')===(c.ser||'');}),k=same.indexOf(c);
+        var mv=el('span','cbmv');r.appendChild(mv);
+        function mb(t,lab,dlt){var b=el('button','cbm',t);b.type='button';b.setAttribute('aria-label',lab);b.addEventListener('click',function(){var o=same[k+dlt];if(!o)return;var a=CH.list.indexOf(c),bI=CH.list.indexOf(o);CH.list[a]=o;CH.list[bI]=c;chSave().then(shRender);});mv.appendChild(b);return b;}
+        mb('‹','Mai devreme',-1).disabled=k===0;mb('›','Mai târziu',1).disabled=k===same.length-1;
+        grid.appendChild(card);
+      });
+    });
+  });
+}
+function shInit(){
+  var st=document.createElement('style');
+  st.textContent='.shshelf .shtitle{font-size:19px}.shq{max-width:220px}.shsum{padding:6px 16px 0}'+
+  '.shser{margin:12px 14px 4px;border-radius:14px;background:rgba(0,0,0,.035);border-left:5px solid var(--sc);padding:8px 10px 12px}'+
+  '.shhd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:40px}.shtg{width:34px;height:34px;border:0;background:transparent;font-size:16px;cursor:pointer;color:inherit}.shdot{width:12px;height:12px;border-radius:50%;background:var(--sc)}'+
+  '.shname{font-size:17px;cursor:text}.shcnt{font-size:13px;opacity:.65}.shacts{margin-left:auto;display:flex;gap:4px}.shacts .cbm{width:auto;min-width:32px;height:32px;padding:0 6px}'+
+  '.shgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;padding:8px 4px 2px}'+
+  '.shcard{display:flex;flex-direction:column;gap:5px;background:#fff;border-radius:12px;padding:8px;box-shadow:0 1px 4px rgba(0,0,0,.08)}'+
+  '.shcov{aspect-ratio:.7;border-radius:6px;overflow:hidden;background:#f2f2ee;border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;cursor:pointer}.shcov img{width:100%;height:100%;object-fit:contain;background:#fff}'+
+  '.shbar{height:5px;border-radius:3px;background:rgba(0,0,0,.08);overflow:hidden}.shbar i{display:block;height:100%;background:var(--sc,#16a34a)}.shcn{font-size:15px;line-height:1.2}'+
+  '.shbtn{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.shmv{max-width:120px;font-size:13px;min-height:32px}.shbtn .cbmv{margin-left:auto}';
+  document.head.appendChild(st);
+}
+/* ---------- Acasă: continui ce lucrai, capitolele, desenele libere și „+ Nou” ---------- */
+var HM={urls:[]};
+function hmShow(){
+  if(DR.ready){if(DR.float)drFloatCommit();drSaveNow();}
+  $('#dr').hidden=false;DR.on=true;
+  var s=$('#drSide');if(s)s.hidden=true;
+  $('#drNew').hidden=true;
+  var cb=$('#cbBoard');if(cb)cb.hidden=true;var sh=$('#shShelf');if(sh)sh.hidden=true;
+  var h=$('#home');if(!h)return;
+  h.hidden=false;hmRender();
+}
+function hmHide(){var h=$('#home');if(h)h.hidden=true;}
+function hmOpenDoc(id){
+  hmHide();
+  if(DR.ready&&DR.id===id){$('#drNew').hidden=true;drShowEditor();return;}
+  (DR.ready?drSaveNow():Promise.resolve()).then(function(){return drLoadSaved(id);}).then(function(ok){if(ok){DR.panel=0;drShowEditor();}else{drMsg('Nu am putut deschide desenul.');hmShow();}});
+}
+function hmNew(tab){
+  hmHide();var n=$('#drNew');n.hidden=false;
+  if(typeof NWTABS!=='undefined'&&NWTABS)uiTabGo(NWTABS,tab||'new',false);
+}
+function hmCard(e,sub,big){
+  var c=el('button','hmcard'+(big?' big':''));c.type='button';
+  var th=el('span','hmth');
+  if(e.thumb){var im=el('img'),u=URL.createObjectURL(e.thumb);HM.urls.push(u);im.src=u;im.alt='';th.appendChild(im);}
+  c.appendChild(th);c.appendChild(el('b',null,e.name||'Desen'));if(sub)c.appendChild(el('small',null,sub));
+  c.addEventListener('click',function(){hmOpenDoc(e.id);});
+  return c;
+}
+function hmRender(){
+  var h=$('#home');if(!h||h.hidden)return;
+  Promise.all([drIdx().catch(function(){return [];}),chLoad(),shLoad()]).then(function(r){
+    var ix=(r[0]||[]).slice().sort(function(a,b){return (b.t||0)-(a.t||0);});
+    HM.urls.forEach(function(u){URL.revokeObjectURL(u);});HM.urls=[];
+    var body=h.querySelector('.hmbody');body.innerHTML='';
+    /* + Nou */
+    var nw=el('div','hmnew');body.appendChild(nw);
+    function nb(ic,t,s,fn){var b=el('button','hmnb');b.type='button';b.appendChild(el('span','hmic',ic));var tx=el('span');tx.appendChild(el('b',null,t));tx.appendChild(el('small',null,s));b.appendChild(tx);b.addEventListener('click',fn);nw.appendChild(b);return b;}
+    nb('✎','Desen nou','Pânză liberă, pătrată, lată sau portret',function(){hmNew('new');});
+    nb('▦','Pagină de manga','Cu panouri, cadre și bule',function(){hmNew('new');var p=document.querySelector('[data-drnew="page"]');if(p)p.scrollIntoView({block:'center'});});
+    nb('❏','Capitol nou','Toate paginile dintr-o dată, opțional din scenariu',function(){cbNewDialog();});
+    /* Continuă */
+    if(ix.length){
+      body.appendChild(el('div','hmh','Continuă'));
+      var row=el('div','hmrow');body.appendChild(row);
+      ix.slice(0,4).forEach(function(e){var c=chOf(e.id),i=c?c.pages.indexOf(e.id):-1;row.appendChild(hmCard(e,(c?c.name+' · pag. '+(i+1)+' · ':'')+sfAgo(e.t),true));});
+    }
+    /* Capitolele mele */
+    var hc=el('div','hmh');hc.appendChild(el('span',null,'Capitolele mele'));
+    var all=el('button','hmlink','Toate, pe serii →');all.type='button';all.addEventListener('click',function(){shOpen();});hc.appendChild(all);body.appendChild(hc);
+    var by={};ix.forEach(function(e){by[e.id]=e;});
+    if(!CH.list.length)body.appendChild(el('p','note','Încă niciun capitol. „Capitol nou” face toate paginile dintr-o dată.'));
+    else{
+      var cr=el('div','hmrow');body.appendChild(cr);
+      CH.list.slice().sort(function(a,b){function lt(c){var m=0;c.pages.forEach(function(p){if(by[p]&&by[p].t>m)m=by[p].t;});return m;}return lt(b)-lt(a);}).slice(0,8).forEach(function(c){
+        var cid=(c.cover&&c.pages.indexOf(c.cover)>=0)?c.cover:c.pages[0],e=by[cid]||{},n=c.pages.length,dn=c.pages.filter(function(p){return c.st&&c.st[p]==='gata';}).length;
+        var s=SH.ser.filter(function(x){return x.id===c.ser;})[0];
+        var b=el('button','hmcard ch');b.type='button';if(s)b.style.setProperty('--sc',s.col);
+        var th=el('span','hmth');if(e.thumb){var im=el('img'),u=URL.createObjectURL(e.thumb);HM.urls.push(u);im.src=u;im.alt='';th.appendChild(im);}b.appendChild(th);
+        var bar=el('span','shbar'),fi=el('i');fi.style.width=(n?dn/n*100:0)+'%';bar.appendChild(fi);b.appendChild(bar);
+        b.appendChild(el('b',null,c.name));b.appendChild(el('small',null,(s?s.name+' · ':'')+n+' pag. · '+dn+' gata'));
+        b.addEventListener('click',function(){cbBoard(c.id);});cr.appendChild(b);
+      });
+    }
+    /* Desene libere */
+    var free=ix.filter(function(e){return !chOf(e.id);});
+    body.appendChild(el('div','hmh','Desene libere'+(free.length?' ('+free.length+')':'')));
+    if(!free.length)body.appendChild(el('p','note','Desenele care nu sunt într-un capitol apar aici.'));
+    var gr=el('div','hmgrid');body.appendChild(gr);
+    free.forEach(function(e){
+      var w=el('div','hmfw');w.appendChild(hmCard(e,sfAgo(e.t)));
+      var del=el('button','hmdel','✕');del.type='button';del.setAttribute('aria-label','Șterge desenul');
+      del.addEventListener('click',function(ev){ev.stopPropagation();
+        if(del.getAttribute('data-armed')!=='1'){del.setAttribute('data-armed','1');del.textContent='Șterg?';setTimeout(function(){del.removeAttribute('data-armed');del.textContent='✕';},3000);return;}
+        drDeleteDoc(e.id).then(function(){if(DR.id===e.id){DR.ready=false;DR.id='';}hmRender();});
+      });
+      w.appendChild(del);gr.appendChild(w);
+    });
+    /* jos: copie, import, scena 3D */
+    var ft=el('div','hmfoot');body.appendChild(ft);
+    function fb(t,fn){var b=el('button','btn sm',t);b.type='button';b.addEventListener('click',fn);ft.appendChild(b);}
+    fb('Copie de siguranță / restaurare',function(){hmNew('bk');});
+    fb('Deschide un desen început (imagine, PSD)',function(){var i=$('#drImpIn');if(i)i.click();});
+    fb('🧊 Scena 3D (perspectivă)',function(){hmHide();if(DR.ready)drSaveNow();$('#dr').hidden=true;DR.on=false;});
+    fb('Turul aplicației',function(){if(DR.ready){hmHide();drShowEditor();setTimeout(trStart,200);}else drMsg('Deschide întâi un desen, apoi pornește turul.');});
+  });
+}
+function hmInit(){
+  if($('#home'))return;
+  var h=el('div','home');h.id='home';h.hidden=true;h.setAttribute('role','region');h.setAttribute('aria-label','Acasă');
+  var top=el('div','hmtop');h.appendChild(top);
+  top.appendChild(el('b','hmlogo','Aplicație desen'));
+  var sp=el('span');sp.style.flex='1';top.appendChild(sp);
+  var back=el('button','btn','Înapoi la desen →');back.type='button';back.id='hmBack';back.addEventListener('click',function(){hmHide();$('#drNew').hidden=true;drShowEditor();});top.appendChild(back);
+  h.appendChild(el('div','hmbody'));
+  $('#dr').appendChild(h);
+  DR.sync.push(function(){back.hidden=!DR.ready;});
+  /* „Închide” devine „← Acasă” */
+  var c=$('#drClose');if(c){var n=c.cloneNode(true);n.textContent='← Acasă';n.setAttribute('aria-label','Acasă');c.parentNode.replaceChild(n,c);n.addEventListener('click',hmShow);}
+  /* alegerea „Nou”: fără lista veche de desene (e acum Acasă), cu buton înapoi */
+  var dn=$('#drNew');
+  if(dn&&!$('#hmNewBack')){
+    var b=el('button','btn','← Acasă');b.id='hmNewBack';b.type='button';b.addEventListener('click',hmShow);dn.insertBefore(b,dn.firstChild);
+    ['#drBack','#drLibH','#drLib','#drContinue'].forEach(function(s){var x=$(s);if(x)x.classList.add('hmgone');});
+    if(typeof NWTABS!=='undefined'&&NWTABS){['mine','ch'].forEach(function(k){if(NWTABS.btn[k])NWTABS.btn[k].classList.add('hmgone');});uiTabGo(NWTABS,'new',false);}
+  }
+  /* după ce alegi un format nou, Acasă dispare */
+  document.querySelectorAll('[data-drnew]').forEach(function(b){b.addEventListener('click',hmHide);});
+  var st=document.createElement('style');
+  st.textContent='.hmgone{display:none!important}'+
+  '.home{position:absolute;inset:0;z-index:40;background:var(--paper);overflow:auto}.home[hidden]{display:none}'+
+  '.hmtop{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--paper);border-bottom:1px solid var(--rule)}.hmlogo{font-size:20px;letter-spacing:.2px}'+
+  '.hmbody{max-width:1100px;margin:0 auto;padding:14px 16px 40px}'+
+  '.hmnew{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:8px}'+
+  '.hmnb{display:flex;gap:12px;align-items:center;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--rule);background:var(--card);color:inherit;font:inherit;cursor:pointer;min-height:72px}.hmnb:first-child{background:var(--acc);color:#fff;border-color:transparent}.hmnb:first-child small{color:rgba(255,255,255,.85)}'+
+  '.hmnb b{display:block;font-size:16px}.hmnb small{display:block;font-size:13px;color:var(--ink-2)}.hmic{font-size:24px;width:36px;text-align:center}'+
+  '.hmh{display:flex;align-items:baseline;gap:10px;margin:22px 0 10px;font-size:17px;font-weight:600}.hmlink{margin-left:auto;border:0;background:transparent;color:var(--acc);font:inherit;font-size:14px;cursor:pointer}'+
+  '.hmrow{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px}'+
+  '.hmcard{display:flex;flex-direction:column;gap:4px;align-items:stretch;text-align:left;width:150px;flex:none;padding:8px;border-radius:12px;border:1px solid var(--rule);background:var(--card);color:inherit;font:inherit;cursor:pointer}.hmcard.big{width:190px}'+
+  '.hmcard b{font-size:14px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hmcard small{font-size:12px;color:var(--ink-2)}.hmcard.ch{border-left:4px solid var(--sc,var(--rule))}'+
+  '.hmth{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:8px;background:#fff;overflow:hidden;border:1px solid var(--rule)}.hmcard.ch .hmth,.hmcard.big .hmth{aspect-ratio:.75}.hmth img{width:100%;height:100%;object-fit:contain}'+
+  '.hmgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}.hmfw{position:relative}.hmfw .hmcard{width:100%}'+
+  '.hmdel{position:absolute;top:12px;right:12px;min-width:30px;height:30px;border-radius:15px;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:12px;cursor:pointer;padding:0 8px}'+
+  '.hmfoot{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px;padding-top:14px;border-top:1px solid var(--rule)}';
+  document.head.appendChild(st);
+}
+/* ---------- Ordine și aspect: Meniu cu 4 file, explicații sub ⓘ, iconițe pentru unelte, stil unitar, temă ---------- */
+
+/* ===== Meniu: Straturi / Pagină / Ajutoare / Setări ===== */
+var TDSET=['Pensulă și ecran','Unelte preferate','Bara laterală','Export','Aspect','Ajutor'];
+function tdTabsMap(){
+  return {'Pagină dublă':'pg','Foaie de panou':'pg','Desen':'lay','Capitol':'lay','Straturi':'lay','Filtre pe strat':'lay',
+    'Calc din perspectivă':'gd','Riglă de perspectivă':'gd','Schiță din text':'gd','Schiță din imagine':'gd','Puncte de fugă (1, 2, 3)':'gd','Panouri de manga':'pg','Simetrie':'gd','Ghiduri':'gd','Ton de manga':'gd',
+    'Pensulă și ecran':'tl','Unelte preferate':'tl','Bara laterală':'tl','Export':'tl','Aspect':'tl','Ajutor':'tl'};
+}
+/* mută secțiunile între file după titlu; filele „Export” vechi dispar */
+function tdRetab(){
+  if(!DRTABS)return;
+  var M=tdTabsMap(),T=DRTABS;
+  /* adună toate elementele, în ordine, cu fila nouă */
+  var items=[];
+  Object.keys(T.panes).forEach(function(k){var cur=k;[].slice.call(T.panes[k].children).forEach(function(c){var h=c.classList.contains('h')?c:(c.querySelector&&c.querySelector(':scope > .h'));if(h&&M[h.textContent.trim()])cur=M[h.textContent.trim()];items.push([c,cur]);});});
+  items.forEach(function(x){var p=T.panes[x[1]]||T.panes.lay;p.appendChild(x[0]);});
+  T.btn.gd.textContent='Ajutoare';T.btn.tl.textContent='Setări';
+  if(T.btn.ex){T.btn.ex.classList.add('hmgone');T.panes.ex.hidden=true;}
+  /* ordinea în Setări */
+  var st=T.panes.tl,ord=['Pensulă și ecran','Unelte preferate','Bara laterală','Aspect','Export','Ajutor'];
+  var groups={},cur=null,pre=[];
+  [].slice.call(st.children).forEach(function(c){var h=c.classList.contains('h')?c.textContent.trim():null;if(h)cur=h;(cur?(groups[cur]=groups[cur]||[]):pre).push(c);});
+  ord.forEach(function(k){(groups[k]||[]).forEach(function(c){st.appendChild(c);});});
+  Object.keys(groups).forEach(function(k){if(ord.indexOf(k)<0)groups[k].forEach(function(c){st.appendChild(c);});});
+  if(T.cur==='ex')uiTabGo(T,'tl',false);
+}
+/* Setări: aspect (temă, explicații), ajutor (tur), avansat (opțiuni tehnice) */
+function tdSettings(){
+  if(!DRTABS||$('#tdAspect'))return;
+  var st=DRTABS.panes.tl;
+  var fr=document.createDocumentFragment();
+  var h=el('div','h','Aspect');h.id='tdAspect';fr.appendChild(h);
+  fr.appendChild(el('div','sub','Temă'));
+  drSegBtn(fr,[['auto','Ca tableta'],['light','Luminoasă'],['dark','Întunecată']],function(){return DR.theme||'auto';},function(v){tdTheme(v);});
+  var tb=el('div');fr.appendChild(tb);
+  drToggle(tb,'Arată explicațiile din meniuri (altfel le deschizi cu ⓘ)',function(){return !!DR.notesOpen;},function(v){DR.notesOpen=v;document.body.classList.toggle('notesopen',v);drPrefSaveSoon();});
+  fr.appendChild(el('div','h','Ajutor'));
+  var r=el('div','btns');fr.appendChild(r);
+  drBtn(r,'Turul aplicației',function(){var s=$('#drSide');if(innerWidth<900)s.hidden=true;trStart();});
+  drBtn(r,'🔍 Caută o funcție',fsOpen);
+  /* avansat */
+  var det=el('details','tdadv');det.appendChild(el('summary',null,'Avansat'));fr.appendChild(det);
+  st.appendChild(fr);
+  var want=['Lungimea subțierii','Afișare la rezoluția maximă','Sensibilitate presiune','Găleata și bagheta'];
+  [].slice.call(document.querySelectorAll('#drSide .row, #drSide label.toggle')).forEach(function(n){
+    var t=(n.querySelector('label,span')||n).textContent.trim();
+    if(want.some(function(w){return t.indexOf(w)===0;}))det.appendChild(n);
+  });
+}
+function tdTheme(v){
+  DR.theme=v;drPrefSaveSoon();
+  var r=document.documentElement;if(v==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',v);
+  try{localStorage.setItem('ad-theme',v);}catch(e){}
+  setTimeout(tdBg,30);drDirty();
+}
+/* duplicate scoase: lista veche de desene și biblioteca din Straturi, butoanele de capitol care există acum în bandă */
+function tdDedupe(){
+  [].forEach.call(document.querySelectorAll('#drSide .btns'),function(r){
+    var t=r.textContent;if(/Desene salvate și desen nou/.test(t)&&/Bibliotecă/.test(t))r.classList.add('hmgone');
+  });
+  var cs=$('#drChapSide');
+  if(cs)[].forEach.call(cs.querySelectorAll('button'),function(b){if(/Pagina anterioară|Pagina următoare|Pagină nouă după aceasta|Capitol nou/.test(b.textContent))b.classList.add('hmgone');});
+}
+
+/* ===== Explicațiile lungi: ascunse sub ⓘ ===== */
+function tdNotes(root){
+  root=root||document;
+  [].forEach.call(root.querySelectorAll('#drSide p.note:not([data-nh]), #drCtx p.note:not([data-nh]), #pg p.note:not([data-nh])'),function(p){
+    p.setAttribute('data-nh','1');
+    if(p.id||p.closest('.sfbox')||(p.textContent||'').length<70)return;
+    p.classList.add('nhide');
+    /* ⓘ lângă titlul secțiunii, dacă există; altfel chiar înaintea explicației */
+    var h=p.previousElementSibling;while(h&&!h.classList.contains('h')&&!h.classList.contains('nhbtn'))h=h.previousElementSibling;
+    var b=h&&h.classList.contains('h')?h.querySelector('.nhbtn'):null;
+    if(!b){b=el('button','nhbtn');b.type='button';b.setAttribute('aria-label','Explicație');b.setAttribute('aria-expanded','false');
+      b.addEventListener('click',function(e){e.stopPropagation();var on=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',String(on));(b.nh||[]).forEach(function(n){n.classList.toggle('nshow',on);});});
+      b.nh=[];
+      if(h&&h.classList.contains('h'))h.appendChild(b);else p.parentNode.insertBefore(b,p);}
+    b.nh.push(p);
+  });
+}
+
+/* ===== Iconițe pentru unelte ===== */
+var TDIC={
+  gpen:'<path d="M12 2.5 18 10l-6 11.5L6 10Z"/><path d="M12 10v6"/><circle cx="12" cy="9" r="1.2"/>',
+  fine:'<path d="M12 2.5 15.5 10 12 21.5 8.5 10Z"/><path d="M12 10v8"/>',
+  maru:'<path d="M12 3c3 3 4.5 6 4.5 8L12 21l-4.5-10C7.5 9 9 6 12 3Z"/><path d="M12 11v6"/>',
+  turnip:'<path d="M12 2.5 18 10l-6 11.5L6 10Z"/><path d="M9.5 13h5"/><path d="M12 10v3"/>',
+  kabura:'<path d="M8 2.5h8v4.5H8Z"/><path d="M8.5 7 12 21.5 15.5 7"/><path d="M12 11v5"/>',
+  school:'<path d="M14 2.5 19 9l-5 10.5L9 9Z"/><path d="M14 9v5"/><path d="M3 20h6M3 16.5h4"/>',
+  pencil:'<path d="M4 20l1-5L16 4l4 4L9 19Z"/><path d="M14 6l4 4"/><path d="M4 20l3.5-1"/>',
+  brush:'<path d="M20 3.5c-3.5 1.2-7.5 5.5-9 8.5l2 2c3-1.5 7.3-5.5 8.5-9Z"/><path d="M11 12.5c-2.2 0-4 1.2-4 3.8 0 1.3-1.2 3-3.5 3.2 3.3 1.3 8 .3 8.6-3.2Z"/>',
+  marker:'<path d="M15 3l6 6-9.5 9.5H5.5v-6Z"/><path d="M5.5 18.5 3 21h5.5"/><path d="M12.5 5.5l6 6"/>',
+  air:'<path d="M3 13.5h9l3-2.5h5v4h-5l-3-1.5"/><path d="M8 13.5v6"/><path d="M18 5.5h.01M20.5 3.5h.01M21 7.5h.01M16 3h.01"/>',
+  chalk:'<path d="M4 15.5 13.5 6l4.5 4.5L8.5 20Z"/><path d="M6.5 13l4.5 4.5"/><path d="M15 15h.01M18 17h.01M16 19.5h.01"/>',
+  tone:'<circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',
+  cust:'<path d="M18 3.5c-3 1-6.5 4.8-7.8 7.3l1.8 1.8c2.6-1.3 6.3-4.8 7.3-7.8Z"/><path d="M10 11.8c-2 0-3.5 1-3.5 3.3 0 1.1-1 2.6-3 2.8 2.9 1.1 7 .3 7.5-2.8Z"/><path d="M18 14v6M15 17h6"/>',
+  eraser:'<path d="M3.5 16.5 13 7l7 7-6.5 6.5H7.5Z"/><path d="M9 11l7 7"/><path d="M13.5 20.5H21"/>',
+  smudge:'<path d="M9 20.5V13a2 2 0 0 1 4 0V9.5a2 2 0 0 1 4 0V16c0 3-2 4.5-4 4.5Z"/><path d="M3 8c2-2 4 2 6 0"/>',
+  blur:'<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11Z"/><path d="M9 15a3 3 0 0 0 3 3"/>',
+  fill:'<path d="M4.5 11 11 4.5l7 7L11.5 18Z"/><path d="M4.5 11h13.5"/><path d="M20 14.5s2 2.8 2 4a2 2 0 0 1-4 0c0-1.2 2-4 2-4Z"/>',
+  grad:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16"/><path d="M13 4v16" stroke-dasharray="2 2"/><path d="M17 4v16" stroke-dasharray="1 3"/>',
+  shape:'<rect x="3.5" y="3.5" width="9" height="9" rx="1"/><circle cx="16" cy="16" r="4.5"/>',
+  line:'<path d="M5 19 19 5"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="5" r="1.8"/>',
+  fx:'<path d="M3 6h11M3 12h18M3 18h9"/><path d="M17 6h4M15 18h6"/>',
+  crack:'<path d="M12 2.5 10 8l4 3-3.5 4 3 3-2 3.5"/><path d="M14 11l4-1M10.5 15l-4 1.5"/>',
+  fore:'<ellipse cx="12" cy="6" rx="6" ry="2.5"/><path d="M6 6l2.2 12.5M18 6l-2.2 12.5"/><ellipse cx="12" cy="18.5" rx="3.8" ry="1.5"/>',
+  text:'<path d="M5 5h14M12 5v14M9 19h6"/>',
+  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 11V4a1.5 1.5 0 0 1 3 0v7M14 11V6a1.5 1.5 0 0 1 3 0v8c0 4-2.7 7-6 7-2.7 0-4.2-1.6-5.4-3.6L3.8 14a1.5 1.5 0 0 1 2.5-1.6L8 14"/>',
+  sel:'<path d="M12 4c5 0 8 2 8 5s-3 5-8 5-8-2-8-5 3-5 8-5Z" stroke-dasharray="3 2.5"/><path d="M6.5 13c-1.2 2-.3 4.5 2 5.5"/>',
+  move:'<path d="M12 3v18M3 12h18"/><path d="M9.5 5.5 12 3l2.5 2.5M9.5 18.5 12 21l2.5-2.5M5.5 9.5 3 12l2.5 2.5M18.5 9.5 21 12l-2.5 2.5"/>',
+  eyedrop:'<path d="M19.5 4.5a2.5 2.5 0 0 0-3.5 0L13.5 7l3.5 3.5 2.5-2.5a2.5 2.5 0 0 0 0-3.5Z"/><path d="M14.5 8.5 5 18v2h2l9.5-9.5"/>',
+  pcheck:'<path d="M3 20 12 5l9 15"/><path d="M6.5 14h11"/><path d="M14 18.5l2 2 4-4.5"/>'
+};
+function tdIcon(t){var p=TDIC[t];return p?'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>':'';}
+function tdIcons(){
+  document.querySelectorAll('#drTools button[data-tool]:not([data-ic])').forEach(function(b){
+    var t=b.getAttribute('data-tool'),lab=b.textContent.trim();if(!TDIC[t])return;
+    b.setAttribute('data-ic','1');b.setAttribute('aria-label',lab);b.title=lab;b.classList.add('ti');
+    b.innerHTML=tdIcon(t)+'<span>'+lab.replace(/\s*\(.*\)$/,'')+'</span>';
+  });
+  /* preferatele: iconiță + nume */
+  document.querySelectorAll('#drFav .fvb:not([data-ic])').forEach(function(b){
+    var t=(DTOOLS.filter(function(x){return x&&x[1]===b.textContent;})[0]||[])[0];if(!t||!TDIC[t])return;
+    b.setAttribute('data-ic','1');b.innerHTML=tdIcon(t)+'<span>'+b.textContent+'</span>';
+  });
+}
+
+/* ===== Stil unitar + temă ===== */
+function tdStyle(){
+  var dk='--acc:#7c3aed;--acc-2:#2b2340;--card:#1f252e;--float:rgba(29,35,44,.95);--wrapbg:#0e1116;';
+  var st=document.createElement('style');
+  st.textContent=
+  ':root{--acc:#6d28d9;--acc-2:#efe9fd;--card:#ffffff;--float:rgba(250,250,247,.95);--wrapbg:#d6d9d3}'+
+  '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){'+dk+'}}:root[data-theme="dark"]{'+dk+'}'+
+  /* butoane: secundar = fond discret, principal = accent */
+  '#dr .btn,.fsdlg .btn,.cbboard .btn,#home .btn,#pg .btn{border:1px solid var(--rule);border-radius:10px;background:var(--card);color:var(--ink)}'+
+  '#dr .btn.solid,.fsdlg .btn.solid,.cbboard .btn.solid,#home .btn.solid,#pg .btn.solid,#drFileM .fitem.solid{background:var(--acc);border-color:transparent;color:#fff}'+
+  '#dr .btn:disabled{opacity:.45}'+
+  '.seg{border-radius:10px;border-color:var(--rule)!important;overflow:hidden}.seg button[aria-pressed="true"],.seg button.on{background:var(--acc)!important;color:#fff!important}'+
+  '.drtools button[aria-pressed="true"],.drtools button.on,.drtools button[aria-current="true"]{background:var(--acc)!important;color:#fff!important;border-color:transparent!important}'+
+  '.drcats button{border-radius:999px}.drcats button[aria-pressed="true"]{background:var(--acc-2)!important;color:var(--acc)!important;border-color:transparent!important}'+
+  '.fvb[aria-pressed="true"],.rbtn[aria-pressed="true"],.fvpick .btn[aria-pressed="true"],.cbsb:focus-visible{background:var(--acc)!important;color:#fff!important}'+
+  '.drwrap{background:var(--wrapbg)!important}'+
+  '.toggle input{accent-color:var(--acc)}input[type=range]{accent-color:var(--acc)}'+
+  /* uneltele cu iconiță: mai înguste, numele dedesubt */
+  '.drtools button.ti{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:62px;min-height:52px;padding:5px 6px;font-size:11px;line-height:1.1}'+
+  '.drtools button.ti span{max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+  '.fvb{display:inline-flex;align-items:center;gap:4px}.fvb svg{width:16px;height:16px}'+
+  /* ⓘ */
+  '.nhide{display:none}.nhide.nshow,body.notesopen .nhide{display:block}'+
+  '.nhbtn::before{content:"ⓘ"}.nhbtn{margin-left:6px;width:24px;height:24px;border-radius:12px;border:1px solid var(--rule);background:var(--card);color:var(--ink-2);font-size:13px;line-height:1;cursor:pointer;vertical-align:middle}.nhbtn[aria-expanded="true"]{background:var(--acc);color:#fff;border-color:transparent}'+
+  'body.notesopen .nhbtn{display:none}'+
+  '.tdadv{margin:12px 0;border:1px solid var(--rule);border-radius:10px;padding:6px 10px}.tdadv summary{cursor:pointer;font-weight:600;padding:4px 0}'+
+  /* panouri plutitoare și carduri: aceleași culori în ambele teme */
+  '.drrail,.cbstrip{background:var(--float)!important;color:var(--ink)}.rbtn,.cbm,.shcard,.hmcard,.cbth{background:var(--card)!important;color:var(--ink)}'+
+  '.rtip{background:var(--acc)!important;color:#fff!important}.rfill{background:var(--acc)!important}.rkn{border-color:var(--acc)!important;background:#fff}'+
+  '.fsbox,.cbboard,.cbtop,.trcard{background:var(--paper)!important;color:var(--ink)!important}.fsit.on,.fsit:hover{background:var(--acc-2)!important}'+
+  '.shser{background:var(--paper-2)!important}.cbspread{background:var(--paper-2)!important}.drfocx{background:var(--float)!important;color:var(--ink)}'+
+  '.sfban{background:#fff7e0;color:#3b2f0b}'+
+  '.tab[aria-selected=true]{background:var(--acc)!important;color:#fff!important;border-color:transparent!important}'+
+  '#drFileM{border-radius:12px}#drFileM .fh{color:var(--acc)}';
+  document.head.appendChild(st);
+  try{var v=localStorage.getItem('ad-theme');if(v&&v!=='auto'){document.documentElement.setAttribute('data-theme',v);DR.theme=v;}}catch(e){}
+}
+
+function tdBg(){var v=getComputedStyle(document.documentElement).getPropertyValue('--wrapbg').trim();if(v&&v!==DR.wrapBg){DR.wrapBg=v;drDirty();}}
+function tdInit(){
+  tdStyle();tdBg();if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener&&matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){setTimeout(tdBg,50);});tdRetab();tdSettings();tdDedupe();tdIcons();tdNotes();
+  document.body.classList.toggle('notesopen',!!DR.notesOpen);
+  /* elementele care apar mai târziu (capitol, pagini, opțiuni) primesc și ele ⓘ și iconițe */
+  DR.sync.push(function(){tdNotes();tdIcons();document.body.classList.toggle('notesopen',!!DR.notesOpen);});
+  var pg=$('#pg');if(pg&&window.MutationObserver)new MutationObserver(function(){tdNotes(pg);}).observe(pg,{childList:true,subtree:true});
 }
 
 /* ---------- Reference window (ca „Sub View” din Clip Studio) ---------- */
@@ -10209,7 +11986,7 @@ function figInit(){
 }
 
 initDownloads();initScenes();pgInit();drInit();figInit();qpInit();
-if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
+if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,CH:CH,CB:CB,hmShow:hmShow,hmHide:hmHide,tdTheme:tdTheme,tdNotes:tdNotes,SH:SH,shOpen:shOpen,shNewSeries:shNewSeries,cbSplitPages:cbSplitPages,cbCreate:cbCreate,cbNewDialog:cbNewDialog,cbBoard:cbBoard,cbRead:cbRead,cbReadStep:cbReadStep,cbExport:cbExport,chOf:chOf,chLoad:chLoad,drC:drC,drV2S:drV2S,TL:TL,tlCapture:tlCapture,tlMeta:tlMeta,tlLoadFrames:tlLoadFrames,tlRender:tlRender,tlOpen:tlOpen,trStart:trStart,fcSet:fcSet,drToggleEraser:drToggleEraser,drBackupNow:drBackupNow,sfMaybeRemind:sfMaybeRemind,SF:SF,FO:FO,foGeom:foGeom,foStamp:foStamp,qsFit:qsFit,qsFire:qsFire,smSet:smSet,fsIndex:fsIndex,fsSearch:fsSearch,fsOpen:fsOpen,fsGo:fsGo,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
 })();
 </script>
 <script>
