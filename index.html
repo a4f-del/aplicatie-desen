@@ -7930,7 +7930,7 @@ function dpOpen(f){
     var ex=dpGiveLib(mv,lk);
     drBuildTrace();drShowEditor();drFit();drSync();drDirty();
     return drSaveNow().then(function(){
-      drMsg('Foaie mare pentru panoul '+(i+1)+'. Desenează, apoi apasă „Pune în pagină”.'+ex);return true;
+      drMsg('Foaie mare pentru panoul '+(i+1)+'. Desenează (sau „📚 Din bibliotecă” sus), apoi „Pune în pagină”.'+ex);return true;
     });
   }).catch(function(){drMsg('Nu am putut deschide foaia panoului.');return false;});
 }
@@ -7987,6 +7987,8 @@ function dpInit(sd,pnl){
   var r2=el('div','btns');pnl.appendChild(r2);
   drBtn(r2,'Desenează panoul pe foaie separată',function(){dpOpen(parseFloat(fs.value)||1);},'solid');
   r2.appendChild(fs);
+  var r2b=el('div','btns');pnl.appendChild(r2b);
+  drBtn(r2b,'📚 Pune din bibliotecă în panou',function(){var s=$('#drSide');if(s)s.hidden=true;lbOpenPut();});
   pnl.appendChild(el('p','note','Foaia separată are doar panoul ales, mare, cu aceeași vedere și riglă de perspectivă. Când termini, „Pune în pagină” îl taie pe forma panoului și îl pune pe un strat al lui. Mărimea se alege doar prima dată.'));
   /* în foaia separată */
   var sec=el('div');sec.id='drPanelSheet';sd.insertBefore(sec,sd.firstChild);
@@ -7995,13 +7997,13 @@ function dpInit(sd,pnl){
   var r3=el('div','btns');sec.appendChild(r3);
   drBtn(r3,'Pune în pagină',dpPlace,'solid');
   drBtn(r3,'Înapoi la pagină (fără să pun)',dpBack);
-  drBtn(r3,'📚 Pune din bibliotecă pe foaie',function(){var s=$('#drSide');if(s)s.hidden=true;lbOpenPut();},'solid');
+  drBtn(r3,'📚 Pune din bibliotecă în panou',function(){var s=$('#drSide');if(s)s.hidden=true;lbOpenPut();},'solid');
   drBtn(r3,'Schiță din text…',function(){var s=$('#drSide');s.hidden=false;if(DRTABS)uiTabGo(DRTABS,'gd',true);var ta=$('#skText');if(ta){var N=S.page.notes||[];if(!ta.value&&DR.link&&N[DR.link.panel])ta.value=N[DR.link.panel];ta.scrollIntoView();ta.focus();}});
   drToggle(sec,'Desenează doar în interiorul panoului',function(){return DR.clip;},function(v){DR.clip=v;});
   /* buton și în bara de sus */
   var top=$('#drLibB'),tb=null;
   if(top){tb=el('button','btn solid','Pune în pagină');tb.type='button';tb.id='drPutPg';tb.hidden=true;tb.addEventListener('click',dpPlace);top.parentNode.insertBefore(tb,top);
-    var tl=el('button','btn','📚');tl.type='button';tl.id='drPutLib';tl.hidden=true;tl.title='Pune din bibliotecă';tl.setAttribute('aria-label','Pune din bibliotecă pe foaia panoului');tl.addEventListener('click',lbOpenPut);top.parentNode.insertBefore(tl,tb);}
+    var tl=el('button','btn','📚 Din bibliotecă');tl.type='button';tl.id='drPutLib';tl.hidden=true;tl.title='Pune din bibliotecă';tl.setAttribute('aria-label','Pune din bibliotecă pe foaia panoului');tl.addEventListener('click',lbOpenPut);top.parentNode.insertBefore(tl,tb);}
   DR.sync.push(function(){
     var on=!!(DR.ready&&DR.link);
     sec.hidden=!on;if(tb)tb.hidden=!on;var tl2=$('#drPutLib');if(tl2)tl2.hidden=!on;
@@ -8773,8 +8775,8 @@ function drExportPSD(){
   return new Promise(function(r){setTimeout(r,30);}).then(function(){return saveBlob(psdBuild(),drFileBase()+'.psd');}).then(function(m){drMsg(m);},function(){drMsg('Nu am putut face PSD-ul (poate e prea mare pentru memoria disponibilă).');});
 }
 /* ---------- Anunț de versiune nouă ---------- */
-var APP_VER='2026.11.20w';
-var APP_NEWS=['Pe foaia separată a panoului ai butonul 📚 sus: pui fața sau corpul din bibliotecă direct pe foaie.','Ce pui din bibliotecă într-un panou apare acum și pe foaia separată a panoului.','„Pune din bibliotecă” e acum în Fișier și în Meniu → Pagină: pui fața sau corpul salvat direct în panou.','Salvează în bibliotecă, la vedere: Fișier → „Salvează în bibliotecă…”, Meniu → Pagină → „💾 Salvează panoul în bibliotecă”, sau „💾 În bibliotecă” când ai o selecție. Pe o pagină se salvează doar ce e în panoul ales.',
+var APP_VER='2026.11.20y';
+var APP_NEWS=['Pe foaia separată a panoului: butonul „📚 Din bibliotecă” sus și „📚 Pune din bibliotecă în panou” în Meniu.','„📚 Pune din bibliotecă în panou” e și lângă „Desenează panoul pe foaie separată”.','Pe foaia separată a panoului ai butonul 📚 sus: pui fața sau corpul din bibliotecă direct pe foaie.','Ce pui din bibliotecă într-un panou apare acum și pe foaia separată a panoului.','„Pune din bibliotecă” e acum în Fișier și în Meniu → Pagină: pui fața sau corpul salvat direct în panou.','Salvează în bibliotecă, la vedere: Fișier → „Salvează în bibliotecă…”, Meniu → Pagină → „💾 Salvează panoul în bibliotecă”, sau „💾 În bibliotecă” când ai o selecție. Pe o pagină se salvează doar ce e în panoul ales.',
   'Imagine pentru telefon / internet (Fișier, sau în fereastra de salvare): JPG de 2048 px micșorat corect, ca tonurile cu puncte să arate ca pe ecran și în WhatsApp, Instagram sau galerie. PNG-ul rămâne pentru tipar, la rezoluția întreagă.',
   'Umplere cu orice pensulă din Pensule+: Găleată → Textură → „O pensulă din Pensule+”. Pensulele cu textură umplu cu textura lor; cele cu forme (frunziș, iarbă, flori, sclipiri, mulțime) umplu zona cu forme, cu mărimea și distanța alese, și în perspectivă.',
   'Moduri active, mereu la vedere sus: selecție, mutare, simetrie, riglă, puncte de fugă, plan în perspectivă, „doar în panou”, strat ascuns/blocat, opacitate mică. Fiecare are buton clar de oprire; când sunt mai multe, „✕ Oprește tot”.',
