@@ -4203,6 +4203,7 @@ function drEndStroke(){
   st.tctx.restore();
   if(st.direct&&L&&rc&&DR.sel)drSelRestore(L,st.bb);
   if(L&&st.bb[2]>st.bb[0])drPush(L,st.bb);
+  slCheckStroke(st);
   if(!st.direct&&st.tool!=='tone')drAddRecent(DR.color);
   drDirty();
 }
@@ -4652,6 +4653,8 @@ function drLift(copy){
     L.ctx.restore();
   }
   DR.float={cv:cv,w:w,h:h,cx:bb[0]+w/2,cy:bb[1]+h/2,sx:1,sy:1,rot:0,L:L,bb0:bb.slice(),text:0,whole:!useSel&&!copy,c0:[bb[0]+w/2,bb[1]+h/2]};
+  /* selecția se mută odată cu ce ai ridicat din ea */
+  if(useSel){var sm=drMk(w,h);sm.getContext('2d').drawImage(DR.sel.cv,bb[0],bb[1],w,h,0,0,w,h);DR.float.selCv=sm;}
   drSync();drDirty();return true;
 }
 function drFloatDraw(c,fl){
@@ -4738,6 +4741,7 @@ function drFloatCommit(){
     var tcv=drMk(DR.w,DR.h),tcx=tcv.getContext('2d');drFloatDraw(tcx,fl);tcx.globalCompositeOperation='destination-in';tcx.drawImage(DR.sel.cv,0,0);c.drawImage(tcv,0,0);
   }else drFloatDraw(c,fl);
   c.restore();
+  if(fl.selCv&&DR.sel){var sc=DR.sel.cv.getContext('2d');sc.setTransform(1,0,0,1,0,0);sc.clearRect(0,0,DR.w,DR.h);drFloatDraw(sc,Object.assign({},fl,{cv:fl.selCv}));DR.sel.paths=null;DR.sel.vis=null;drSelRecalc();}
   if(fl.lib)L.lib=drLibTf(fl);
   else if(fl.whole&&L.lib&&L.lib.tf&&!fl.mesh)L.lib.tf=lbTfCompose(L.lib.tf,fl);
   var fb=drFloatBounds(fl),b0=fl.bb0,bb=[Math.min(fb[0],b0[0]),Math.min(fb[1],b0[1]),Math.max(fb[2],b0[2]),Math.max(fb[3],b0[3])];
@@ -5783,7 +5787,7 @@ function drBuildTop(){
   $('#drRot0').addEventListener('click',drResetRot);
   /* chooser */
   drBuildPageSet();
-  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();foInit();prInit();skInit();phInit();drTabify();fsInit();qsInit();smInit();cfInit();trInit();cbInit();shInit();hmInit();tdInit();if(!window.__persp)setTimeout(hmShow,0);
+  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();foInit();prInit();skInit();phInit();drTabify();fsInit();qsInit();smInit();cfInit();trInit();cbInit();shInit();hmInit();tdInit();npInit();if(!window.__persp)setTimeout(hmShow,0);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(err){}
   document.querySelectorAll('[data-drnew]').forEach(function(b){b.addEventListener('click',function(){
     var kd=b.getAttribute('data-drnew');
@@ -7576,7 +7580,7 @@ function chRender(){
         });
         var acts=el('div','btns');
         function ab(t,fn,cls){var x=el('button','btn sm'+(cls?' '+cls:''),t);x.type='button';x.addEventListener('click',function(){fn(x);});acts.appendChild(x);return x;}
-        ab('+ Pagină nouă',function(x){x.disabled=true;chNewPage(ch,ch.pages[ch.pages.length-1]).then(function(){x.disabled=false;$('#drNew').hidden=true;drShowEditor();drMsg('Pagina nouă e gata, cu aceeași aranjare de panouri.');},function(){x.disabled=false;});},'solid');
+        ab('+ Pagină nouă',function(x){cbPageDlg(ch,ch.pages[ch.pages.length-1]);return;x.disabled=true;chNewPage(ch,ch.pages[ch.pages.length-1]).then(function(){x.disabled=false;$('#drNew').hidden=true;drShowEditor();drMsg('Pagina nouă e gata, cu aceeași aranjare de panouri.');},function(){x.disabled=false;});},'solid');
         var free=ix.filter(function(e){return e.kind==='page'&&!chOf(e.id);});
         if(free.length){
           var sel=el('select','pick-sel');sel.setAttribute('aria-label','Pagină de adăugat');
@@ -8691,8 +8695,10 @@ function drExportPSD(){
   return new Promise(function(r){setTimeout(r,30);}).then(function(){return saveBlob(psdBuild(),drFileBase()+'.psd');}).then(function(m){drMsg(m);},function(){drMsg('Nu am putut face PSD-ul (poate e prea mare pentru memoria disponibilă).');});
 }
 /* ---------- Anunț de versiune nouă ---------- */
-var APP_VER='2026.11.20g';
-var APP_NEWS=['Acasă: continui ce lucrai, capitolele, desenele libere și „+ Nou”. „Închide” e acum „← Acasă”.',
+var APP_VER='2026.11.20i';
+var APP_NEWS=['Pagină nouă în capitol: alegi tu panourile (aranjare gata făcută, câte vrei, un panou pe care îl tai tu, sau din text) și cadrul lor. Nu se mai copiază automat pagina de dinainte.',
+  'Reparat: după lasou, selecția rămânea activă și desenul apărea doar în ea. Acum apare sus „✕ Deselectează”, selecția se mută odată cu ce ai mutat și îți spun dacă o linie e în afara selecției.',
+  'Acasă: continui ce lucrai, capitolele, desenele libere și „+ Nou”. „Închide” e acum „← Acasă”.',
   'Meniul are 4 file: Straturi, Pagină, Ajutoare, Setări. Fișier are doar salvare, deschidere și export.',
   'Explicațiile lungi stau sub ⓘ (le poți arăta pe toate din Setări → Aspect).',
   'Uneltele au iconițe; culoare de accent violet; temă întunecată (Setări → Aspect).',
@@ -10602,7 +10608,7 @@ function sfMaybeRemind(){
 
 /* ===== legături ===== */
 function cfInit(){
-  rlBuild();fcBuild();fvBuild();sfBuild();
+  rlBuild();fcBuild();fvBuild();sfBuild();slChipInit();
   var st=document.createElement('style');
   st.textContent=
   '.drrail{position:absolute;left:8px;top:calc((100% - var(--ctxh,0px)) / 2);transform:translateY(-50%);max-height:calc(100% - var(--ctxh,0px) - 16px);z-index:4;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;border-radius:14px;background:rgba(244,244,241,.92);box-shadow:0 2px 10px rgba(0,0,0,.18);touch-action:none;user-select:none}'+
@@ -10634,6 +10640,29 @@ function cfInit(){
 }
 /* ora ultimei salvări */
 (function(){var f=drSaveNow;drSaveNow=function(){var p=f.apply(this,arguments);return Promise.resolve(p).then(function(r){if(DR.ready)DR.savedAt=Date.now();return r;});};})();
+/* ===== Selecția activă: se vede și se scoate dintr-o atingere ===== */
+function slChipInit(){
+  if($('#slChip'))return;
+  var b=el('button','slchip');b.id='slChip';b.type='button';b.innerHTML='<span>Desenezi doar în selecție</span><b>✕ Deselectează</b>';
+  b.addEventListener('pointerdown',function(e){e.stopPropagation();});
+  b.addEventListener('click',function(){if(DR.float)drFloatCommit();drSelClear();drMsg('Selecția e scoasă. Poți desena peste tot.');});
+  $('#drWrap').appendChild(b);
+  var st=document.createElement('style');
+  st.textContent='.slchip{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:5;display:flex;gap:10px;align-items:center;padding:6px 6px 6px 12px;border-radius:999px;border:1px solid var(--rule);background:var(--float,#fff);color:var(--ink);font:inherit;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.18);cursor:pointer}.slchip[hidden]{display:none}.slchip b{background:var(--acc,#6d28d9);color:#fff;border-radius:999px;padding:5px 10px;font-weight:600}body.haschstrip .slchip{top:58px}';
+  document.head.appendChild(st);
+  var lastTool=null;
+  DR.sync.push(function(){
+    var on=!!(DR.ready&&DR.sel&&DR.sel.has&&DR.tool!=='sel'&&!DR.float);b.hidden=!on;
+    if(on&&lastTool==='sel'&&DR.tool!=='sel'&&(DBRUSH[DR.tool]||DR.tool==='eraser'||DR.tool==='fill'))drMsg('Selecția e încă activă: desenezi doar în interiorul ei. Atinge „✕ Deselectează” sus ca să desenezi peste tot.');
+    lastTool=DR.tool;
+  });
+}
+/* o linie trasă complet în afara selecției nu lasă nimic: spunem de ce */
+function slCheckStroke(st){
+  if(!DR.sel||!DR.sel.has||!st||!st.bb||st.bb[2]<=st.bb[0])return;
+  var a=st.bb,b=DR.sel.bb;
+  if(a[2]<b[0]||a[0]>b[2]||a[3]<b[1]||a[1]>b[3])drMsg('Linia e în afara selecției, așa că nu apare. Atinge „✕ Deselectează” ca să desenezi peste tot.');
+}
 /* ---------- Turul aplicației: câțiva pași la prima deschidere ---------- */
 var TOUR=[
   {s:'#drTools',t:'Unelte',x:'Pensulele sunt grupate pe categorii, deasupra. Atingi din nou unealta aleasă și treci pe radieră; încă o atingere te duce înapoi.'},
@@ -10991,6 +11020,7 @@ function cbOpenPage(pid){
   chOpenDoc(pid).then(function(){drSync();});
 }
 function cbAddPage(ch){
+  var last0=ch.pages[ch.pages.length-1];cbPageDlg(ch,last0);return;
   var last=ch.pages[ch.pages.length-1];
   var go=last&&(!DR.ready||DR.id!==last)?chOpenDoc(last):Promise.resolve();
   go.then(function(){return chNewPage(ch,last||null);}).then(function(){drMsg('Pagina '+ch.pages.length+' e gata, cu aceeași aranjare de panouri.');cbBoardRender();});
@@ -11077,7 +11107,7 @@ function cbStripBuild(){
   function step(d){var c=chOf(DR.id);if(!c)return;if(c.rtl)d=-d;chStep(d);}
   pv.addEventListener('click',function(){step(-1);});nx.addEventListener('click',function(){step(1);});
   inf.addEventListener('click',function(){var c=chOf(DR.id);if(c){if(DR.float)drFloatCommit();drSaveNow().then(function(){cbBoard(c.id);});}});
-  ad.addEventListener('click',function(){var c=chOf(DR.id);if(c)chNewPage(c,DR.id).then(function(){drShowEditor();drMsg('Pagină nouă, cu aceeași aranjare de panouri.');});});
+  ad.addEventListener('click',function(){var c=chOf(DR.id);if(c)cbPageDlg(c,DR.id);});
   $('#drWrap').appendChild(s);
   DR.sync.push(function(){
     var c=DR.ready&&DR.kind==='page'&&CH.loaded?chOf(DR.id):null;s.hidden=!c;document.body.classList.toggle('haschstrip',!!c);if(!c)return;
@@ -11621,6 +11651,94 @@ function tdInit(){
   DR.sync.push(function(){tdNotes();tdIcons();document.body.classList.toggle('notesopen',!!DR.notesOpen);});
   var pg=$('#pg');if(pg&&window.MutationObserver)new MutationObserver(function(){tdNotes(pg);}).observe(pg,{childList:true,subtree:true});
 }
+/* ---------- Pagină nouă în capitol: alegi tu câte panouri, ce formă și ce cadru ---------- */
+var NP={kind:'same',lay:'3',n:4,txt:'',fr:'keep',open:false};
+function npThumb(qs){
+  var s='<svg viewBox="0 0 70 98" aria-hidden="true"><rect x="0" y="0" width="70" height="98" fill="#fff" stroke="none"/>';
+  (qs||[]).forEach(function(q){var P=q.p||q.pts||q;if(!P||!P.map)return;s+='<polygon points="'+P.map(function(v){return (v[0]/10).toFixed(1)+','+(v[1]/10).toFixed(1);}).join(' ')+'" fill="none" stroke="currentColor" stroke-width="1.2"/>';});
+  return s+'</svg>';
+}
+function cbPageDlg(ch,afterId,done){
+  var d=cbDlg('npDlg','Pagină nouă'),p=d.pad;
+  p.appendChild(el('div','h','Pagină nouă în „'+ch.name+'”'));
+  p.appendChild(el('div','sub','Panourile'));
+  var grid=el('div','npgrid');p.appendChild(grid);
+  var cur=(DR.ready&&DR.kind==='page')?pageQuads(S.page.layout):null;
+  var opts=[];
+  if(cur)opts.push({k:'same',t:'Ca pagina de acum',svg:npThumb(cur)});
+  Object.keys(PGL).forEach(function(k){opts.push({k:'lay:'+k,t:PGNAMES[k]||k,svg:npThumb(pageQuads(k,true))});});
+  opts.push({k:'cut',t:'Un panou, îl tai eu în câte vreau',svg:npThumb([{p:[[40,40],[660,40],[660,940],[40,940]]}])+'<i class="npcut">✂</i>'});
+  opts.push({k:'n',t:'Aleg eu numărul',svg:'<span class="npbig">#</span>'});
+  opts.push({k:'plan',t:'Scriu ce e în fiecare panou',svg:'<span class="npbig">✎</span>'});
+  if(!cur&&NP.kind==='same')NP.kind='lay:3';
+  if(NP.kind==='lay')NP.kind='lay:'+NP.lay;
+  opts.forEach(function(o){
+    var b=el('button','npopt');b.type='button';b.dataset.k=o.k;b.innerHTML='<span class="npth">'+o.svg+'</span>';b.appendChild(el('small',null,o.t));
+    b.addEventListener('click',function(){NP.kind=o.k;paint();});grid.appendChild(b);
+  });
+  var nBox=el('div','cbrow npn');p.appendChild(nBox);nBox.appendChild(el('span','sub','Câte panouri'));
+  var ni=el('input','txt');ni.type='number';ni.min=1;ni.max=12;ni.value=NP.n;ni.style.width='80px';ni.addEventListener('input',function(){NP.n=clamp(+ni.value||1,1,12);});nBox.appendChild(ni);
+  nBox.appendChild(el('span','note','Le aranjez pe rânduri; apoi le poți muta și redimensiona.'));
+  var tBox=el('div','npt');p.appendChild(tBox);
+  var ta=el('textarea','txt');ta.rows=6;ta.value=NP.txt;ta.placeholder='Panou 1: Plan larg, orașul noaptea.\nPanou 2: Prim-plan cu Kai.\nKAI: Iar ei…\nPanou 3: Umbra sare. BUM!';
+  ta.addEventListener('input',function(){NP.txt=ta.value;});tBox.appendChild(ta);
+  tBox.appendChild(el('p','note','Panourile mari („plan larg”, „splash”) primesc mai mult loc, cele mici („prim-plan”, „detaliu”) mai puțin; replicile devin bule.'));
+  p.appendChild(el('div','sub','Cadrul panourilor'));
+  var fs=el('div','npfr');p.appendChild(fs);
+  [['keep','Ca de obicei']].concat(PGFRN).forEach(function(f){var b=el('button','btn sm',f[1]);b.type='button';b.dataset.v=f[0];b.addEventListener('click',function(){NP.fr=f[0];paint();});fs.appendChild(b);});
+  var tg=el('div');p.appendChild(tg);
+  var opn=el('label','toggle'),oc=el('input');oc.type='checkbox';oc.checked=NP.open;oc.addEventListener('change',function(){NP.open=oc.checked;});opn.appendChild(oc);opn.appendChild(el('span',null,'După ce o fac, deschide editorul de panouri (mut, redimensionez, tai, schimb cadrul fiecăruia)'));tg.appendChild(opn);
+  p.appendChild(el('p','note','Le poți schimba oricând: Meniu → Pagină → „Editează panourile și cadrele”.'));
+  var msg=el('p','note');p.appendChild(msg);
+  var r=el('div','btns');p.appendChild(r);
+  var go=drBtn(r,'Adaugă pagina',function(){
+    if(NP.kind==='plan'&&!NP.txt.trim()){msg.textContent='Scrie măcar un panou, sau alege altă aranjare.';return;}
+    go.disabled=true;
+    cbAddPageWith(ch,afterId,Object.assign({},NP)).then(function(){d.hidden=true;go.disabled=false;if(done)done();},function(e){go.disabled=false;msg.textContent='N-a mers: '+(e&&e.message||'');});
+  },'solid');
+  drBtn(r,'Renunță',function(){d.hidden=true;});
+  function paint(){
+    [].forEach.call(grid.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.k===NP.kind));});
+    [].forEach.call(fs.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.v===NP.fr));});
+    nBox.hidden=NP.kind!=='n';tBox.hidden=NP.kind!=='plan';
+    if(NP.kind==='cut'&&!oc.checked){oc.checked=true;NP.open=true;}
+  }
+  paint();
+}
+/* face pagina după alegeri */
+function cbAddPageWith(ch,afterId,o){
+  var go=(afterId&&(!DR.ready||DR.id!==afterId))?chOpenDoc(afterId):Promise.resolve();
+  return go.then(function(){return chNewPage(ch,afterId||ch.pages[ch.pages.length-1]||null);}).then(function(){
+    var pg=S.page,k=o.kind;
+    function clean(){pg.free=null;pg.adj=null;pg.pst=[];pg.panels=[];pg.notes=[];pg.tips=null;pg.ftips=null;pg.bub=[];pg.fx=[];pg.plan='';}
+    if(k.indexOf('lay:')===0){clean();pg.layout=k.slice(4);}
+    else if(k==='cut'){clean();pg.layout='free';pg.free=[];try{pgFreeReset();}catch(e){}}
+    else if(k==='n'){clean();var t=[];for(var i=1;i<=o.n;i++)t.push('Panou '+i+': …');try{plGenerate(t.join('\n'),false);}catch(e){}pg.notes=[];pg.plan='';}
+    else if(k==='plan'){clean();try{plGenerate(o.txt,true);}catch(e){}}
+    if(o.fr&&o.fr!=='keep'){
+      var n=pageQuads(pg.layout).length,old=pg.pst||[];pg.pst=[];
+      for(var j=0;j<n;j++){var b=old[j]||{};pg.pst.push(Object.assign({},b,{st:o.fr}));}
+    }
+    pgSel=0;DR.panel=0;schedSave();try{pgDraw();}catch(e){}
+    $('#drNew').hidden=true;drShowEditor();drSync();drDirty();
+    return drSaveNow();
+  }).then(function(){
+    var c=chOf(DR.id),i=c?c.pages.indexOf(DR.id):-1;
+    drMsg('Pagina '+(i+1)+' e gata.'+(o.open?'':' Panourile le schimbi din Meniu → Pagină.'));
+    if(o.open){$('#pg').hidden=false;try{pgSize();pgDraw();}catch(e){}if(typeof PGTABS!=='undefined'&&PGTABS)uiTabGo(PGTABS,o.kind==='cut'?'pn':'fr',false);}
+    if($('#cbBoard')&&!$('#cbBoard').hidden)cbBoardRender();
+  });
+}
+function npInit(){
+  var st=document.createElement('style');
+  st.textContent='.npgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-bottom:6px}'+
+  '.npopt{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;border-radius:12px;border:1px solid var(--rule);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}'+
+  '.npopt[aria-pressed="true"]{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.npopt small{font-size:11.5px;line-height:1.2;text-align:center}'+
+  '.npth{width:56px;height:78px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#fff;color:#18202b;border:1px solid rgba(0,0,0,.12);overflow:hidden}.npth svg{width:100%;height:100%}'+
+  '.npbig{font-size:28px;opacity:.7}.npcut{position:absolute;top:30px;font-style:normal;font-size:20px;color:var(--acc)}'+
+  '.npn[hidden],.npt[hidden]{display:none!important}.npfr{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.npfr .btn[aria-pressed="true"]{background:var(--acc);color:#fff;border-color:transparent}.npt textarea{width:100%;box-sizing:border-box;font:inherit;font-size:14px}';
+  document.head.appendChild(st);
+}
 
 /* ---------- Reference window (ca „Sub View” din Clip Studio) ---------- */
 var RF_MAX=8;
@@ -11986,7 +12104,7 @@ function figInit(){
 }
 
 initDownloads();initScenes();pgInit();drInit();figInit();qpInit();
-if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,CH:CH,CB:CB,hmShow:hmShow,hmHide:hmHide,tdTheme:tdTheme,tdNotes:tdNotes,SH:SH,shOpen:shOpen,shNewSeries:shNewSeries,cbSplitPages:cbSplitPages,cbCreate:cbCreate,cbNewDialog:cbNewDialog,cbBoard:cbBoard,cbRead:cbRead,cbReadStep:cbReadStep,cbExport:cbExport,chOf:chOf,chLoad:chLoad,drC:drC,drV2S:drV2S,TL:TL,tlCapture:tlCapture,tlMeta:tlMeta,tlLoadFrames:tlLoadFrames,tlRender:tlRender,tlOpen:tlOpen,trStart:trStart,fcSet:fcSet,drToggleEraser:drToggleEraser,drBackupNow:drBackupNow,sfMaybeRemind:sfMaybeRemind,SF:SF,FO:FO,foGeom:foGeom,foStamp:foStamp,qsFit:qsFit,qsFire:qsFire,smSet:smSet,fsIndex:fsIndex,fsSearch:fsSearch,fsOpen:fsOpen,fsGo:fsGo,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
+if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,CH:CH,CB:CB,NP:NP,cbPageDlg:cbPageDlg,cbAddPageWith:cbAddPageWith,hmShow:hmShow,hmHide:hmHide,tdTheme:tdTheme,tdNotes:tdNotes,SH:SH,shOpen:shOpen,shNewSeries:shNewSeries,cbSplitPages:cbSplitPages,cbCreate:cbCreate,cbNewDialog:cbNewDialog,cbBoard:cbBoard,cbRead:cbRead,cbReadStep:cbReadStep,cbExport:cbExport,chOf:chOf,chLoad:chLoad,drC:drC,drV2S:drV2S,TL:TL,tlCapture:tlCapture,tlMeta:tlMeta,tlLoadFrames:tlLoadFrames,tlRender:tlRender,tlOpen:tlOpen,trStart:trStart,fcSet:fcSet,drToggleEraser:drToggleEraser,drBackupNow:drBackupNow,sfMaybeRemind:sfMaybeRemind,SF:SF,FO:FO,foGeom:foGeom,foStamp:foStamp,qsFit:qsFit,qsFire:qsFire,smSet:smSet,fsIndex:fsIndex,fsSearch:fsSearch,fsOpen:fsOpen,fsGo:fsGo,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
 })();
 </script>
 <script>
