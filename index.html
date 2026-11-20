@@ -3637,10 +3637,11 @@ function drStrokeRect(st){
   return [x0,y0,x1,y1];
 }
 function drStrokeSrc(st,r){
-  if(!st.mask&&!DR.sel)return DR.sbuf;
+  var base=st.gl&&DR.gbuf?DR.gbuf:DR.sbuf;
+  if(!st.mask&&!DR.sel)return base;
   var c=DR.tmp2.getContext('2d'),w=r[2]-r[0],h=r[3]-r[1];
   c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='source-over';c.globalAlpha=1;
-  c.clearRect(r[0],r[1],w,h);c.drawImage(DR.sbuf,r[0],r[1],w,h,r[0],r[1],w,h);
+  c.clearRect(r[0],r[1],w,h);c.drawImage(base,r[0],r[1],w,h,r[0],r[1],w,h);
   if(st.mask){c.globalCompositeOperation='source-in';c.fillStyle=drTonePat(c);c.fillRect(r[0],r[1],w,h);}
   if(DR.sel){c.globalCompositeOperation='destination-in';c.drawImage(DR.sel.cv,r[0],r[1],w,h,r[0],r[1],w,h);}
   c.restore();
@@ -3651,6 +3652,7 @@ function drCompose(x,o){
   var st=o.live?DR.stroke:null,fl=o.live?DR.float:null,w=DR.w,h=DR.h;
   DR.layers.forEach(function(L,i){
     if(!L.vis)return;
+    if(o.from!=null&&i<o.from)return;if(o.to!=null&&i>o.to)return;
     if(o.flat&&L.draft)return;
     var base=null;
     if(L.clip){base=drLayerBase(i);if(!base||!base.vis)return;}
@@ -3659,7 +3661,7 @@ function drCompose(x,o){
     var slow=L.clip||hasFl||(sr&&(st.mask||DR.sel||L.alock));
     if(!slow){
       x.globalAlpha=L.op;x.globalCompositeOperation=L.blend;x.drawImage(L.cv,0,0);
-      if(sr){x.globalAlpha=L.op*st.alpha;x.drawImage(DR.sbuf,sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1],sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1]);}
+      if(sr){x.globalAlpha=L.op*st.alpha;x.drawImage(st.gl&&DR.gbuf?DR.gbuf:DR.sbuf,sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1],sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1]);}
       x.globalAlpha=1;x.globalCompositeOperation='source-over';return;
     }
     var tc=DR.tmp.getContext('2d');
@@ -3680,6 +3682,7 @@ function drCompose(x,o){
 }
 function drRender(){
   var c=DR.disp,x=DR.dctx;if(!c||!x||!DR.ready)return;
+  if(DR.stroke&&DR.stroke.gl)grFlush(DR.stroke);
   var v=DR.v,dpr=DR.dpr;
   x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.fillStyle=DR.wrapBg||'#d6d9d3';x.fillRect(0,0,c.width,c.height);
   drViewTf(x,dpr);
@@ -4013,7 +4016,7 @@ function drBegin(e){
   if(DGEST[tool])p=drSnap(p);
   var st={tool:tool,pid:e.pointerId,p0:p,sx:p[0],sy:p[1],sp:drPressure(e),bb:[1e9,1e9,-1e9,-1e9],rail:DGEST[tool]?null:drRail(p),layer:DR.cur,alpha:cfg.op,raw:p,end:null,rgb:hex2rgb(DR.color),pk:[],direct:!!DDIRECT[tool],mask:tool==='tone',gest:!!DGEST[tool],sc:[e.clientX,e.clientY],moved:0,pen:e.pointerType,seed:1+Math.floor(Math.random()*1e6)};
   DR.tool=prevTool;
-  if(tool==='cust'){st.cb=DR.cb;st.mips=cbTint(DR.cb,DR.cb.p.col||DR.color);st.ang=null;}
+  if(tool==='cust'){st.cb=DR.cb;st.mips=cbTint(DR.cb,DR.cb.p.col||DR.color);st.ang=null;if(DR.cb.grain&&DR.cb.p.gdepth>0){st.gl=true;grEnsure();st.dbb=[1e9,1e9,-1e9,-1e9];}}
   var tctx=st.direct?L.ctx:DR.sbuf.getContext('2d');
   tctx.save();
   if(DR.clip&&(DR.kind==='page'||DR.link)){drPanelPath(tctx);tctx.clip();}
@@ -4033,6 +4036,7 @@ function drBegin(e){
 function drStrokeDab(st,p,pp){var keep=DR.tool;DR.tool=st.cfgTool;drDab(st,p,pp);DR.tool=keep;}
 function drStrokeSeg(st,a,pa,b,pb){var keep=DR.tool;DR.tool=st.cfgTool;drSeg(st,a,pa,b,pb);DR.tool=keep;}
 function drClearBuf(bb){
+  if(DR.gbuf){var gc=DR.gbuf.getContext('2d');gc.save();gc.setTransform(1,0,0,1,0,0);if(bb){var gx0=Math.max(0,Math.floor(bb[0])-3),gy0=Math.max(0,Math.floor(bb[1])-3),gx1=Math.min(DR.w,Math.ceil(bb[2])+3),gy1=Math.min(DR.h,Math.ceil(bb[3])+3);if(gx1>gx0&&gy1>gy0)gc.clearRect(gx0,gy0,gx1-gx0,gy1-gy0);}else gc.clearRect(0,0,DR.w,DR.h);gc.restore();}
   var sc=DR.sbuf.getContext('2d');sc.save();sc.setTransform(1,0,0,1,0,0);sc.globalAlpha=1;sc.globalCompositeOperation='source-over';
   if(bb){var x0=Math.max(0,Math.floor(bb[0])-3),y0=Math.max(0,Math.floor(bb[1])-3),x1=Math.min(DR.w,Math.ceil(bb[2])+3),y1=Math.min(DR.h,Math.ceil(bb[3])+3);if(x1>x0&&y1>y0)sc.clearRect(x0,y0,x1-x0,y1-y0);}
   else sc.clearRect(0,0,DR.w,DR.h);
@@ -4192,6 +4196,7 @@ function drEndStroke(){
     drCrackPaint(st.tctx,st.path,st.seed,false);st.bb=[0,0,DR.w,DR.h];
   }
   if(!st.gest&&st.raw&&(st.sx!==st.raw[0]||st.sy!==st.raw[1])&&!(DR.stab==='rope'&&!DR.ropeEnd&&!st.rail))drStrokeSeg(st,[st.sx,st.sy],st.sp,st.raw,Math.min(st.rawP||st.sp,st.sp));
+  if(st.gl)grFlush(st);
   DR.stroke=null;
   var L=DR.layers[st.layer],rc=drStrokeRect(st);
   if(!st.direct&&L&&rc){
@@ -5911,7 +5916,7 @@ function drDabCust(st,p,pp,ang,size){
   var al=clamp(q.flow*(1-q.presOp+q.presOp*pp),.01,1),m=mips[0];
   for(i=1;i<mips.length;i++){if(Math.max(mips[i].width,mips[i].height)>=sz)m=mips[i];else break;}
   var rr=Math.hypot(w,h)/2+2;
-  if(cb.grain&&q.gdepth>0){
+  if(cb.grain&&q.gdepth>0&&!st.gl){
     var D=Math.ceil(rr*2)+2;
     if(!DR.dabC||DR.dabC.width<D||DR.dabC.height<D)DR.dabC=drMk(Math.max(D,128),Math.max(D,128));
     var tc=DR.dabC.getContext('2d'),x0=Math.round(sx-D/2),y0=Math.round(sy-D/2);
@@ -5924,6 +5929,7 @@ function drDabCust(st,p,pp,ang,size){
   }
   var b=st.bb,ex=rr+(q.scatter?q.scatter*sz*.5:0);
   if(sx-ex<b[0])b[0]=sx-ex;if(sy-ex<b[1])b[1]=sy-ex;if(sx+ex>b[2])b[2]=sx+ex;if(sy+ex>b[3])b[3]=sy+ex;
+  var db=st.dbb;if(db){if(sx-ex<db[0])db[0]=sx-ex;if(sy-ex<db[1])db[1]=sy-ex;if(sx+ex>db[2])db[2]=sx+ex;if(sy+ex>db[3])db[3]=sy+ex;}
 }
 /* previzualizare: o linie ondulată cu presiune variabilă */
 function cbPreviewCv(cb,W,H,size,color){
@@ -6314,7 +6320,7 @@ function drBrInit(){
     render(true);
     if(!window.indexedDB)return;
     idbGet('cbpack').then(function(fl){
-      if(fl&&fl.v>=2)return;
+      if(fl&&fl.v>=3)return;
       msg.textContent=fl?'Adaug pensulele noi pentru manga…':'Instalez pachetul gratuit de pensule…';
       drBrPackInstall(function(t){msg.textContent=t;}).then(function(n){msg.textContent=(fl?'Am adăugat '+n+' pensule noi pentru manga (sus, la „Manga: …”).':'Pachetul gratuit ('+n+' pensule) e instalat.');render(true);},function(){});
     },function(){});
@@ -6404,7 +6410,19 @@ function drBrPackInstall(say){
   if(drBrPackInstall.p)return drBrPackInstall.p;
   return (drBrPackInstall.p=drBrPackInstall2(say).then(function(n){drBrPackInstall.p=null;return n;},function(e){drBrPackInstall.p=null;throw e;}));
 }
+var PKREDO=['G-Pen (tuș real)','Maru-Pen (detalii fine)','Kabura (linie egală)','Fineliner (fără presiune)','Ton cu pensula (puncte)','Ton fin cu pensula','Ton degradeu (presiune = densitate)'];
 function drBrPackInstall2(say){
+  /* pensulele din pachet îmbunătățite între timp se refac (doar dacă vin din pachet, după nume) */
+  var pre=idbGet('cbpack').then(function(fl){
+    if(fl&&fl.v>=3)return;
+    var old=DBR.list.filter(function(e){return PKREDO.indexOf(e.name)>=0;});
+    return Promise.all(old.map(function(e){return idbDel('cb:'+e.id).catch(function(){});})).then(function(){
+      var ids=old.map(function(e){return e.id;});DBR.list=DBR.list.filter(function(e){return ids.indexOf(e.id)<0;});ids.forEach(function(id){delete DBR.cache[id];if(DR.cbId===id){DR.cbId='';DR.cb=null;}});
+    });
+  },function(){});
+  return pre.then(function(){return drBrPackInstall3(say);});
+}
+function drBrPackInstall3(say){
   var have={};DBR.list.forEach(function(e){have[e.name]=1;});
   var todo=PKSET.map(function(r,i){return {r:r,i:i};}).filter(function(o){return !have[o.r[1]];}),n=0,chain=Promise.resolve();
   todo.slice().reverse().forEach(function(o,k){
@@ -6414,7 +6432,7 @@ function drBrPackInstall2(say){
       return cbSaveNew(it).then(function(){n++;return new Promise(function(r){setTimeout(r,0);});});
     });
   });
-  return chain.then(function(){return cbIdxSave();}).then(function(){return idbPut('cbpack',{v:2,t:Date.now()});}).then(function(){return n;});
+  return chain.then(function(){return cbIdxSave();}).then(function(){return idbPut('cbpack',{v:3,t:Date.now()});}).then(function(){return n;});
 }
 /* ---------- Panouri libere (pagina de manga) ---------- */
 var PGF={cut:false,cutL:null,vtx:-1,vp:-1,drag:null,hist:[],guides:null,tapT:0,tapV:-1,tapP:-1,snap:true,pg:null,ui:null,convT:null,conv:0};
@@ -8699,8 +8717,9 @@ function drExportPSD(){
   return new Promise(function(r){setTimeout(r,30);}).then(function(){return saveBlob(psdBuild(),drFileBase()+'.psd');}).then(function(m){drMsg(m);},function(){drMsg('Nu am putut face PSD-ul (poate e prea mare pentru memoria disponibilă).');});
 }
 /* ---------- Anunț de versiune nouă ---------- */
-var APP_VER='2026.11.20m';
-var APP_NEWS=['Formele curate merg mai sigur: tremurul mâinii cât ții creionul pe loc nu mai oprește corectarea, iar cercurile, pătratele și triunghiurile mai strâmbe sau neînchise complet sunt recunoscute. Merge cu toate pensulele.',
+var APP_VER='2026.11.20n';
+var APP_NEWS=['Desen mai rapid: pensulele cu textură (creioane, cărbune, ton, hașuri, acuarelă) sunt de ~15 ori mai rapide, iar cât tragi o linie restul paginii (straturi, cadre, bule) nu se mai redesenează la fiecare cadru.',
+  'Formele curate merg mai sigur: tremurul mâinii cât ții creionul pe loc nu mai oprește corectarea, iar cercurile, pătratele și triunghiurile mai strâmbe sau neînchise complet sunt recunoscute. Merge cu toate pensulele.',
   '35 pensule noi pentru manga (Pensule+ → categoriile „Manga: …”): G-Pen tuș real, Maru, Kabura, pensulă fude, tuș uscat, fineliner, umplere, corector și pix alb, creioane de schiță albastru/roșu/HB/2B, ton și hașuri cu pensula, sclipiri, flori, flăcări, fulger, frunziș, nori, stele, valuri, mulțime, cărămizi, lemn, iarbă.',
   'Calcul (imaginea de sub desen, care nu e pe niciun strat și nu se șterge cu radiera): butonul ◐ din dreapta îl ascunde/arată, iar „Scoate-l” îl scoate de tot. Desenele libere noi nu mai pornesc cu scena 3D dedesubt.',
   'Reparat: după ce modifici panourile unei pagini, panourile vechi nu mai rămân în fundal.',
@@ -10310,6 +10329,7 @@ function qsFire(st){
   var pp=clamp(st.sp||.6,.35,1);st.dist=1e6;
   drStrokeDab(st,pts[0],pp);
   for(var i=1;i<pts.length;i++)drStrokeSeg(st,pts[i-1],pp,pts[i],pp);
+  if(st.gl){st.dbb=[0,0,DR.w,DR.h];grFlush(st);st.dbb=[1e9,1e9,-1e9,-1e9];}
   var e=pts[pts.length-1];st.sx=e[0];st.sy=e[1];st.raw=e;st.rawP=pp;st.sp=pp;
   drDirty();drMsg(f.name+' — ridică creionul ca să păstrezi forma.');
 }
@@ -11874,9 +11894,9 @@ function tcChip(t){
   pkGrain=function(kind,seed){
     var S=128,c,x,im,d,i,j;
     if(kind==='dots'||kind==='dotsfine'){
-      var P=kind==='dots'?8:5;c=drMk(S,S);x=c.getContext('2d');im=x.createImageData(S,S);d=im.data;
+      var P=kind==='dots'?16:8;c=drMk(S,S);x=c.getContext('2d');im=x.createImageData(S,S);d=im.data;
       /* puncte de raster la 45°: un punct pe celulă, mărimea dată de presiune (prin opacitate) */
-      for(j=0;j<S;j++)for(i=0;i<S;i++){var u=(i+j)/Math.SQRT2,v=(i-j)/Math.SQRT2,fu=u/P-Math.floor(u/P)-.5,fv=v/P-Math.floor(v/P)-.5,r=Math.hypot(fu,fv),l=pkSm(.36,.3,r),q=(j*S+i)*4,val=Math.round(l*255);d[q]=d[q+1]=d[q+2]=val;d[q+3]=255;}
+      for(j=0;j<S;j++)for(i=0;i<S;i++){var fx=(i+.5)%P/P-.5,fy=(j+.5)%P/P-.5,gx=((i+.5+P/2)%P)/P-.5,gy=((j+.5+P/2)%P)/P-.5,r=Math.min(Math.hypot(fx,fy),Math.hypot(gx,gy)),l=pkSm(.3,.24,r),q=(j*S+i)*4,val=Math.round(l*255);d[q]=d[q+1]=d[q+2]=val;d[q+3]=255;}
       x.putImageData(im,0,0);return c;
     }
     if(kind==='hatch'||kind==='xhatch'){
@@ -11899,12 +11919,12 @@ function tcChip(t){
 })();
 var PKSET2=[
  /* --- Manga: tuș (penițe și pensule pentru contur) --- */
- ['Manga: tuș','G-Pen (tuș real)',function(){return pkField(128,128,function(u,v,i,j){var r=Math.hypot(u,v);return pkSm(.98,.86,r+(pkH(i,j,5)-.5)*.05);});},{spacing:3,presSize:.95,presOp:0,flow:1,taper:true}],
- ['Manga: tuș','Maru-Pen (detalii fine)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.85,Math.hypot(u,v));});},{spacing:3,presSize:.85,presOp:.1,flow:1,taper:true}],
- ['Manga: tuș','Kabura (linie egală)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.86,Math.hypot(u,v));});},{spacing:3,presSize:.35,presOp:0,flow:1,taper:true}],
+ ['Manga: tuș','G-Pen (tuș real)',function(){return pkField(128,128,function(u,v,i,j){var r=Math.hypot(u,v);return pkSm(.98,.86,r+(pkH(i,j,5)-.5)*.05);});},{spacing:6,presSize:.95,presOp:0,flow:1,taper:true}],
+ ['Manga: tuș','Maru-Pen (detalii fine)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.85,Math.hypot(u,v));});},{spacing:6,presSize:.85,presOp:.1,flow:1,taper:true}],
+ ['Manga: tuș','Kabura (linie egală)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.86,Math.hypot(u,v));});},{spacing:6,presSize:.35,presOp:0,flow:1,taper:true}],
  ['Manga: tuș','Pensulă tuș (fude)',function(){return pkField(160,96,function(u,v){return pkSm(1,.82,Math.hypot(u,v*1.08));});},{spacing:3,presSize:1,presOp:.08,flow:1,follow:true,round:.55,taper:true}],
  ['Manga: tuș','Pensulă tuș uscată (kasure)',function(){return pkField(256,96,function(u,v,i){var sh=1-(Math.pow(Math.abs(u),5)+Math.pow(Math.abs(v),2)),s=pkN(i*.35,0,81)*.6+pkN(i*1.4,0,82)*.4;return sh>0?pkSm(.38,.55,s)*pkSm(0,.1,sh):0;});},{spacing:3,presSize:.8,presOp:.25,flow:1,follow:true,angle:90,taper:true}],
- ['Manga: tuș','Fineliner (fără presiune)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.86,Math.hypot(u,v));});},{spacing:3,presSize:0,presOp:0,flow:1}],
+ ['Manga: tuș','Fineliner (fără presiune)',function(){return pkField(96,96,function(u,v){return pkSm(.98,.86,Math.hypot(u,v));});},{spacing:6,presSize:0,presOp:0,flow:1}],
  ['Manga: tuș','Tuș cu margine tremurată',function(){return pkField(128,128,function(u,v,i,j){var a=Math.atan2(v,u),r=Math.hypot(u,v)/(.88+.1*pkN(Math.cos(a)*3+4,Math.sin(a)*3+4,85));return pkSm(1,.9,r);});},{spacing:4,presSize:.8,presOp:0,flow:1,ajit:180,taper:true}],
  ['Manga: tuș','Umplere negru (marker gros)',function(){return pkField(96,96,function(u,v){return pkSm(1,.9,Math.hypot(u,v));});},{spacing:6,presSize:.25,presOp:0,flow:1}],
  ['Manga: tuș','Corector alb',function(){return pkField(96,96,function(u,v){return pkSm(.98,.86,Math.hypot(u,v));});},{spacing:3,presSize:.7,presOp:0,flow:1,col:'#ffffff',taper:true}],
@@ -11942,6 +11962,75 @@ var PKSET2=[
 PKSET2.forEach(function(r){PKSET.push(r);});
 ['Manga: tuș','Manga: schiță','Manga: ton','Manga: efecte','Manga: fundal'].forEach(function(c){if(PKCAT.indexOf(c)<0)PKCAT.unshift(c);});
 PKCAT.sort(function(a,b){return (b.indexOf('Manga')===0)-(a.indexOf('Manga')===0);});
+/* ---------- Viteză: textura pensulelor (creion, cărbune, ton, hașuri) se aplică o dată pe porțiune, nu pe fiecare amprentă ---------- */
+function grEnsure(){
+  if(!DR.gbuf||DR.gbuf.width!==DR.w||DR.gbuf.height!==DR.h)DR.gbuf=drMk(DR.w,DR.h);
+  return DR.gbuf;
+}
+/* copiază ce s-a desenat nou și îi pune textura, doar în zona schimbată */
+function grFlush(st){
+  var b=st.dbb;if(!b||!(b[2]>b[0]))return;
+  var x0=Math.max(0,Math.floor(b[0])-2),y0=Math.max(0,Math.floor(b[1])-2),x1=Math.min(DR.w,Math.ceil(b[2])+2),y1=Math.min(DR.h,Math.ceil(b[3])+2),w=x1-x0,h=y1-y0;
+  st.dbb=[1e9,1e9,-1e9,-1e9];if(w<=0||h<=0)return;
+  var g=grEnsure().getContext('2d');
+  g.save();g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
+  /* fără decupaj, „destination-in” ar lucra pe toată pânza (lent și ar șterge restul) */
+  g.beginPath();g.rect(x0,y0,w,h);g.clip();
+  g.clearRect(x0,y0,w,h);g.drawImage(DR.sbuf,x0,y0,w,h,x0,y0,w,h);
+  g.globalCompositeOperation='destination-in';g.fillStyle=cbGrainPat(st.cb,g);g.fillRect(x0,y0,w,h);
+  g.restore();
+}
+/* ---------- Viteză: cât tragi o linie, restul desenului (straturile de dedesubt și de deasupra, cadrele, bulele) se pune deoparte o dată
+   și doar linia nouă se redesenează la fiecare cadru ---------- */
+var FC={b:null,a:null,key:''};
+function frCacheOk(){
+  var st=DR.stroke;if(!st||!st.tctx||st.direct||st.mask||st.sel||st.eye||st.fd||st.pc||st.prd||st.fo)return false;
+  if(DR.sel||DR.float)return false;
+  var L=DR.layers[st.layer];if(!L||L.clip||L.alock)return false;
+  for(var i=st.layer+1;i<DR.layers.length;i++)if(DR.layers[i].clip)return false;
+  return true;
+}
+function frCacheBuild(st){
+  var c=DR.disp,v=DR.v,dpr=DR.dpr,W=c.width,H=c.height;
+  if(!FC.b||FC.b.width!==W||FC.b.height!==H){FC.b=drMk(W,H);FC.a=drMk(W,H);}
+  var bx=FC.b.getContext('2d'),ax=FC.a.getContext('2d');
+  bx.setTransform(1,0,0,1,0,0);bx.globalAlpha=1;bx.globalCompositeOperation='source-over';bx.fillStyle=DR.wrapBg||'#d6d9d3';bx.fillRect(0,0,W,H);
+  drViewTf(bx,dpr);bx.imageSmoothingEnabled=v.s<2.5;bx.imageSmoothingQuality='high';
+  bx.fillStyle='#ffffff';bx.fillRect(0,0,DR.w,DR.h);
+  if(DR.trace.cv&&DR.trace.on){bx.globalAlpha=DR.trace.op;bx.drawImage(DR.trace.cv,0,0);bx.globalAlpha=1;}
+  drCompose(bx,{to:st.layer});
+  ax.setTransform(1,0,0,1,0,0);ax.globalAlpha=1;ax.globalCompositeOperation='source-over';ax.clearRect(0,0,W,H);
+  drViewTf(ax,dpr);ax.imageSmoothingEnabled=v.s<2.5;ax.imageSmoothingQuality='high';
+  drCompose(ax,{from:st.layer+1});
+  if(DR.kind==='page'&&DR.frames)drFrames(ax);
+  drDocOverlay(ax);
+  if(DR.link)dpOverlay(ax);
+  if(DR.spread)spOverlay(ax);
+}
+(function(){
+  var full=drRender;
+  drRender=function(){
+    var c=DR.disp,x=DR.dctx;if(!c||!x||!DR.ready)return;
+    if(DR.fastOff||!frCacheOk()){FC.key='';return full();}
+    var st=DR.stroke,v=DR.v,dpr=DR.dpr;
+    if(st.gl)grFlush(st);
+    var key=[st.seed,st.layer,v.s,v.x,v.y,v.r,v.f,c.width,c.height,DR.trace.on,DR.trace.op,!!DR.trace.cv,DR.frames].join('|');
+    if(FC.key!==key){frCacheBuild(st);FC.key=key;}
+    var L=DR.layers[st.layer],sr=drStrokeRect(st);
+    x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.drawImage(FC.b,0,0);
+    if(sr&&L.vis){
+      drViewTf(x,dpr);x.imageSmoothingEnabled=v.s<2.5;x.imageSmoothingQuality='high';
+      x.globalAlpha=L.op*st.alpha;x.globalCompositeOperation=L.blend||'source-over';
+      var w=sr[2]-sr[0],h=sr[3]-sr[1];x.drawImage(st.gl&&DR.gbuf?DR.gbuf:DR.sbuf,sr[0],sr[1],w,h,sr[0],sr[1],w,h);
+      x.globalAlpha=1;x.globalCompositeOperation='source-over';
+      x.setTransform(1,0,0,1,0,0);
+    }
+    x.drawImage(FC.a,0,0);
+    x.setTransform(dpr,0,0,dpr,0,0);
+    drOverlay(x);drLiveOverlay(x);drHoverOverlay(x);pcOverlay(x);prOverlay(x);foOverlay(x);rlOverlay(x);
+    if(DR.kind==='page'&&DR.clip){x.save();drViewTf(x,dpr);drPanelPath(x);x.lineWidth=3/v.s;x.strokeStyle='#f2c230';x.setLineDash([10/v.s,6/v.s]);x.stroke();x.restore();}
+  };
+})();
 
 /* ---------- Reference window (ca „Sub View” din Clip Studio) ---------- */
 var RF_MAX=8;
@@ -12307,7 +12396,7 @@ function figInit(){
 }
 
 initDownloads();initScenes();pgInit();drInit();figInit();qpInit();
-if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,CH:CH,CB:CB,PKSET:PKSET,PKCAT:PKCAT,drBrPackInstall:drBrPackInstall,tcChip:tcChip,pgEditPanels:pgEditPanels,cbDelCh:cbDelCh,cbDeleteChapter:cbDeleteChapter,cbDeletePage:cbDeletePage,NP:NP,cbPageDlg:cbPageDlg,cbAddPageWith:cbAddPageWith,hmShow:hmShow,hmHide:hmHide,tdTheme:tdTheme,tdNotes:tdNotes,SH:SH,shOpen:shOpen,shNewSeries:shNewSeries,cbSplitPages:cbSplitPages,cbCreate:cbCreate,cbNewDialog:cbNewDialog,cbBoard:cbBoard,cbRead:cbRead,cbReadStep:cbReadStep,cbExport:cbExport,chOf:chOf,chLoad:chLoad,drC:drC,drV2S:drV2S,TL:TL,tlCapture:tlCapture,tlMeta:tlMeta,tlLoadFrames:tlLoadFrames,tlRender:tlRender,tlOpen:tlOpen,trStart:trStart,fcSet:fcSet,drToggleEraser:drToggleEraser,drBackupNow:drBackupNow,sfMaybeRemind:sfMaybeRemind,SF:SF,FO:FO,foGeom:foGeom,foStamp:foStamp,qsFit:qsFit,qsFire:qsFire,smSet:smSet,fsIndex:fsIndex,fsSearch:fsSearch,fsOpen:fsOpen,fsGo:fsGo,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,idbGet:idbGet,DBR:DBR,drBrPackBuild:drBrPackBuild,cbDef:cbDef,cbPreviewCv:cbPreviewCv,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
+if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,CH:CH,CB:CB,FC:FC,drRender:function(){return drRender();},grFlush:grFlush,drDabCust:drDabCust,PKSET:PKSET,PKCAT:PKCAT,drBrPackInstall:drBrPackInstall,tcChip:tcChip,pgEditPanels:pgEditPanels,cbDelCh:cbDelCh,cbDeleteChapter:cbDeleteChapter,cbDeletePage:cbDeletePage,NP:NP,cbPageDlg:cbPageDlg,cbAddPageWith:cbAddPageWith,hmShow:hmShow,hmHide:hmHide,tdTheme:tdTheme,tdNotes:tdNotes,SH:SH,shOpen:shOpen,shNewSeries:shNewSeries,cbSplitPages:cbSplitPages,cbCreate:cbCreate,cbNewDialog:cbNewDialog,cbBoard:cbBoard,cbRead:cbRead,cbReadStep:cbReadStep,cbExport:cbExport,chOf:chOf,chLoad:chLoad,drC:drC,drV2S:drV2S,TL:TL,tlCapture:tlCapture,tlMeta:tlMeta,tlLoadFrames:tlLoadFrames,tlRender:tlRender,tlOpen:tlOpen,trStart:trStart,fcSet:fcSet,drToggleEraser:drToggleEraser,drBackupNow:drBackupNow,sfMaybeRemind:sfMaybeRemind,SF:SF,FO:FO,foGeom:foGeom,foStamp:foStamp,qsFit:qsFit,qsFire:qsFire,smSet:smSet,fsIndex:fsIndex,fsSearch:fsSearch,fsOpen:fsOpen,fsGo:fsGo,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,idbGet:idbGet,DBR:DBR,drBrPackBuild:drBrPackBuild,cbDef:cbDef,cbPreviewCv:cbPreviewCv,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
 })();
 </script>
 <script>
