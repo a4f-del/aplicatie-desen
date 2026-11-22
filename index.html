@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   /* Layout idea: a drafting table. Paper-toned canvas on top, one shelf of tools below on a phone; canvas left and tools right on a wide screen. */
@@ -344,6 +344,431 @@ details li{margin:5px 0}
 .qpmsg:empty{display:none}
 .qpbox .btn{min-height:38px;padding:4px 8px;font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style id="skUI">
+/* =====================================================================
+   SKIN „Atelier” – stratul vizual premium (2026.11.22b)
+   Doar aspect și animații. Nu schimbă structura DOM și nu atinge motorul.
+   ===================================================================== */
+
+/* ---------- 1. Tokens ---------- */
+:root:root{
+  --paper:#f7f7f9; --paper-2:#efeff3; --ink:#16171d; --ink-2:#686b78; --rule:#e3e3ea;
+  --acc:#5b4cf5; --acc-2:#ecebff; --acc-ink:#ffffff;
+  --card:#ffffff; --float:rgba(255,255,255,.84); --wrapbg:#e3e3e9;
+  --sk-ws:#eaeaef;
+  --sk-glass:rgba(255,255,255,.80);
+  --sk-solid:#ffffff;
+  --sk-line:rgba(20,22,36,.085);
+  --sk-hover:rgba(20,22,36,.055);
+  --sk-press:rgba(20,22,36,.10);
+  --sk-track:rgba(20,22,36,.12);
+  --sk-sh1:0 1px 2px rgba(18,20,34,.05),0 10px 30px -12px rgba(18,20,34,.22);
+  --sk-sh2:0 2px 6px rgba(18,20,34,.06),0 28px 70px -20px rgba(18,20,34,.38);
+  --sk-acc-glow:0 6px 18px -6px rgba(91,76,245,.65);
+  --sk-spring:cubic-bezier(.34,1.56,.64,1);
+  --sk-spring-soft:cubic-bezier(.22,1.18,.36,1);
+  --sk-ease:cubic-bezier(.2,.8,.2,1);
+  --sk-r:12px;
+  --ui:"Inter Tight","Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:root:not([data-theme="light"]){
+    --paper:#121318; --paper-2:#1b1c23; --ink:#ededf2; --ink-2:#9799a8; --rule:#2a2b35;
+    --acc:#8a7dff; --acc-2:#272448; --card:#1c1d25; --float:rgba(30,31,40,.84); --wrapbg:#0c0c10;
+    --sk-ws:#0f1014; --sk-glass:rgba(30,31,40,.78); --sk-solid:#1c1d25;
+    --sk-line:rgba(255,255,255,.075); --sk-hover:rgba(255,255,255,.065); --sk-press:rgba(255,255,255,.11); --sk-track:rgba(255,255,255,.14);
+    --sk-sh1:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.7);
+    --sk-sh2:0 2px 6px rgba(0,0,0,.4),0 30px 80px -20px rgba(0,0,0,.85);
+    --sk-acc-glow:0 6px 20px -6px rgba(138,125,255,.6);
+  }
+}
+:root:root[data-theme="dark"]{
+  --paper:#121318; --paper-2:#1b1c23; --ink:#ededf2; --ink-2:#9799a8; --rule:#2a2b35;
+  --acc:#8a7dff; --acc-2:#272448; --card:#1c1d25; --float:rgba(30,31,40,.84); --wrapbg:#0c0c10;
+  --sk-ws:#0f1014; --sk-glass:rgba(30,31,40,.78); --sk-solid:#1c1d25;
+  --sk-line:rgba(255,255,255,.075); --sk-hover:rgba(255,255,255,.065); --sk-press:rgba(255,255,255,.11); --sk-track:rgba(255,255,255,.14);
+  --sk-sh1:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.7);
+  --sk-sh2:0 2px 6px rgba(0,0,0,.4),0 30px 80px -20px rgba(0,0,0,.85);
+  --sk-acc-glow:0 6px 20px -6px rgba(138,125,255,.6);
+}
+
+/* ---------- 2. Bază ---------- */
+html body{font-family:var(--ui);font-feature-settings:"cv11","ss01";-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+::selection{background:color-mix(in srgb,var(--acc) 30%,transparent)}
+html *{scrollbar-width:thin;scrollbar-color:var(--sk-track) transparent}
+html ::-webkit-scrollbar{width:10px;height:10px}
+html ::-webkit-scrollbar-thumb{background:var(--sk-track);border-radius:99px;border:3px solid transparent;background-clip:padding-box}
+html ::-webkit-scrollbar-track{background:transparent}
+html :is(button,input,select,textarea,summary,a):focus-visible{outline:2px solid var(--acc)!important;outline-offset:2px;border-radius:10px}
+html .h{font:600 10.5px/1.2 var(--ui);letter-spacing:.09em;color:var(--ink-2);margin:16px 0 6px}
+html .note{color:var(--ink-2);line-height:1.45}
+html .row output,html .row output *{font:500 12px var(--ui);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+
+/* ---------- 3. Butoane ---------- */
+html .btn,html .chip,html .fvb,html .rbtn,html .brchip,html .cbm,html .cbsb,html .lay,html .oi .li,html .oi .x,html .plitem,html .brcard,html .hmnb,html .hmcard,html .drview button,html .drtools button,html .drcats button,html .tab,html .seg button,html .rftb button,html .fitem,html .mdc button,html .tcchip button{
+  transition:background-color .2s var(--sk-ease),color .2s var(--sk-ease),border-color .2s var(--sk-ease),box-shadow .25s var(--sk-ease),opacity .2s,transform .45s var(--sk-spring);
+  -webkit-tap-highlight-color:transparent;
+}
+html .btn{border-radius:var(--sk-r)!important;font-weight:550;letter-spacing:-.01em}
+html :is(#dr,#home,#pg,.fsdlg,.cbboard,.app,.overlay,.guideov,.chrov) .btn:not(.solid):not(.danger):not([data-armed="1"]):not([aria-pressed="true"]){
+  background:var(--card);border:1px solid var(--sk-line);color:var(--ink);box-shadow:0 1px 1px rgba(0,0,0,.03)
+}
+html :is(#dr,#home,#pg,.fsdlg,.cbboard,.app,.overlay,.guideov,.chrov) .btn:not(.solid):not(:disabled):hover{background:color-mix(in srgb,var(--card) 88%,var(--ink));border-color:color-mix(in srgb,var(--sk-line) 100%,var(--ink) 6%)}
+html .btn.solid,html #drFileM .fitem.solid{
+  background:var(--acc)!important;border:1px solid transparent!important;color:var(--acc-ink)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),var(--sk-acc-glow)
+}
+html .btn.solid:not(:disabled):hover{filter:brightness(1.07) saturate(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 10px 24px -8px color-mix(in srgb,var(--acc) 80%,transparent)}
+html .btn[aria-pressed="true"]{background:var(--acc)!important;color:#fff!important;border-color:transparent!important}
+html .btn.danger{background:transparent;border:1px solid color-mix(in srgb,var(--ax-x) 50%,transparent)!important;color:var(--ax-x)}
+html .btn:disabled{opacity:.38!important;cursor:default;box-shadow:none!important}
+html :is(.btn,.chip,.fvb,.rbtn,.brchip,.cbm,.cbsb,.lay,.oi .li,.oi .x,.plitem,.drview button,.drtools button,.drcats button,.tab,.seg button,.rftb button,.sw,.mdc button,.tcchip button):not(:disabled):active{transform:scale(.93);transition-duration:.08s}
+html :is(.hmnb,.hmcard,.brcard):not(:disabled):active{transform:scale(.975);transition-duration:.08s}
+
+/* ---------- 4. Segmente, taburi, indicator animat ---------- */
+html .seg{border:0!important;border-radius:12px!important;background:var(--paper-2);padding:3px;gap:2px;overflow:hidden}
+html .seg button{border:0!important;border-radius:9px!important;background:transparent!important;color:var(--ink-2);font-weight:550;position:relative;z-index:1}
+html .seg button:hover{color:var(--ink)}
+html .seg button[aria-pressed="true"],html .seg button.on{color:#fff!important}
+html .seg:not(.sk-ind) button[aria-pressed="true"],html .seg:not(.sk-ind) button.on{background:var(--acc)!important}
+html .seg.sk-ind button[aria-pressed="true"],html .seg.sk-ind button.on{background:transparent!important}
+
+html .tabbar{gap:2px!important;padding:4px!important;margin:4px 0 10px!important;border:0!important;border-radius:14px;background:var(--paper-2)!important;top:0!important}
+html .tabbar .tab{border:0!important;background:transparent!important;border-radius:10px!important;color:var(--ink-2)!important;font:600 13px/1 var(--ui)!important;min-height:36px;padding:8px 12px!important}
+html .tabbar .tab:hover{color:var(--ink)!important}
+html .tabbar .tab[aria-selected="true"]{color:#fff!important}
+html .tabbar:not(.sk-ind) .tab[aria-selected="true"]{background:var(--acc)!important}
+html .tabbar.sk-ind .tab[aria-selected="true"]{background:transparent!important}
+html .tabs{border-bottom:0;background:var(--paper-2);border-radius:14px;padding:4px;gap:2px}
+html .tabs .tab{border:0!important;border-radius:10px!important;background:transparent!important;color:var(--ink-2)!important;margin:0}
+html .tabs.sk-ind .tab[aria-selected="true"]{background:transparent!important;color:#fff!important}
+
+/* indicatorul: un singur „ținut” care alunecă cu arc între opțiuni */
+.sk-ind{position:relative!important}
+.sk-ind>*{position:relative;z-index:1}
+.sk-ind::before{
+  content:"";position:absolute;left:0;top:0;z-index:0;pointer-events:none;
+  width:var(--skw,0px);height:var(--skh,0px);transform:translate3d(var(--skx,0px),var(--sky,0px),0);
+  border-radius:var(--skr,10px);background:var(--sk-ind-bg,var(--acc));
+  box-shadow:var(--sk-ind-sh,inset 0 1px 0 rgba(255,255,255,.22),var(--sk-acc-glow));
+  opacity:var(--sko,0);
+}
+.sk-ind.sk-live::before{transition:transform .55s var(--sk-spring-soft),width .55s var(--sk-spring-soft),height .55s var(--sk-spring-soft),opacity .2s var(--sk-ease)}
+html .drcats.sk-ind{--sk-ind-bg:var(--acc-2);--sk-ind-sh:none}
+
+/* ---------- 5. Spațiul de lucru (modul Desen) ---------- */
+html #dr{background:var(--sk-ws)}
+html #dr .drapp{background:var(--sk-ws)}
+html #dr .drtop{
+  margin:8px 8px 0;padding:6px!important;gap:4px!important;border:1px solid var(--sk-line)!important;border-radius:18px;
+  background:var(--sk-glass);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);
+  box-shadow:var(--sk-sh1);position:relative;z-index:6;animation:skDropIn .6s var(--sk-spring-soft) backwards
+}
+html #dr .drtop .btn{min-height:40px;height:auto;padding:6px 12px}
+html #dr .drtop .btn:not(.solid):not([aria-pressed="true"]){background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+html #dr .drtop .btn:not(.solid):not([aria-pressed="true"]):not(:disabled):hover{background:var(--sk-hover)!important}
+html #dr .drtop .btn.layic{min-width:40px;height:40px!important;padding:0 8px!important;font-size:18px;display:inline-flex;align-items:center;justify-content:center}
+html body.lside #dr .drtop{padding:4px!important}
+@media (max-width:480px){html #dr .drtop{margin:6px 6px 0;border-radius:16px}html #dr .drtop .btn{padding:6px 8px;min-height:38px}html #dr .drtools,html #dr .drbar{margin:6px 6px 0}html #dr .drmain{padding:6px}}
+html body.lside #dr .drtop .btn{height:38px!important;min-height:38px}
+
+/* numele documentului în bara de sus */
+.skdoc{display:flex;align-items:center;justify-content:center;gap:9px;min-width:0;height:100%;pointer-events:none;padding:0 8px}
+.skdoc i{flex:none;width:22px;height:22px;border-radius:7px;background:conic-gradient(from 210deg,#ff6b6b,#ffb84d,#ffe066,#5ee6a8,#4dc3ff,#8a7dff,#ff6bd6,#ff6b6b);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 2px 8px -2px rgba(91,76,245,.55);position:relative}
+.skdoc i::after{content:"";position:absolute;inset:6px;border-radius:3px;background:var(--sk-solid);opacity:.92}
+.skdoc b{font:600 14px/1.1 var(--ui);letter-spacing:-.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.skdoc small{font:500 11.5px var(--ui);color:var(--ink-2);white-space:nowrap}
+@media (max-width:720px){.skdoc small{display:none}}
+@media (max-width:560px){.skdoc{display:none}}
+html #dr .drtop .gap{min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden;container-type:inline-size;align-self:stretch}
+@container (max-width:150px){.skdoc{display:none}}
+@container (max-width:260px){.skdoc small{display:none}}
+
+/* categorii de unelte + unelte */
+html #dr .drcats{padding:8px 10px 0!important;gap:4px!important;animation:skDropIn .6s .04s var(--sk-spring-soft) backwards}
+html #dr .drcats button{border:1px solid transparent!important;background:transparent!important;color:var(--ink-2)!important;font:600 13px/1 var(--ui)!important;border-radius:999px!important;padding:9px 13px!important}
+html #dr .drcats button:hover{color:var(--ink)!important;background:var(--sk-hover)!important}
+html #dr .drcats button[aria-pressed="true"]{color:var(--acc)!important}
+html #dr .drcats.sk-ind button[aria-pressed="true"]{background:transparent!important}
+
+html #dr .drtools{
+  margin:8px 8px 0;padding:5px!important;gap:3px!important;border:1px solid var(--sk-line);border-radius:18px;
+  background:var(--sk-glass);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:var(--sk-sh1);
+  animation:skDropIn .6s .08s var(--sk-spring-soft) backwards
+}
+html #dr .drtools button{background:transparent!important;border:1px solid transparent!important;border-radius:13px!important;color:var(--ink)!important}
+html #dr .drtools button:not([aria-pressed="true"]):hover{background:var(--sk-hover)!important}
+html #dr .drtools button[aria-pressed="true"]{color:#fff!important}
+html #dr .drtools.sk-ind button[aria-pressed="true"]{background:transparent!important}
+html #dr .drtools button.ti{font:550 10.5px/1.1 var(--ui)!important;gap:4px!important}
+html #dr .drtools button svg{transition:transform .5s var(--sk-spring)}
+html #dr .drtools button:not(:disabled):hover svg{transform:translateY(-1px) scale(1.08)}
+html #dr .drtools button.sk-pop svg{animation:skToolPop .6s var(--sk-spring)}
+
+html #dr .drbar{
+  margin:8px 8px 0;padding:6px 12px!important;gap:14px!important;border:1px solid var(--sk-line);border-radius:18px;
+  background:var(--sk-glass);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:var(--sk-sh1);
+  animation:skDropIn .6s .12s var(--sk-spring-soft) backwards
+}
+html #dr .drmain{padding:8px;gap:8px}
+html #dr .drwrap{border-radius:18px;box-shadow:inset 0 0 0 1px var(--sk-line);background:var(--wrapbg)!important;animation:skFade .5s .1s var(--sk-ease) backwards}
+
+/* tabletă culcată: coloana din stânga devine un panou plutitor */
+html body.lside #dr .drleft{
+  flex:0 0 148px!important;width:148px!important;border:1px solid var(--sk-line)!important;border-radius:20px;padding:6px 0 10px!important;
+  background:var(--sk-glass);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:var(--sk-sh1);
+  animation:skSlideL .6s var(--sk-spring-soft) backwards
+}
+html body.lside #dr .drleft .drcats{padding:4px 6px!important;animation:none}
+html body.lside #dr .drleft .drcats button{border-radius:10px!important;text-align:left;padding:7px 10px!important;font-size:12.5px!important}
+html body.lside #dr .drleft .drtools,html body.lside #dr .drleft .drbar{margin:0;border:0;background:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;animation:none}
+html body.lside #dr .drleft .drtools{padding:4px 6px!important;gap:3px!important}
+html body.lside #dr .drleft .drtools>*{border-radius:12px!important;padding:6px 2px!important}
+html body.lside #dr .drleft .drbar{padding:4px 8px!important}
+
+/* panoul din dreapta */
+html #dr .drside{
+  border:1px solid var(--sk-line)!important;border-radius:20px;background:var(--sk-glass);
+  -webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);box-shadow:var(--sk-sh1);padding:8px 14px 22px!important
+}
+html #dr .drside:not([hidden]){animation:skSlideR .55s var(--sk-spring-soft) backwards}
+@media (max-width:899px){html #dr .drside{top:8px!important;right:8px!important;bottom:8px!important;width:min(360px,calc(100vw - 16px))!important;box-shadow:var(--sk-sh2);background:color-mix(in srgb,var(--sk-solid) 92%,transparent)}}
+html .tabpane:not([hidden]){animation:skPaneIn .4s var(--sk-ease) backwards}
+
+/* ---------- 6. Elemente plutitoare pe pânză ---------- */
+html #dr .drview{gap:8px!important;top:12px!important;right:12px!important}
+html #dr .drview button:not(.skzoom){
+  width:40px!important;height:40px!important;border:1px solid var(--sk-line)!important;background:var(--sk-glass)!important;color:var(--ink)!important;opacity:1!important;
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:var(--sk-sh1);font-size:17px
+}
+html #dr .drview button:not(.skzoom):hover{transform:scale(1.08);background:var(--sk-solid)!important}
+html #dr .drview button:nth-child(1){animation:skPopIn .5s .15s var(--sk-spring) backwards}
+html #dr .drview button:nth-child(2){animation:skPopIn .5s .2s var(--sk-spring) backwards}
+html #dr .drview button:nth-child(3){animation:skPopIn .5s .25s var(--sk-spring) backwards}
+html #dr .drview button:nth-child(4){animation:skPopIn .5s .3s var(--sk-spring) backwards}
+html #dr .drview button:nth-child(n+5){animation:skPopIn .5s .35s var(--sk-spring) backwards}
+
+html .drrail{border:1px solid var(--sk-line)!important;border-radius:20px!important;-webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);box-shadow:var(--sk-sh1)!important;padding:10px 6px!important;left:12px}
+html body.railR .drrail{right:12px}
+html .drrail:not([hidden]){animation:skRailIn .6s .1s var(--sk-spring-soft) backwards}
+html .rbtn{border:1px solid var(--sk-line)!important;border-radius:12px!important;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+html .rbtn:not(:disabled):hover{transform:scale(1.07)}
+html .rtr{background:var(--sk-track)!important;width:6px}
+html .rfill{background:linear-gradient(to top,var(--acc),color-mix(in srgb,var(--acc) 70%,#fff))!important}
+html .rkn{border:2px solid var(--acc)!important;box-shadow:0 2px 8px rgba(0,0,0,.25)!important;transition:transform .35s var(--sk-spring)}
+html .rsl.drag .rkn,html .rsl:hover .rkn{transform:scale(1.15)}
+html .rtip{border-radius:8px!important;font-weight:600;box-shadow:var(--sk-sh1)}
+
+html .drctx{
+  left:10px!important;right:10px!important;bottom:10px!important;border:1px solid var(--sk-line)!important;border-radius:20px!important;
+  background:var(--sk-glass)!important;-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:var(--sk-sh2)!important;padding:8px 12px!important
+}
+html .drctx.min{right:auto!important;padding:0 12px!important}
+html .drctx:not([hidden]){animation:skRiseIn .5s var(--sk-spring-soft) backwards}
+html .drctx .cx:not([hidden])~.cx:not([hidden]){border-top-color:var(--sk-line)!important}
+html .cxh{color:var(--ink-2)!important;border-radius:10px}
+html .cxh:hover{background:var(--sk-hover)!important}
+
+html .drmsg{border-radius:999px!important;padding:10px 18px!important;font-weight:550;box-shadow:var(--sk-sh2);background:color-mix(in srgb,var(--ink) 94%,transparent)!important}
+html .drmsg:not([hidden]){animation:skToast .5s var(--sk-spring) backwards}
+
+html .mdc,html .tcchip,html .cbstrip,html .slchip{border:1px solid var(--sk-line)!important;-webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);box-shadow:var(--sk-sh1)!important}
+html .mdc{animation:skPopIn .45s var(--sk-spring) backwards}
+html .sfban{border-radius:16px!important;box-shadow:var(--sk-sh1)!important}
+html .drfocx{border:1px solid var(--sk-line)!important;border-radius:14px!important;box-shadow:var(--sk-sh1);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+html .drplan{border:1px solid var(--sk-line)!important;border-radius:16px!important;background:var(--sk-glass)!important;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:var(--sk-sh1)!important;color:var(--ink)}
+
+/* fereastra de referință */
+html .rfwin{border:1px solid var(--sk-line)!important;border-radius:18px!important;box-shadow:var(--sk-sh2)!important}
+html .rfwin:not([hidden]){animation:skPopIn .45s var(--sk-spring-soft) backwards}
+html .rfhd{background:color-mix(in srgb,var(--ink) 92%,var(--acc))!important}
+html .rfhd button{border-radius:9px!important}
+html .rftb button{border:1px solid var(--sk-line)!important;border-radius:10px!important;background:var(--card)!important}
+html .rftb button[aria-pressed="true"]{background:var(--acc)!important;color:#fff!important}
+
+/* meniul Fișier */
+html .drfile{border:1px solid var(--sk-line)!important;border-radius:18px!important;background:color-mix(in srgb,var(--sk-solid) 90%,transparent)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);box-shadow:var(--sk-sh2)!important;padding:6px!important;transform-origin:top right}
+html .drfile:not([hidden]){animation:skMenuIn .42s var(--sk-spring-soft) backwards}
+html .drfile .fh{font:600 10.5px/1 var(--ui)!important;letter-spacing:.09em}
+html .drfile .fitem{border-radius:12px!important}
+html .drfile .fitem:hover{background:var(--sk-hover)!important;transform:translateX(2px)}
+
+/* foaia „Desen nou” și biblioteca */
+html .drnew,html .drbr{background:var(--sk-ws)!important;padding:20px!important}
+html .drnew h2{font:700 22px/1.2 var(--ui);letter-spacing:-.02em}
+html .drnew .btn{border-radius:16px!important;min-height:64px;padding:12px 16px}
+html .drnew .btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:var(--sk-sh1)!important}
+html .brcard,html .libi,html .chcard,html .pgset,html .brguide,html #pbBox,html .pbrow{border:1px solid var(--sk-line)!important;border-radius:16px!important}
+html .brcard:hover{transform:translateY(-2px);box-shadow:var(--sk-sh1)}
+html .brcard[aria-pressed="true"]{border:2px solid var(--acc)!important;box-shadow:0 0 0 4px var(--acc-2)}
+html .brchip{border:1px solid var(--sk-line)!important;border-radius:999px!important}
+html .brchip[aria-pressed="true"]{background:var(--acc)!important;color:#fff!important;border-color:transparent!important}
+
+/* ---------- 7. Câmpuri, liste, comutatoare ---------- */
+html :is(.txt,.pick-sel,#dr select,#pg select,.fsdlg select,.fsdlg input[type=text],.fsdlg input[type=number],#home select){
+  border:1px solid var(--sk-line)!important;border-radius:12px!important;background:var(--card)!important;color:var(--ink)!important;
+  transition:border-color .2s,box-shadow .25s var(--sk-ease)
+}
+html :is(.txt,.pick-sel,#dr select,#pg select):focus{outline:none!important;border-color:var(--acc)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 22%,transparent)}
+html .oi .li{border:1px solid var(--sk-line)!important;border-radius:12px!important;background:var(--card)!important}
+html .oi .li:hover{background:color-mix(in srgb,var(--card) 90%,var(--ink))!important}
+html .oi .li[aria-pressed="true"]{border-color:var(--acc)!important;box-shadow:inset 3px 0 0 var(--acc),0 0 0 3px var(--acc-2)!important}
+html .oi .x{border:1px solid var(--sk-line)!important;border-radius:12px!important}
+html .oi .x:hover{color:var(--ax-x);background:color-mix(in srgb,var(--ax-x) 10%,transparent)}
+html details{border-top-color:var(--sk-line)!important}
+html summary{gap:8px}
+html summary::after{content:"";flex:none;margin-left:auto;width:7px;height:7px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:translateY(-2px) rotate(45deg);transition:transform .45s var(--sk-spring);margin-right:4px}
+html details[open]>summary::after{transform:translateY(1px) rotate(-135deg)}
+html details[open]>:not(summary){animation:skPaneIn .35s var(--sk-ease) backwards}
+
+/* comutator în loc de bifă (aceeași bifă, alt aspect) */
+html .toggle input[type=checkbox]{
+  -webkit-appearance:none;appearance:none;flex:none;width:40px!important;height:24px!important;border-radius:999px;margin:0;cursor:pointer;
+  background:radial-gradient(circle at center,#fff 0 8.5px,transparent 9.5px) no-repeat,var(--sk-track);
+  background-size:24px 24px,auto;background-position:0 0,0 0;
+  box-shadow:inset 0 0 0 1px var(--sk-line);
+  transition:background-position .45s var(--sk-spring),background-color .25s var(--sk-ease)
+}
+html .toggle input[type=checkbox]:checked{background:radial-gradient(circle at center,#fff 0 8.5px,transparent 9.5px) no-repeat,var(--acc);background-size:24px 24px,auto;background-position:16px 0,0 0}
+html .toggle input[type=checkbox]:disabled{opacity:.4}
+html .toggle:active input[type=checkbox]{background-size:28px 24px,auto}
+
+/* ---------- 8. Slidere ---------- */
+html input[type=range]{--fill:50%;height:28px}
+html input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:linear-gradient(to right,var(--acc) 0 var(--fill),var(--sk-track) var(--fill) 100%)}
+html input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--sk-track)}
+html input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:var(--acc)}
+html input[type=range]::-webkit-slider-thumb{
+  width:20px;height:20px;margin-top:-7px;border-radius:50%;background:#fff;border:0;
+  box-shadow:0 0 0 2px var(--acc),0 3px 8px rgba(0,0,0,.25);transition:transform .35s var(--sk-spring),box-shadow .25s
+}
+html input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:0;box-shadow:0 0 0 2px var(--acc),0 3px 8px rgba(0,0,0,.25);transition:transform .35s var(--sk-spring),box-shadow .25s}
+html input[type=range]:not(:disabled):hover::-webkit-slider-thumb{transform:scale(1.12)}
+html input[type=range]:not(:disabled):active::-webkit-slider-thumb{transform:scale(1.22);box-shadow:0 0 0 2px var(--acc),0 0 0 8px color-mix(in srgb,var(--acc) 20%,transparent),0 3px 8px rgba(0,0,0,.25)}
+html input[type=range]:not(:disabled):active::-moz-range-thumb{transform:scale(1.22);box-shadow:0 0 0 2px var(--acc),0 0 0 8px color-mix(in srgb,var(--acc) 20%,transparent)}
+html input[type=range]:disabled::-webkit-slider-runnable-track{background:var(--sk-track)}
+
+/* ---------- 9. Culori ---------- */
+html .sw{border:0!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 0 0 0 transparent;transition:transform .45s var(--sk-spring),box-shadow .3s var(--sk-ease)}
+html .sw:hover{transform:scale(1.1)}
+html .sw[aria-pressed="true"]{transform:scale(1.06);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 0 0 3px var(--sk-solid),0 0 0 5px var(--acc)!important}
+html .drsw{gap:8px!important}
+html input[type=color]{-webkit-appearance:none;appearance:none;cursor:pointer;border:0!important;padding:3px!important;border-radius:50%!important;width:36px!important;height:36px!important;
+  background:conic-gradient(from 0deg,#ff4d4d,#ffb84d,#ffe94d,#5ee67a,#4de0ff,#4d7bff,#b04dff,#ff4dc4,#ff4d4d)!important;
+  box-shadow:0 2px 8px -2px rgba(0,0,0,.3);transition:transform .45s var(--sk-spring)}
+html input[type=color]:hover{transform:scale(1.1) rotate(25deg)}
+html input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+html input[type=color]::-webkit-color-swatch{border:2.5px solid var(--sk-solid);border-radius:50%}
+html input[type=color]::-moz-color-swatch{border:2.5px solid var(--sk-solid);border-radius:50%}
+html .col2 input[type=color]{width:34px!important;height:34px!important}
+
+/* ---------- 10. Acasă ---------- */
+html .home{background:var(--sk-ws)!important}
+html .hmtop{background:var(--sk-glass)!important;-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);border-bottom:1px solid var(--sk-line)!important;padding:14px 22px!important}
+html .hmlogo{display:inline-flex;align-items:center;gap:10px;font:700 19px/1 var(--ui)!important;letter-spacing:-.02em!important}
+html .hmlogo::before{content:"";width:28px;height:28px;border-radius:9px;background:conic-gradient(from 210deg,#ff6b6b,#ffb84d,#ffe066,#5ee6a8,#4dc3ff,#8a7dff,#ff6bd6,#ff6b6b);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 4px 12px -3px rgba(91,76,245,.6);
+  -webkit-mask:radial-gradient(circle at 50% 50%,transparent 5px,#000 5.5px);mask:radial-gradient(circle at 50% 50%,transparent 5px,#000 5.5px)}
+html .hmbody{padding:26px 22px 48px!important}
+html .hmnew{gap:14px!important}
+html .hmnb{border:1px solid var(--sk-line)!important;border-radius:22px!important;padding:18px!important;min-height:88px!important;box-shadow:var(--sk-sh1);background:var(--card)!important;animation:skRiseIn .6s var(--sk-spring-soft) backwards}
+html .hmnb:nth-child(2){animation-delay:.06s}html .hmnb:nth-child(3){animation-delay:.12s}html .hmnb:nth-child(4){animation-delay:.18s}
+html .hmnb:hover{transform:translateY(-3px);box-shadow:var(--sk-sh2)}
+html .hmnb:first-child{background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 55%,#ff5fb8))!important;color:#fff!important;border-color:transparent!important;box-shadow:0 18px 40px -16px color-mix(in srgb,var(--acc) 85%,transparent)}
+html .hmic{width:46px!important;height:46px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:14px;background:var(--paper-2);font-size:22px!important;transition:transform .5s var(--sk-spring)}
+html .hmnb:first-child .hmic{background:rgba(255,255,255,.18)}
+html .hmnb:hover .hmic{transform:rotate(-8deg) scale(1.08)}
+html .hmh{font:700 17px/1.2 var(--ui)!important;letter-spacing:-.015em;margin:28px 0 12px!important}
+html .hmcard{border:1px solid var(--sk-line)!important;border-radius:16px!important;padding:8px!important;animation:skRiseIn .55s var(--sk-spring-soft) backwards}
+html .hmcard:hover{transform:translateY(-3px);box-shadow:var(--sk-sh1)}
+html .hmth{border-radius:10px!important;border-color:var(--sk-line)!important}
+html .hmdel{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+html .hmfoot{border-top-color:var(--sk-line)!important;gap:10px!important}
+
+/* ---------- 11. Ferestre (dialoguri) ---------- */
+html :is(.overlay,.guideov,.fsdlg,.chrov):not([hidden]){-webkit-backdrop-filter:blur(8px) saturate(1.2);backdrop-filter:blur(8px) saturate(1.2);animation:skFade .3s var(--sk-ease) backwards}
+html :is(.sheet,.guidecard,.fsbox,.chrcard,.spcard){border:1px solid var(--sk-line)!important;border-radius:24px!important;box-shadow:var(--sk-sh2)!important;animation:skDialog .55s var(--sk-spring-soft) backwards}
+html .pgsheet{animation:skRiseIn .55s var(--sk-spring-soft) backwards}
+html .gdots span{transition:width .45s var(--sk-spring),background .2s}
+html .gdots span.on{width:20px;border-radius:99px;background:var(--acc)!important}
+
+/* ---------- 12. Scena 3D (ecranul vechi) ---------- */
+html .app header{padding:12px 16px 10px}
+html .app h1{font:700 18px/1 var(--ui);letter-spacing:-.02em}
+html .stage{border:1px solid var(--sk-line)!important;border-radius:18px!important;box-shadow:var(--sk-sh1)}
+html .chip{border:1px solid var(--sk-line)!important;border-radius:12px!important;background:var(--card)!important}
+html .chip:hover{transform:translateY(-1px);box-shadow:var(--sk-sh1)}
+html .lay{border:1px solid var(--sk-line)!important;border-radius:12px!important}
+html .lay[aria-pressed="true"]{border-color:var(--acc)!important;box-shadow:inset 0 -3px 0 var(--acc),0 0 0 3px var(--acc-2)!important}
+html .panel:not([hidden]){animation:skPaneIn .35s var(--sk-ease) backwards}
+html .qpbox,html .sclock{border-radius:14px!important;box-shadow:var(--sk-sh1)}
+
+/* ---------- 13. Tooltip, zoom, selector de culoare ---------- */
+.sktip{position:fixed;left:0;top:0;z-index:2000;pointer-events:none;max-width:240px;padding:6px 10px;border-radius:9px;background:color-mix(in srgb,var(--ink) 94%,transparent);color:var(--paper);
+  font:550 12px/1.3 var(--ui);box-shadow:var(--sk-sh1);opacity:0;transform:translate3d(var(--tx,0),var(--ty,0),0) scale(.94);transition:opacity .15s var(--sk-ease),transform .35s var(--sk-spring)}
+.sktip.on{opacity:1;transform:translate3d(var(--tx,0),var(--ty,0),0) scale(1)}
+.sktip kbd{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:5px;background:rgba(127,127,127,.3);font:600 10.5px var(--ui)}
+
+html #dr .drview .skzoom{width:40px;height:28px;border-radius:999px;border:1px solid var(--sk-line);background:var(--sk-glass);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:var(--sk-sh1);
+  color:var(--ink);font:650 11px/1 var(--ui);font-variant-numeric:tabular-nums;letter-spacing:-.02em;cursor:pointer;padding:0;transition:transform .45s var(--sk-spring),background .2s}
+html #dr .drview .skzoom:hover{transform:scale(1.08);background:var(--sk-solid)}
+.skzhud{position:absolute;left:50%;top:50%;z-index:5;pointer-events:none;padding:10px 18px;border-radius:999px;background:color-mix(in srgb,var(--ink) 82%,transparent);color:var(--paper);
+  font:700 20px/1 var(--ui);font-variant-numeric:tabular-nums;letter-spacing:-.02em;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);opacity:0;transform:translate(-50%,-50%) scale(.85);transition:opacity .25s var(--sk-ease),transform .45s var(--sk-spring)}
+.skzhud.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+.skcp{position:fixed;z-index:1500;width:292px;padding:14px;border-radius:24px;border:1px solid var(--sk-line);background:color-mix(in srgb,var(--sk-solid) 92%,transparent);
+  -webkit-backdrop-filter:blur(28px) saturate(1.7);backdrop-filter:blur(28px) saturate(1.7);box-shadow:var(--sk-sh2);color:var(--ink);display:flex;flex-direction:column;gap:12px;
+  transform-origin:var(--ox,50%) var(--oy,0);animation:skCpIn .5s var(--sk-spring-soft) backwards;touch-action:none}
+.skcp.out{animation:skCpOut .18s var(--sk-ease) forwards}
+.skcp-sv{position:relative;height:170px;border-radius:16px;cursor:crosshair;touch-action:none;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+  background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(var(--h,0) 100% 50%))}
+.skcp-hue{position:relative;height:16px;border-radius:999px;cursor:pointer;touch-action:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+  background:linear-gradient(to right,#f00 0%,#ff0 16.66%,#0f0 33.33%,#0ff 50%,#00f 66.66%,#f0f 83.33%,#f00 100%)}
+.skcp-k{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15),0 3px 10px rgba(0,0,0,.35);pointer-events:none;
+  background:var(--c,#000);transition:transform .35s var(--sk-spring)}
+.skcp-hue .skcp-k{top:50%}
+.skcp.drag-sv .skcp-sv .skcp-k,.skcp.drag-h .skcp-hue .skcp-k{transform:scale(1.25)}
+.skcp-row{display:flex;align-items:center;gap:10px}
+.skcp-prev{flex:none;width:44px;height:44px;border-radius:14px;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+.skcp-prev span{position:absolute;inset:0;transition:background-color .25s var(--sk-ease)}
+.skcp-prev span:first-child{right:50%}
+.skcp-hex{flex:1;min-width:0;height:40px;border-radius:12px;border:1px solid var(--sk-line);background:var(--card);color:var(--ink);padding:0 12px;font:600 14px var(--ui);letter-spacing:.04em;text-transform:uppercase}
+.skcp-hex:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 22%,transparent)}
+.skcp-ib{flex:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--sk-line);background:var(--card);color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .4s var(--sk-spring),background .2s}
+.skcp-ib:hover{background:var(--sk-hover)}.skcp-ib:active{transform:scale(.9)}
+.skcp-ib svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.skcp-lab{font:600 10.5px/1 var(--ui);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);margin:2px 0 -4px}
+.skcp-sw{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.skcp-sw button{aspect-ratio:1;border:0;border-radius:50%;cursor:pointer;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);transition:transform .4s var(--sk-spring),box-shadow .25s;animation:skSwIn .45s var(--sk-spring) backwards}
+.skcp-sw button:hover{transform:scale(1.2)}
+.skcp-sw button.on{box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 0 0 2px var(--sk-solid),0 0 0 4px var(--acc)}
+.skcp-ft{display:flex;gap:8px;justify-content:space-between;align-items:center}
+.skcp-ft button{border:0;background:transparent;color:var(--ink-2);font:600 12.5px var(--ui);cursor:pointer;padding:8px 6px;border-radius:10px}
+.skcp-ft button:hover{color:var(--ink);background:var(--sk-hover)}
+.skcp-ft button.go{background:var(--acc);color:#fff;padding:9px 16px;box-shadow:var(--sk-acc-glow)}
+
+/* ---------- 14. Mișcare ---------- */
+@keyframes skFade{from{opacity:0}to{opacity:1}}
+@keyframes skDropIn{from{opacity:0;transform:translateY(-10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes skRiseIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes skSlideR{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+@keyframes skSlideL{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
+@keyframes skRailIn{from{opacity:0;margin-left:-14px}to{opacity:1;margin-left:0}}
+@keyframes skPaneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes skPopIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes skMenuIn{from{opacity:0;transform:translateY(-8px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes skDialog{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes skToast{from{opacity:0;transform:translate(-50%,16px) scale(.9)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes skToolPop{0%{transform:scale(1)}35%{transform:scale(.78) rotate(-8deg)}100%{transform:scale(1)}}
+@keyframes skCpIn{from{opacity:0;transform:scale(.86) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes skCpOut{to{opacity:0;transform:scale(.94) translateY(-4px)}}
+@keyframes skSwIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  html *,html *::before,html *::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 </style>
 </head>
 <body>
@@ -8932,8 +9357,8 @@ function drExportPSD(){
   return new Promise(function(r){setTimeout(r,30);}).then(function(){return saveBlob(psdBuild(),drFileBase()+'.psd');}).then(function(m){drMsg(m);},function(){drMsg('Nu am putut face PSD-ul (poate e prea mare pentru memoria disponibilă).');});
 }
 /* ---------- Anunț de versiune nouă ---------- */
-var APP_VER='2026.11.22a';
-var APP_NEWS=['🧑‍🌾 Personaje de fundal (NPC) gata decupate în bibliotecă: 11 grupuri de mulțime (taraba, coada, piața cu obelisc, siluete…), 9 copii și 9 săteni la treabă. Le găsești în folderele „NPC – Mulțime”, „NPC – Copii” și „NPC – Săteni”.','👧 Lira are 15 emoții gata decupate în bibliotecă, folderul „Lira” (neutră, fericită, tristă, furioasă, confuză, obosită…). O pui pe pagină și schimbi emoția din variante; fața rămâne pe loc.','Cu tableta culcată, uneltele stau în stânga și bara de sus e subțire: pagina are cu o treime mai mult loc. Se schimbă din Meniu → Setări → Aspect.','La început alegi: desenezi cu creionul sau cu degetul. Cu degetul: un deget desenează, două mută; linia se netezește mai mult și grosimea vine din viteză. Se schimbă din Meniu → Setări.','📲 Trimite aplicația unui prieten: link și cod QR (ecranul Acasă sau Fișier).','🏙 Fundal 3D: tragi clădiri pe plan (stradă cu case, blocuri, magazine, stâlpi și cabluri) sau alegi o cameră (clasă, dormitor, coridor, bucătărie); pui camera unde vrei și se desenează în panou, cu rigla de perspectivă potrivită.','🧑 Creator de personaj: alegi cap, ochi, gură, păr din bibliotecă și salvezi personajul cu expresii.','🧍 Manechin: tragi de brațe și picioare, apoi îl pui pe pagină.','Pentru ce pui din bibliotecă: 🎯 Potrivește pe cap, linie mai groasă/subțire, culoarea liniei, interior alb/ton/negru.','Import foaie de desene: opțiunea „Decupare: grilă” — scrii câte coloane și rânduri are foaia (ex. 4x5) și o taie exact, chiar dacă desenele se ating.','Decuparea foilor cu desene merge și pe capturi de ecran: taie rama, butoanele, cifrele și separă desenele care se ating prin linii de gât.','Bibliotecă → „✨ Ochi, guri, nasuri, poziții”: preseturi gata desenate, cu expresii. Și „📦 Importă pachet”: pachete Procreate (.brushset) sau Photoshop (.abr) cu ochi, păr, poziții devin elemente în bibliotecă.','Biblioteca are foldere: câte unul pentru fiecare personaj. Poți grupa automat după nume, muta și șterge mai multe deodată (☑ Selectează mai multe).','Copii de siguranță: îți amintesc după 3 zile în care ai lucrat; pe ecranul Acasă vezi când ai făcut ultima copie. Unde browserul permite, aplicația face singură o copie pe zi într-un folder.','Meniuri mai curate: fără butoane dublate; Fișier are acum „Inserează în desen”.','Ghidul de la început și noutățile sunt scurte și au ✕ ca să le închizi.','Ce desenezi pe foaia separată a unui panou apare singur în pagină când o deschizi (nu mai trebuie „Pune în pagină”).','Miniaturile de pe ecranul Acasă sunt acum clare (nu se mai „sparg” tonurile). Foaia separată a panoului pornește „Ca pe pagină”, la calitate maximă.','Inserezi desene din Clip Studio (PNG sau PSD): Fișier → „Inserează desen din Clip Studio…” sau direct în bibliotecă.','Pe foaia separată a panoului: butonul „📚 Din bibliotecă” sus și „📚 Pune din bibliotecă în panou” în Meniu.','„📚 Pune din bibliotecă în panou” e și lângă „Desenează panoul pe foaie separată”.','Pe foaia separată a panoului ai butonul 📚 sus: pui fața sau corpul din bibliotecă direct pe foaie.','Ce pui din bibliotecă într-un panou apare acum și pe foaia separată a panoului.','„Pune din bibliotecă” e acum în Fișier și în Meniu → Pagină: pui fața sau corpul salvat direct în panou.','Salvează în bibliotecă, la vedere: Fișier → „Salvează în bibliotecă…”, Meniu → Pagină → „💾 Salvează panoul în bibliotecă”, sau „💾 În bibliotecă” când ai o selecție. Pe o pagină se salvează doar ce e în panoul ales.',
+var APP_VER='2026.11.22b';
+var APP_NEWS=['✨ Aspect nou: bare de unelte plutitoare, animații fluide, comutatoare și slidere noi și un selector de culoare cu nuanță, pipetă și paleta ta. Zoomul se vede acum în dreapta sus; apasă pe el ca să potrivești pânza. Toate uneltele au rămas la locul lor.','🧑‍🌾 Personaje de fundal (NPC) gata decupate în bibliotecă: 11 grupuri de mulțime (taraba, coada, piața cu obelisc, siluete…), 9 copii și 9 săteni la treabă. Le găsești în folderele „NPC – Mulțime”, „NPC – Copii” și „NPC – Săteni”.','👧 Lira are 15 emoții gata decupate în bibliotecă, folderul „Lira” (neutră, fericită, tristă, furioasă, confuză, obosită…). O pui pe pagină și schimbi emoția din variante; fața rămâne pe loc.','Cu tableta culcată, uneltele stau în stânga și bara de sus e subțire: pagina are cu o treime mai mult loc. Se schimbă din Meniu → Setări → Aspect.','La început alegi: desenezi cu creionul sau cu degetul. Cu degetul: un deget desenează, două mută; linia se netezește mai mult și grosimea vine din viteză. Se schimbă din Meniu → Setări.','📲 Trimite aplicația unui prieten: link și cod QR (ecranul Acasă sau Fișier).','🏙 Fundal 3D: tragi clădiri pe plan (stradă cu case, blocuri, magazine, stâlpi și cabluri) sau alegi o cameră (clasă, dormitor, coridor, bucătărie); pui camera unde vrei și se desenează în panou, cu rigla de perspectivă potrivită.','🧑 Creator de personaj: alegi cap, ochi, gură, păr din bibliotecă și salvezi personajul cu expresii.','🧍 Manechin: tragi de brațe și picioare, apoi îl pui pe pagină.','Pentru ce pui din bibliotecă: 🎯 Potrivește pe cap, linie mai groasă/subțire, culoarea liniei, interior alb/ton/negru.','Import foaie de desene: opțiunea „Decupare: grilă” — scrii câte coloane și rânduri are foaia (ex. 4x5) și o taie exact, chiar dacă desenele se ating.','Decuparea foilor cu desene merge și pe capturi de ecran: taie rama, butoanele, cifrele și separă desenele care se ating prin linii de gât.','Bibliotecă → „✨ Ochi, guri, nasuri, poziții”: preseturi gata desenate, cu expresii. Și „📦 Importă pachet”: pachete Procreate (.brushset) sau Photoshop (.abr) cu ochi, păr, poziții devin elemente în bibliotecă.','Biblioteca are foldere: câte unul pentru fiecare personaj. Poți grupa automat după nume, muta și șterge mai multe deodată (☑ Selectează mai multe).','Copii de siguranță: îți amintesc după 3 zile în care ai lucrat; pe ecranul Acasă vezi când ai făcut ultima copie. Unde browserul permite, aplicația face singură o copie pe zi într-un folder.','Meniuri mai curate: fără butoane dublate; Fișier are acum „Inserează în desen”.','Ghidul de la început și noutățile sunt scurte și au ✕ ca să le închizi.','Ce desenezi pe foaia separată a unui panou apare singur în pagină când o deschizi (nu mai trebuie „Pune în pagină”).','Miniaturile de pe ecranul Acasă sunt acum clare (nu se mai „sparg” tonurile). Foaia separată a panoului pornește „Ca pe pagină”, la calitate maximă.','Inserezi desene din Clip Studio (PNG sau PSD): Fișier → „Inserează desen din Clip Studio…” sau direct în bibliotecă.','Pe foaia separată a panoului: butonul „📚 Din bibliotecă” sus și „📚 Pune din bibliotecă în panou” în Meniu.','„📚 Pune din bibliotecă în panou” e și lângă „Desenează panoul pe foaie separată”.','Pe foaia separată a panoului ai butonul 📚 sus: pui fața sau corpul din bibliotecă direct pe foaie.','Ce pui din bibliotecă într-un panou apare acum și pe foaia separată a panoului.','„Pune din bibliotecă” e acum în Fișier și în Meniu → Pagină: pui fața sau corpul salvat direct în panou.','Salvează în bibliotecă, la vedere: Fișier → „Salvează în bibliotecă…”, Meniu → Pagină → „💾 Salvează panoul în bibliotecă”, sau „💾 În bibliotecă” când ai o selecție. Pe o pagină se salvează doar ce e în panoul ales.',
   'Imagine pentru telefon / internet (Fișier, sau în fereastra de salvare): JPG de 2048 px micșorat corect, ca tonurile cu puncte să arate ca pe ecran și în WhatsApp, Instagram sau galerie. PNG-ul rămâne pentru tipar, la rezoluția întreagă.',
   'Umplere cu orice pensulă din Pensule+: Găleată → Textură → „O pensulă din Pensule+”. Pensulele cu textură umplu cu textura lor; cele cu forme (frunziș, iarbă, flori, sclipiri, mulțime) umplu zona cu forme, cu mărimea și distanța alese, și în perspectivă.',
   'Moduri active, mereu la vedere sus: selecție, mutare, simetrie, riglă, puncte de fugă, plan în perspectivă, „doar în panou”, strat ascuns/blocat, opacitate mică. Fiecare are buton clar de oprire; când sunt mai multe, „✕ Oprește tot”.',
@@ -14725,7 +15150,305 @@ function figInit(){
 }
 
 initDownloads();initScenes();pgInit();drInit();figInit();qpInit();
+/* doar citire, pentru stratul vizual (zoom și numele desenului în bara de sus) */
+window.__skUI={view:function(){return DR.v;},name:function(){return DR.name;},w:function(){return DR.w;},h:function(){return DR.h;}};
 if(location.protocol==='file:'||/[?&]test\b/.test(location.search))window.__persp={S:S,genVillage:genVillage,newObj:newObj,expand:expand,BK:BK,shadowPt:shadowPt,lightDirW:lightDirW,lightSide:lightSide,moveLight:moveLight,renderNow:renderNow,addObj:addObj,loadPreset:loadPreset,pickAt:pickAt,undo:undo,commit:commit,makeCamera:makeCamera,zipBlob:zipBlob,drawPage:drawPage,pageQuads:pageQuads,pgGutters:pgGutters,pgGutHit:pgGutHit,pgGutMove:pgGutMove,pgPut:pgPut,pgOpenUI:pgOpenUI,pgDraw:pgDraw,pgOpenPanel:pgOpenPanel,applyMood:applyMood,pgAddBub:pgAddBub,MOODS:MOODS,saveScene:saveScene,openScene:openScene,sceneData:sceneData,getScenes:function(){return scenes;},dungeonLayout:dungeonLayout,makeZip:makeZip,exportPNG:exportPNG,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,pgCopyView:pgCopyView,bkBuild:bkBuild,bkRead:bkRead,bkRestore:bkRestore,bkSummary:bkSummary,idbAll:idbAll,dpOpen:dpOpen,dpPlace:dpPlace,dpZoom:dpZoom,dpBack:dpBack,drIdx:drIdx,DRTABS:function(){return DRTABS;},PGTABS:function(){return PGTABS;},uiTabGo:uiTabGo,drCrackPaint:drCrackPaint,crHorizon:crHorizon,pickAt:pickAt,drJointStart:drJointStart,drJointToggle:drJointToggle,drMemMB:drMemMB,drMemBudget:drMemBudget,drFileMenu:drFileMenu,drPagePDF:drPagePDF,PGLOCKset:function(v){PGLOCK=v;},guideOpen:guideOpen,DHOV:DHOV,pgDrawHere:pgDrawHere,pgDocStep:pgDocStep,drSetGroup:drSetGroup,drGroupMerge:drGroupMerge,drGroupMove:drGroupMove,drSync:drSync,prjExtra:prjExtra,prjImportExtra:prjImportExtra,lbDeleteItem2:lbDeleteItem,cbSaveNew:cbSaveNew,psdBuild:psdBuild,appNewsShow:appNewsShow,psdRead:psdRead,drImportAny:drImportAny,drWhiteToAlpha:drWhiteToAlpha,DIMP:DIMP,plParse:plParse,plGenerate:plGenerate,plUndo:plUndo,plLayout:plLayout,plFrame:plFrame,plSuggestExisting:plSuggestExisting,plCountTip:plCountTip,spNew:spNew,spHalves:spHalves,spToChapter:spToChapter,spPreview:spPreview,spGeom:spGeom,PC:PC,pcAnalyze:pcAnalyze,pcClear:pcClear,drVP:drVP,prSet:prSet,prPick:prPick,prFromScene:prFromScene,pbGenerate:pbGenerate,pbResize:pbResize,CH:CH,CB:CB,PW:PW,lbOpenSave:lbOpenSave,layApply:layApply,inpSet:inpSet,inpAsk:inpAsk,drPressure:drPressure,appShareOpen:appShareOpen,shQR:shQR,bgxOpen:bgxOpen,bgxRender:bgxRender,bgxDefault:bgxDefault,bgxPlace:bgxPlace,bgxTarget:bgxTarget,bgxVPs:bgxVPs,bgxStreetPreset:bgxStreetPreset,mqnOpen:mqnOpen,mqnFromPose:mqnFromPose,mqnDrag:mqnDrag,chrOpen:chrOpen,fltFitApply:fltFitApply,fltAnchors:fltAnchors,fltFill:fltFill,fltThick:fltThick,fltColor:fltColor,fltWork:fltWork,FLT:FLT,prSplitSheet:prSplitSheet,prInkFromCv:prInkFromCv,prInstall:prInstall,prLiraInstall:prLiraInstall,prNpcInstall:prNpcInstall,prEyesCv:prEyesCv,PR_EYES:PR_EYES,PR_EXPR:PR_EXPR,prMouthCv:prMouthCv,PR_MOUTH:PR_MOUTH,prNoseCv:prNoseCv,PR_NOSE:PR_NOSE,prPoseCv:prPoseCv,PR_POSES:PR_POSES,prImportFiles:prImportFiles,lbGuessFolder:lbGuessFolder,AB:AB,abWrite:abWrite,abTick:abTick,abHomeLine:abHomeLine,abDirty:abDirty,dpSyncPage:dpSyncPage,dpFlatOf:dpFlatOf,drThumbOfX:function(){return drThumbOf;},insPrep:insPrep,insPlace:insPlace,insReadFile:insReadFile,psdBuildX:function(){return psdBuild;},lbCapture:lbCapture,drWebCanvas:drWebCanvas,drExportWeb:drExportWeb,TXB:TXB,txLoadBr:txLoadBr,mdList:mdList,drUndo:drUndo,drRedo:drRedo,drSelClear:drSelClear,drFloatCancel:drFloatCancel,drFlat:drFlat,drFill:drFill,drSelFillTex:drSelFillTex,txCb:txCb,PPL:PPL,plSet:plSet,plReady:plReady,plScaleAt:plScaleAt,plMapInv:plMapInv,prSet:prSet,FC:FC,drRender:function(){return drRender();},grFlush:grFlush,drDabCust:drDabCust,PKSET:PKSET,PKCAT:PKCAT,drBrPackInstall:drBrPackInstall,tcChip:tcChip,pgEditPanels:pgEditPanels,cbDelCh:cbDelCh,cbDeleteChapter:cbDeleteChapter,cbDeletePage:cbDeletePage,NP:NP,cbPageDlg:cbPageDlg,cbAddPageWith:cbAddPageWith,hmShow:hmShow,hmHide:hmHide,tdTheme:tdTheme,tdNotes:tdNotes,SH:SH,shOpen:shOpen,shNewSeries:shNewSeries,cbSplitPages:cbSplitPages,cbCreate:cbCreate,cbNewDialog:cbNewDialog,cbBoard:cbBoard,cbRead:cbRead,cbReadStep:cbReadStep,cbExport:cbExport,chOf:chOf,chLoad:chLoad,drC:drC,drV2S:drV2S,TL:TL,tlCapture:tlCapture,tlMeta:tlMeta,tlLoadFrames:tlLoadFrames,tlRender:tlRender,tlOpen:tlOpen,trStart:trStart,fcSet:fcSet,drToggleEraser:drToggleEraser,drBackupNow:drBackupNow,sfMaybeRemind:sfMaybeRemind,SF:SF,FO:FO,foGeom:foGeom,foStamp:foStamp,qsFit:qsFit,qsFire:qsFire,smSet:smSet,fsIndex:fsIndex,fsSearch:fsSearch,fsOpen:fsOpen,fsGo:fsGo,phProcess:phProcess,phPlace:phPlace,phRedo:phRedo,PHO:PHO,skParse:skParse,skBuild:skBuild,skApply:skApply,skSummary:skSummary,CH:CH,chLoad:chLoad,chNew:chNew,chNewPage:chNewPage,chOf:chOf,chExportPDF:chExportPDF,chExportZip:chExportZip,chRender:chRender,chStep:chStep,chOpenDoc:chOpenDoc,pdfBuild:pdfBuild,LB:LB,lbCapture:lbCapture,lbSaveItem:lbSaveItem,lbInsert:lbInsert,lbOpen:lbOpen,lbLoad:lbLoad,lbPackEnsure:lbPackEnsure,lbFind:lbFind,lbBlobsGet:lbBlobsGet,lbBlobCv:lbBlobCv,lbDeleteItem:lbDeleteItem,lbSceneBg:lbSceneBg,LBPACK:LBPACK,drWarpStart:drWarpStart,drWarpToggle:drWarpToggle,drWarpReset:drWarpReset,drMeshDraw:drMeshDraw,drFloatDraw:drFloatDraw,drFloatCommit:drFloatCommit,drFloatHit:drFloatHit,drFloatDrag:drFloatDrag,DWN:DWN,PGF:PGF,pgFreeCutLine:pgFreeCutLine,pgFreeReset:pgFreeReset,pgFreeDown:pgFreeDown,pgFreeMove:pgFreeMove,pgFreeUp:pgFreeUp,pgFreeAdd:pgFreeAdd,pgFreeDup:pgFreeDup,pgFreeDel:pgFreeDel,pgFreeUndo:pgFreeUndo,pgFreeShift:pgFreeShift,pgFreeAuto:pgFreeAuto,pgFreeShape:pgFreeShape,pgFreeSplit:pgFreeSplit,pgFreeDelV:pgFreeDelV,pgFreeEnter:pgFreeEnter,pgFreeFromFixed:pgFreeFromFixed,pgFreeSlot:pgFreeSlot,pgFreeSync:pgFreeSync,pgLabelPt:pgLabelPt,pgDraw:pgDraw,pgOpenUI:pgOpenUI,pageQuads:pageQuads,pgSelSet:function(i){pgSel=i;},pgSelGet:function(){return pgSel;},pgScaleGet:function(){return pgScale;},drawPage:drawPage,DR:DR,drSelAll:drSelAll,drFloatFlip:drFloatFlip,drFloatCancel:drFloatCancel,drSelAddPath:drSelAddPath,drFloatCommit:drFloatCommit,drLift:drLift,drFilter:drFilter,drTextTap:drTextTap,drFlatBW:drFlatBW,drSample:drSample,drSetTool:drSetTool,drDown:drDown,drIdx:drIdx,drLibRender:drLibRender,drDeleteDoc:drDeleteDoc,drToDoc:drToDoc,drV2S:drV2S,drS2V:drS2V,drCompose:drCompose,drSelCopy:drSelCopy,drPaste:drPaste,drSelFill:drSelFill,drSelInvert:drSelInvert,drSelGrow:drSelGrow,drSelDelete:drSelDelete,drWand:drWand,drRotView:drRotView,drFlipView:drFlipView,drPageSize:drPageSize,drDpi:drDpi,drFmt:drFmt,drPrintRects:drPrintRects,drExportPNG:drExportPNG,drExportZip:drExportZip,drImportProject:drImportProject,drProjMeta:drProjMeta,zipRead:zipRead,pngSetDpi:pngSetDpi,saveBlob:saveBlob,drPgOpt:drPgOpt,drPgInfo:drPgInfo,drThreshold:drThreshold,DBR:DBR,PKSET:PKSET,idbGet:idbGet,DBR:DBR,drBrPackBuild:drBrPackBuild,cbDef:cbDef,cbPreviewCv:cbPreviewCv,drBrPackInstall:drBrPackInstall,drBrPackBuild:drBrPackBuild,cbMask:cbMask,gbrParse:gbrParse,abrParse:abrParse,cbFromFile:cbFromFile,drBrImportFiles:drBrImportFiles,drBrSelect:drBrSelect,cbPreviewCv:cbPreviewCv,cbTint:cbTint,drBrOpen:drBrOpen,drNew:drNew,drOpenUI:drOpenUI,drUndo:drUndo,drRedo:drRedo,drFlat:drFlat,drFill:drFill,drSaveNow:drSaveNow,drLoadSaved:drLoadSaved,drBuildTrace:drBuildTrace,drCamInfo:drCamInfo,drVP:drVP,drRail:drRail,drFit:drFit,drRender:drRender,renderNowTo:function(x,w,h){return renderScene(x,w,h,EXPORT_THEME,{guides:false,highlight:false,pick:false});},figBuild:figBuild,figPose:figPose,figAge:figAge,addFig:addFig,figMirror:figMirror,FIGC:FIGC,RF:RF,rfAddFiles:rfAddFiles,rfAddScene:rfAddScene,rfSetOpen:rfSetOpen,rfSaveNow:rfSaveNow,rfLoad:rfLoad,rfFit:rfFit,rfRender:rfRender};
+})();
+</script>
+<script>
+/* =====================================================================
+   SKIN „Atelier” – micro-interacțiuni (2026.11.22b)
+   Nu schimbă motorul de desen: citește doar starea vederii prin
+   window.__skUI și comunică cu aplicația prin evenimentele obișnuite
+   (click, input, change), exact ca un utilizator.
+   ===================================================================== */
+(function(){
+'use strict';
+var doc=document,root=doc.documentElement;
+var RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
+function $(s,c){return (c||doc).querySelector(s);}
+function $$(s,c){return [].slice.call((c||doc).querySelectorAll(s));}
+function mk(tag,cls,txt){var e=doc.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+
+/* ---------- 1. Stratul de stil rămâne ultimul (aplicația mai adaugă stiluri pe parcurs) ---------- */
+var skStyle=doc.getElementById('skUI');
+function keepLast(){if(skStyle&&doc.head.lastElementChild!==skStyle)doc.head.appendChild(skStyle);}
+if(window.MutationObserver)new MutationObserver(keepLast).observe(doc.head,{childList:true});
+keepLast();
+
+/* ---------- 2. Indicator animat pentru opțiunea aleasă ---------- */
+function pressed(b){return b.getAttribute('aria-pressed')==='true'||b.classList.contains('on');}
+function selected(b){return b.getAttribute('aria-selected')==='true';}
+var SPECS=[
+  {c:'.seg',i:'button',a:pressed},
+  {c:'.tabbar',i:'.tab',a:selected},
+  {c:'.tabs',i:'.tab',a:selected},
+  {c:'#dr .drtools',i:'button[data-tool]',a:pressed,pop:true},
+  {c:'#dr .drcats',i:'button',a:pressed}
+];
+var ALLC=SPECS.map(function(s){return s.c;}).join(',');
+var IND=new Map(),dirty=new Set(),indRaf=0;
+var RO=window.ResizeObserver?new ResizeObserver(function(es){es.forEach(function(e){queue(e.target);});}):null;
+function specFor(el){for(var i=0;i<SPECS.length;i++)if(el.matches(SPECS[i].c))return SPECS[i];return null;}
+function scan(){
+  $$(ALLC).forEach(function(el){
+    if(IND.has(el))return;
+    var sp=specFor(el);if(!sp)return;
+    IND.set(el,{sp:sp,act:null});if(RO)RO.observe(el);queue(el);
+  });
+  IND.forEach(function(st,el){if(!el.isConnected){IND.delete(el);if(RO)RO.unobserve(el);}});
+}
+function queue(el){if(!IND.has(el))return;dirty.add(el);if(!indRaf)indRaf=requestAnimationFrame(flush);}
+function flush(){indRaf=0;var l=[];dirty.forEach(function(e){l.push(e);});dirty.clear();l.forEach(place);}
+function place(el){
+  var st=IND.get(el);if(!st)return;
+  var act=null;
+  $$(st.sp.i,el).some(function(b){if(b.closest(st.sp.c)===el&&st.sp.a(b)){act=b;return true;}return false;});
+  if(!act||!act.offsetParent||!act.offsetWidth){
+    if(el.classList.contains('sk-ind'))el.style.setProperty('--sko','0');
+    st.act=null;return;
+  }
+  var cr=el.getBoundingClientRect(),ir=act.getBoundingClientRect();
+  var x=ir.left-cr.left-el.clientLeft+el.scrollLeft,y=ir.top-cr.top-el.clientTop+el.scrollTop;
+  var s=el.style;
+  s.setProperty('--skx',x+'px');s.setProperty('--sky',y+'px');
+  s.setProperty('--skw',ir.width+'px');s.setProperty('--skh',ir.height+'px');
+  s.setProperty('--skr',getComputedStyle(act).borderTopLeftRadius||'10px');
+  s.setProperty('--sko','1');
+  if(!el.classList.contains('sk-ind')){
+    el.classList.add('sk-ind');
+    requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('sk-live');});});
+  }
+  if(st.sp.pop&&st.act&&st.act!==act&&!RM.matches){
+    act.classList.remove('sk-pop');void act.offsetWidth;act.classList.add('sk-pop');
+    setTimeout(function(){act.classList.remove('sk-pop');},650);
+  }
+  st.act=act;
+}
+var scanRaf=0;
+function scanSoon(){if(!scanRaf)scanRaf=requestAnimationFrame(function(){scanRaf=0;scan();});}
+if(window.MutationObserver){
+  new MutationObserver(function(ms){
+    var need=false;
+    for(var i=0;i<ms.length;i++){
+      var m=ms[i];
+      if(m.type==='childList'){need=true;var c=m.target.closest&&m.target.closest(ALLC);if(c)queue(c);continue;}
+      var t=m.target;if(t===doc.body||!t.closest)continue;
+      if(m.attributeName==='hidden'){IND.forEach(function(st,el){if(t.contains(el))queue(el);});continue;}
+      var con=t.parentElement&&t.parentElement.closest(ALLC);if(con)queue(con);
+    }
+    if(need)scanSoon();
+  }).observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-pressed','aria-selected','class','hidden']});
+}
+window.addEventListener('resize',function(){IND.forEach(function(st,el){queue(el);});});
+
+/* ---------- 3. Tooltip-uri animate (mouse și creion; pe atingere nu apar) ---------- */
+var tip=mk('div','sktip');tip.setAttribute('role','tooltip');tip.setAttribute('aria-hidden','true');
+var tipEl=null,tipT=0,tipLast=0,tipSaved=null;
+function tipLabel(el){
+  var l=el.getAttribute('data-sktip')||el.getAttribute('title')||el.getAttribute('aria-label')||'';
+  l=l.trim();if(!l)return '';
+  var vis=(el.textContent||'').replace(/\s+/g,' ').trim();
+  if(vis&&vis.toLowerCase()===l.toLowerCase())return '';
+  if(vis.length>14&&l.toLowerCase().indexOf(vis.toLowerCase())===0)return '';
+  return l;
+}
+function tipHide(){
+  clearTimeout(tipT);
+  if(tipEl){if(tipSaved!=null&&!tipEl.hasAttribute('title'))tipEl.setAttribute('title',tipSaved);tipEl=null;tipSaved=null;tipLast=Date.now();}
+  tip.classList.remove('on');
+}
+function tipShow(el,label){
+  if(!tip.isConnected)doc.body.appendChild(tip);
+  tip.textContent=label;
+  if(el.hasAttribute('title')){tipSaved=el.getAttribute('title');el.removeAttribute('title');}
+  var r=el.getBoundingClientRect(),tw=tip.offsetWidth,th=tip.offsetHeight,W=innerWidth,H=innerHeight,x,y;
+  if(r.right>W-90&&r.left>tw+20){x=r.left-tw-10;y=r.top+r.height/2-th/2;}
+  else if(r.left<90&&r.width<80&&r.right+tw+20<W){x=r.right+10;y=r.top+r.height/2-th/2;}
+  else if(r.top<H*.5){x=r.left+r.width/2-tw/2;y=r.bottom+8;}
+  else{x=r.left+r.width/2-tw/2;y=r.top-th-8;}
+  x=clamp(x,8,W-tw-8);y=clamp(y,8,H-th-8);
+  tip.style.setProperty('--tx',Math.round(x)+'px');tip.style.setProperty('--ty',Math.round(y)+'px');
+  void tip.offsetWidth;tip.classList.add('on');
+}
+doc.addEventListener('pointerover',function(e){
+  if(e.pointerType==='touch')return;
+  var el=e.target.closest&&e.target.closest('button,[role="button"],input[type="color"],.skzoom');
+  if(el===tipEl)return;
+  tipHide();if(!el||el.disabled)return;
+  var label=tipLabel(el);if(!label)return;
+  tipEl=el;
+  var quick=Date.now()-tipLast<450;
+  tipT=setTimeout(function(){if(tipEl===el&&el.isConnected)tipShow(el,label);},quick?40:480);
+},true);
+doc.addEventListener('pointerout',function(e){if(tipEl&&(!e.relatedTarget||!tipEl.contains(e.relatedTarget)))tipHide();},true);
+['pointerdown','wheel','keydown'].forEach(function(n){doc.addEventListener(n,tipHide,true);});
+window.addEventListener('blur',tipHide);
+
+/* ---------- 4. Sliderele își colorează porțiunea plină ---------- */
+function fill(r){
+  var mn=r.min===''?0:+r.min,mx=r.max===''?100:+r.max,v=+r.value,p=mx>mn?(v-mn)/(mx-mn)*100:0;
+  p=clamp(p,0,100).toFixed(2)+'%';
+  if(r.__skf!==p){r.__skf=p;r.style.setProperty('--fill',p);}
+}
+function fillAll(){$$('input[type="range"]').forEach(function(r){if(r.offsetParent)fill(r);});}
+doc.addEventListener('input',function(e){if(e.target&&e.target.type==='range')fill(e.target);},true);
+doc.addEventListener('change',function(e){if(e.target&&e.target.type==='range')fill(e.target);},true);
+doc.addEventListener('pointerup',function(){setTimeout(fillAll,30);},true);
+setInterval(function(){if(!doc.hidden)fillAll();},500);
+
+/* ---------- 5. Selectorul de culoare ---------- */
+function h2rgb(hex){hex=String(hex||'').replace('#','');if(hex.length===3)hex=hex.replace(/./g,'$&$&');var n=parseInt(hex,16);if(hex.length!==6||isNaN(n))return null;return [n>>16&255,n>>8&255,n&255];}
+function rgb2h(c){return '#'+c.map(function(v){return ('0'+Math.round(clamp(v,0,255)).toString(16)).slice(-2);}).join('');}
+function rgb2hsv(c){var r=c[0]/255,g=c[1]/255,b=c[2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,h=0;
+  if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}
+  return [h,mx?d/mx:0,mx];}
+function hsv2rgb(h,s,v){var c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c,r=0,g=0,b=0;
+  if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
+  return [(r+m)*255,(g+m)*255,(b+m)*255];}
+var PAL=['#111827','#374151','#6b7280','#d1d5db','#ffffff','#7f1d1d','#dc2626','#f97316','#f59e0b','#facc15',
+         '#84cc16','#16a34a','#0d9488','#06b6d4','#2563eb','#4f46e5','#7c3aed','#c026d3','#db2777','#f4c7a1'];
+var CP=null,bypass=false;
+function cpClose(commit){
+  if(!CP)return;var c=CP;CP=null;
+  if(!commit&&c.inp.value!==c.orig){c.inp.value=c.orig;c.inp.dispatchEvent(new Event('input',{bubbles:true}));}
+  else if(commit&&c.inp.value!==c.orig){c.inp.dispatchEvent(new Event('change',{bubbles:true}));}
+  doc.removeEventListener('pointerdown',c.outside,true);doc.removeEventListener('keydown',c.key,true);
+  window.removeEventListener('resize',c.reflow);
+  if(RM.matches){c.box.remove();}else{c.box.classList.add('out');setTimeout(function(){c.box.remove();},200);}
+  try{c.inp.focus({preventScroll:true});}catch(e){}
+}
+function cpOpen(inp){
+  if(CP){var same=CP.inp===inp;cpClose(true);if(same)return;}
+  tipHide();
+  var rgb=h2rgb(inp.value)||[0,0,0],hsv=rgb2hsv(rgb);
+  var c={inp:inp,orig:inp.value,h:hsv[0],s:hsv[1],v:hsv[2],raf:0};CP=c;
+  var box=mk('div','skcp');box.setAttribute('role','dialog');box.setAttribute('aria-label','Alege culoarea');c.box=box;
+  var sv=mk('div','skcp-sv'),svk=mk('i','skcp-k');sv.appendChild(svk);sv.tabIndex=0;sv.setAttribute('role','slider');sv.setAttribute('aria-label','Saturație și luminozitate (săgețile ajustează)');
+  var hue=mk('div','skcp-hue'),huk=mk('i','skcp-k');hue.appendChild(huk);hue.tabIndex=0;hue.setAttribute('role','slider');hue.setAttribute('aria-label','Nuanță');hue.setAttribute('aria-valuemin','0');hue.setAttribute('aria-valuemax','360');
+  var row=mk('div','skcp-row'),prev=mk('div','skcp-prev'),po=mk('span'),pn=mk('span');prev.appendChild(po);prev.appendChild(pn);prev.title='Stânga: culoarea de dinainte · dreapta: culoarea nouă';
+  po.style.backgroundColor=c.orig;
+  var hex=mk('input','skcp-hex');hex.type='text';hex.maxLength=7;hex.spellcheck=false;hex.setAttribute('aria-label','Cod hex');
+  row.appendChild(prev);row.appendChild(hex);
+  if(window.EyeDropper){
+    var ed=mk('button','skcp-ib');ed.type='button';ed.setAttribute('aria-label','Pipetă: ia o culoare de pe ecran');
+    ed.innerHTML='<svg viewBox="0 0 24 24"><path d="m14 6 4 4M17.5 3.5a2.1 2.1 0 0 1 3 3L9 18l-4 1 1-4Z"/></svg>';
+    ed.addEventListener('click',function(){new window.EyeDropper().open().then(function(r){if(CP===c)setHex(r.sRGBHex);}).catch(function(){});});
+    row.appendChild(ed);
+  }
+  box.appendChild(sv);box.appendChild(hue);box.appendChild(row);
+  /* culorile deja din aplicație (paleta și cele recente) */
+  var own=[];$$('#drSw .sw[data-c]').forEach(function(s){var v=(s.getAttribute('data-c')||'').toLowerCase();if(h2rgb(v)&&own.indexOf(v)<0)own.push(v);});
+  function swRow(title,list){
+    if(!list.length)return;box.appendChild(mk('div','skcp-lab',title));
+    var g=mk('div','skcp-sw');list.slice(0,20).forEach(function(col,i){var b=mk('button');b.type='button';b.style.background=col;b.style.animationDelay=(i*12)+'ms';b.setAttribute('aria-label','Culoarea '+col);b.setAttribute('data-c',col);b.addEventListener('click',function(){setHex(col);});g.appendChild(b);});
+    box.appendChild(g);
+  }
+  swRow('Paleta ta',own);swRow('Culori',PAL);
+  var ft=mk('div','skcp-ft'),sys=mk('button',null,'Selectorul sistemului'),go=mk('button','go','Gata');sys.type=go.type='button';
+  sys.addEventListener('click',function(){var i=c.inp;cpClose(true);bypass=true;try{if(i.showPicker)i.showPicker();else i.click();}catch(e){i.click();}setTimeout(function(){bypass=false;},400);});
+  go.addEventListener('click',function(){cpClose(true);});
+  ft.appendChild(sys);ft.appendChild(go);box.appendChild(ft);
+  doc.body.appendChild(box);
+
+  function cur(){return rgb2h(hsv2rgb(c.h,c.s,c.v));}
+  function paint(fromHex){
+    var h=cur();
+    box.style.setProperty('--h',Math.round(c.h));
+    svk.style.left=(c.s*100)+'%';svk.style.top=((1-c.v)*100)+'%';svk.style.setProperty('--c',h);
+    huk.style.left=(c.h/360*100)+'%';huk.style.setProperty('--c','hsl('+Math.round(c.h)+' 100% 50%)');
+    hue.setAttribute('aria-valuenow',String(Math.round(c.h)));
+    pn.style.backgroundColor=h;if(!fromHex)hex.value=h.toUpperCase();
+    $$('.skcp-sw button',box).forEach(function(b){b.classList.toggle('on',b.getAttribute('data-c')===h);});
+  }
+  function push(){
+    if(c.raf)return;
+    c.raf=requestAnimationFrame(function(){c.raf=0;if(CP!==c)return;var h=cur();if(c.inp.value!==h){c.inp.value=h;c.inp.dispatchEvent(new Event('input',{bubbles:true}));}});
+  }
+  function setHex(v){var r=h2rgb(v);if(!r)return;var q=rgb2hsv(r);c.h=q[1]?q[0]:c.h;c.s=q[1];c.v=q[2];paint();push();}
+  function drag(area,fn,cls){
+    area.addEventListener('pointerdown',function(e){
+      e.preventDefault();area.focus({preventScroll:true});area.setPointerCapture(e.pointerId);box.classList.add(cls);
+      var mv=function(ev){var r=area.getBoundingClientRect();fn(clamp((ev.clientX-r.left)/r.width,0,1),clamp((ev.clientY-r.top)/r.height,0,1));paint();push();};
+      mv(e);
+      var up=function(){area.removeEventListener('pointermove',mv);area.removeEventListener('pointerup',up);area.removeEventListener('pointercancel',up);box.classList.remove(cls);};
+      area.addEventListener('pointermove',mv);area.addEventListener('pointerup',up);area.addEventListener('pointercancel',up);
+    });
+  }
+  drag(sv,function(x,y){c.s=x;c.v=1-y;},'drag-sv');
+  drag(hue,function(x){c.h=Math.min(359.9,x*360);},'drag-h');
+  sv.addEventListener('keydown',function(e){var d=e.shiftKey?.1:.02,k=e.key;
+    if(k==='ArrowLeft')c.s=clamp(c.s-d,0,1);else if(k==='ArrowRight')c.s=clamp(c.s+d,0,1);else if(k==='ArrowUp')c.v=clamp(c.v+d,0,1);else if(k==='ArrowDown')c.v=clamp(c.v-d,0,1);else return;
+    e.preventDefault();paint();push();});
+  hue.addEventListener('keydown',function(e){var d=e.shiftKey?15:2,k=e.key;
+    if(k==='ArrowLeft'||k==='ArrowDown')c.h=(c.h-d+360)%360;else if(k==='ArrowRight'||k==='ArrowUp')c.h=(c.h+d)%360;else return;
+    e.preventDefault();paint();push();});
+  hex.addEventListener('input',function(){var v=hex.value.trim();if(v[0]!=='#')v='#'+v;if(/^#[0-9a-f]{6}$/i.test(v)){var r=h2rgb(v),q=rgb2hsv(r);c.h=q[1]?q[0]:c.h;c.s=q[1];c.v=q[2];paint(true);push();}});
+  hex.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();cpClose(true);}});
+
+  c.reflow=function(){
+    var r=inp.getBoundingClientRect(),bw=box.offsetWidth,bh=box.offsetHeight,W=innerWidth,H=innerHeight,x,y;
+    if(!r.width&&!r.height){x=(W-bw)/2;y=(H-bh)/2;}
+    else{x=r.left+r.width/2-bw/2;y=r.bottom+10;if(y+bh>H-8){y=r.top-bh-10;if(y<8){y=clamp(r.top+r.height/2-bh/2,8,H-bh-8);x=r.left>W/2?r.left-bw-10:r.right+10;}}}
+    x=clamp(x,8,Math.max(8,W-bw-8));y=clamp(y,8,Math.max(8,H-bh-8));
+    box.style.left=Math.round(x)+'px';box.style.top=Math.round(y)+'px';
+    box.style.setProperty('--ox',clamp(r.left+r.width/2-x,0,bw)+'px');box.style.setProperty('--oy',(r.top<y?0:bh)+'px');
+  };
+  c.outside=function(e){if(!box.contains(e.target)&&e.target!==inp)cpClose(true);};
+  c.key=function(e){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cpClose(false);}};
+  paint();c.reflow();
+  setTimeout(function(){if(CP===c){doc.addEventListener('pointerdown',c.outside,true);doc.addEventListener('keydown',c.key,true);window.addEventListener('resize',c.reflow);}},0);
+  if(!('ontouchstart' in window))setTimeout(function(){if(CP===c)sv.focus({preventScroll:true});},60);
+}
+doc.addEventListener('click',function(e){
+  var t=e.target;
+  if(bypass||!(t instanceof HTMLInputElement)||t.type!=='color'||t.disabled)return;
+  e.preventDefault();cpOpen(t);
+},true);
+
+/* ---------- 6. Bara de sus: numele documentului · indicatorul de zoom ---------- */
+var api=function(){return window.__skUI||null;};
+var docEl=null,zBtn=null,zHud=null,zHudT=0,last={s:-1,r:null,n:null,w:0,h:0};
+function ensureChrome(){
+  var gap=$('#dr .drtop .gap');
+  if(gap&&!docEl){docEl=mk('div','skdoc');docEl.setAttribute('aria-hidden','true');docEl.appendChild(mk('i'));var t=mk('div');t.style.minWidth='0';t.style.display='flex';t.style.flexDirection='column';t.style.gap='2px';t.appendChild(mk('b'));t.appendChild(mk('small'));docEl.appendChild(t);gap.appendChild(docEl);}
+  var view=$('#drView');
+  if(view&&!zBtn){
+    zBtn=mk('button','skzoom','100%');zBtn.type='button';zBtn.setAttribute('aria-label','Zoom. Apasă ca să potrivești pânza în ecran');
+    zBtn.setAttribute('data-sktip','Potrivește pânza în ecran');
+    zBtn.addEventListener('click',function(){var f=$('#drFit');if(f)f.click();});
+    view.appendChild(zBtn);
+  }
+  var wrap=$('#drWrap');
+  if(wrap&&!zHud){zHud=mk('div','skzhud');zHud.setAttribute('aria-hidden','true');wrap.appendChild(zHud);}
+}
+function hud(txt){
+  if(!zHud||RM.matches)return;zHud.textContent=txt;zHud.classList.add('on');clearTimeout(zHudT);zHudT=setTimeout(function(){zHud.classList.remove('on');},650);
+}
+function tick(){
+  requestAnimationFrame(tick);
+  var dr=$('#dr');if(!dr||dr.hidden||doc.hidden)return;
+  var A=api();if(!A)return;
+  var v;try{v=A.view();}catch(e){return;}
+  if(!v)return;
+  ensureChrome();
+  var s=Math.round(v.s*1000)/1000,r=Math.round(((v.r||0)*180/Math.PI)%360);
+  if(s!==last.s){
+    var pct=Math.round(v.s*100)+'%';if(zBtn)zBtn.textContent=pct;
+    if(last.s>0&&Math.abs(s-last.s)/last.s>.004)hud(pct);
+    last.s=s;
+  }
+  if(r!==last.r){if(last.r!==null)hud((r>0?'↻ ':'↺ ')+Math.abs(r)+'°');last.r=r;}
+  if(docEl){
+    var n='',w=0,h=0;try{n=A.name()||'';w=A.w();h=A.h();}catch(e){}
+    if(n!==last.n||w!==last.w||h!==last.h){last.n=n;last.w=w;last.h=h;docEl.querySelector('b').textContent=n||'Desen';docEl.querySelector('small').textContent=(w&&h)?(w+' × '+h+' px'):'';}
+  }
+}
+
+/* ---------- pornire ---------- */
+function start(){scan();fillAll();ensureChrome();requestAnimationFrame(tick);}
+if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
 <script>
