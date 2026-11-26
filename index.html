@@ -27,8 +27,23 @@
   var EX=Object.create(null),FK=[];
   Object.keys(D).forEach(function(k){var n=norm(k);if(n&&!(n in EX))EX[n]=D[k];if(k.length>=4&&(/[\s.,:;!?„”“()…—–·→←]/.test(k)||k.length>=8))FK.push(k);});
   FK.sort(function(a,b){return b.length-a.length;});
-  var RX=null;
-  function rx(){if(!RX){var L=/[A-Za-zĂÂÎȘȚăâîșț]/;var esc=FK.map(function(k){var e=k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return (L.test(k.charAt(0))?'(?<!\\p{L})':'')+e+(L.test(k.charAt(k.length-1))?'(?!\\p{L})':'');});try{RX=new RegExp(esc.join('|'),'gu');}catch(e){RX=new RegExp(FK.map(function(k){return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join('|'),'g');}}return RX;}
+  /* 2026.11.26 perf: în loc de o expresie regulată cu ~2.800 de variante (≈170 ms pe text netradus),
+     un index după primele două caractere. Aceleași reguli: cea mai din stânga potrivire, în ordinea FK
+     (cele mai lungi întâi), fără suprapuneri, cu aceleași margini de cuvânt (\p{L}) ca înainte. */
+  var FX=null,LT=/[A-Za-zĂÂÎȘȚăâîșț]/,PL=/\p{L}/u;
+  function fx(){if(!FX){FX=Object.create(null);FK.forEach(function(k){var h=k.slice(0,2),e={k:k,b:LT.test(k.charAt(0)),a:LT.test(k.charAt(k.length-1))};(FX[h]||(FX[h]=[])).push(e);});}return FX;}
+  function cpBefore(s,i){if(i<=0)return '';var c=s.charCodeAt(i-1);if(c>=0xDC00&&c<=0xDFFF&&i>=2){var h=s.charCodeAt(i-2);if(h>=0xD800&&h<=0xDBFF)return s.slice(i-2,i);}return s.charAt(i-1);}
+  function cpAt(s,i){if(i>=s.length)return '';var c=s.charCodeAt(i);if(c>=0xD800&&c<=0xDBFF&&i+1<s.length)return s.slice(i,i+2);return s.charAt(i);}
+  function rep(s){
+    var X=fx(),out='',last=0,i=0,n=s.length;
+    while(i<n-3){
+      var L=X[s.substr(i,2)],hit=null;
+      if(L)for(var j=0;j<L.length;j++){var e=L[j];
+        if(s.startsWith(e.k,i)&&!(e.b&&PL.test(cpBefore(s,i)))&&!(e.a&&PL.test(cpAt(s,i+e.k.length)))){hit=e;break;}}
+      if(hit){out+=s.slice(last,i)+D[hit.k];i+=hit.k.length;last=i;}else i++;
+    }
+    return last?out+s.slice(last):s;
+  }
   var CACHE=new Map();
   function tr(s){
     if(s==null)return s;s=String(s);
@@ -37,7 +52,7 @@
     if(n in EX){var lead=s.match(/^\s*/)[0],trail=s.match(/\s*$/)[0];return lead+EX[n]+trail;}
     var mN=n.match(/^(.*?\S)\s+(\d+)$/);if(mN&&(mN[1] in EX))return s.replace(mN[1],EX[mN[1]]);
     if(CACHE.has(s))return CACHE.get(s);
-    var out=s.replace(rx(),function(m){return D[m];}).replace(/([A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț]+)(?= \d)/g,function(w){return (w in EX)?EX[w]:w;});
+    var out=rep(s).replace(/([A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț]+)(?= \d)/g,function(w){return (w in EX)?EX[w]:w;});
     if(out.indexOf(': ')>0)out=out.split(': ').map(function(p){var q=norm(p);return (q in EX)?p.replace(q,EX[q]):p;}).join(': ');
     /* „Grup › Pensulă” și numele implicite de strat la final („… layer Schiță”) */
     if(out.indexOf(' › ')>0)out=out.split(' › ').map(function(p){var q=norm(p);return (q in EX)?p.replace(q,EX[q]):p;}).join(' › ');
