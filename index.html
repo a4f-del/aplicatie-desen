@@ -15262,8 +15262,8 @@ function prProAuto(){
 /* ---------- Pro: fundaluri gata desenate, în folderul „Fundaluri” (se descarcă din trasso-bg.js + bg/) ---------- */
 var BG_RUN=null;
 function bgProData(){
-  if(window.TR_BG&&window.TR_BG_V>=1)return Promise.resolve(window.TR_BG);
-  return new Promise(function(ok,no){var sc=document.createElement('script');sc.src='trasso-bg.js?v=1';sc.onload=function(){window.TR_BG?ok(window.TR_BG):no(new Error('bg'));};sc.onerror=function(){no(new Error('bg'));};document.head.appendChild(sc);});
+  if(window.TR_BG&&window.TR_BG_V>=2)return Promise.resolve(window.TR_BG);
+  return new Promise(function(ok,no){var sc=document.createElement('script');sc.src='trasso-bg.js?v=2';sc.onload=function(){window.TR_BG?ok(window.TR_BG):no(new Error('bg'));};sc.onerror=function(){no(new Error('bg'));};document.head.appendChild(sc);});
 }
 function bgImg(src){
   return new Promise(function(ok,no){var im=new Image();im.onload=function(){var cv=document.createElement('canvas');cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.getContext('2d').drawImage(im,0,0);ok(cv);};im.onerror=function(){no(new Error(src));};im.src=src;});
@@ -15272,6 +15272,13 @@ function bgProInstall(say){
   if(BG_RUN)return BG_RUN.then(function(){return 0;});
   var G='Fundaluri';
   BG_RUN=bgProData().then(function(L){
+    var ver={};L.forEach(function(it){ver[it[0]]=it[2]||1;});
+    var old=LB.list.filter(function(e){return e.pack==='bg'&&(e.bv||1)<(ver[e.name]||1);});
+    return Promise.all(old.map(function(e){return lbDeleteItem(e.id);})).then(function(){return bgProInstall2(say,L,G);});
+  });
+  var done=function(){BG_RUN=null;};BG_RUN.then(done,done);return BG_RUN;
+}
+function bgProInstall2(say,L,G){
     var have={};LB.list.forEach(function(e){if(e.pack==='bg')have[e.name]=1;});
     if((LB.folders||[]).indexOf(G)<0)(LB.folders=LB.folders||[]).push(G);
     var n=0,chain=Promise.resolve();
@@ -15279,15 +15286,13 @@ function bgProInstall(say){
       chain=chain.then(function(){
         if(say)say('Pun în bibliotecă „'+it[0]+'” ('+(i+1)+'/'+L.length+')…');
         return bgImg(it[1]).then(function(cv){
-          return lbSaveItem({cv:cv,x:0,y:0,w:cv.width,h:cv.height},{name:it[0],cat:'Fundaluri',grp:G,vname:'Normal',pack:'bg'}).then(function(r){if(r)r.pro=true;n++;});
+          return lbSaveItem({cv:cv,x:0,y:0,w:cv.width,h:cv.height},{name:it[0],cat:'Fundaluri',grp:G,vname:'Normal',pack:'bg'}).then(function(r){if(r){r.pro=true;r.bv=it[2]||1;}n++;});
         });
       });});
     return chain.then(function(){return lbIdxSave();}).then(function(){lbFoldSave();return n;});
-  });
-  var done=function(){BG_RUN=null;};BG_RUN.then(done,done);return BG_RUN;
 }
 function bgProAuto(){
-  var k='pro-bg-v1';try{if(localStorage.getItem(k)==='1')return;}catch(e){return;}
+  var k='pro-bg-v2';try{if(localStorage.getItem(k)==='1')return;}catch(e){return;}
   if(!window.indexedDB)return;
   setTimeout(function(){lbLoad().then(function(){return bgProInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},5000);
 }
