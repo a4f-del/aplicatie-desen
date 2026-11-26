@@ -18989,6 +18989,8 @@ var AN=(function(){
   /* când se deschide fereastra Setări mai târziu */
   document.addEventListener('click',function(){setTimeout(settingsHook,60);},true);
   AN.refreshHome=refreshHome;
+  /* 2026.11.26 perf: Acasă cere placa Animation imediat ce se desenează (înainte venea până la 0,5 s mai târziu și împingea meniul) */
+  AN.homeNow=function(){homeHook();homeInject();};
 })();
 
 /* ---------- Animation: Marionetă (desenul tăiat în bucăți) ----------
@@ -20038,6 +20040,7 @@ hmRender=function(){
     if(!left){hd(B,'Șterse recent');B.appendChild(el('p','note','Coșul e gol. Ce ștergi stă aici 30 de zile.'));}
     else{var rs=el('div','rcyslot');B.appendChild(rs);rcyHome(rs);}
     var cnt=h.querySelector('.hmcnt');if(cnt){cnt.textContent=String(left);cnt.hidden=!left;}
+    if(typeof AN!=='undefined'&&AN.homeNow)try{AN.homeNow();}catch(e){}
     hmGo(HMV.v,HMV.tab);hmAnimFix();
   });
 };
