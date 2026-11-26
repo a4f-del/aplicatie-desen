@@ -9922,7 +9922,6 @@ function drFileMenu(ev){
   /* 2026.11.23j: grupate după intenție – proiect și copii, export final, bibliotecă, inserare, deschidere */
   hd('Proiect și copie de siguranță');
   tfMenu(it,'save');
-  it('Salvează acum','Desenul se salvează oricum singur pe tabletă',function(){say(drSaveNow().then(function(){return 'Salvat pe tabletă.';}));});
   it('Salvează proiectul (.zip)','Cu toate straturile, ca să-l muți sau să-l păstrezi',function(){drExportZip();});
   it('Copie de siguranță cu tot','Desene, capitole, bibliotecă, pensule',function(){drBackupNow();});
   hd('Export final');
@@ -9935,9 +9934,6 @@ function drFileMenu(ev){
   it('Fișier PSD (cu straturi)','Pentru tipografie și alte programe de desen, cu straturi',function(){drExportPSD();});
   it('Rezoluția exportului…','150, 300, 600 dpi…',function(){if(window.__setOpen)window.__setOpen('Export');else{var s=$('#drSide');s.hidden=false;if(DRTABS)uiTabGo(DRTABS,'tl',true);drSync();}});
   it('Time-lapse (video)','Clip accelerat cu cum ai desenat',tlOpen);
-  hd('Bibliotecă și refolosire');
-  it('Salvează în bibliotecă…','Fața, corpul sau ce ai desenat, ca să-l refolosești',function(){lbOpenSave();});
-  it('Pune din bibliotecă…','Fața, corpul sau alt element salvat, direct în panou',function(){lbOpenPut();});
   hd('Inserează în desen');
   it('Imagine sau PSD…','PNG, JPG sau PSD, pe un strat nou, în panoul ales',function(){insOpen();});
   moreBtn();
@@ -9949,8 +9945,6 @@ function drFileMenu(ev){
   tfMenu(it,'open');
   it('Deschide un proiect (.zip)…','',function(){var i=$('#drProjIn');if(i)i.click();});
   it('Deschide un desen început…','Imagine sau PSD ca desen nou, cu straturile lui',function(){var i=$('#drImpIn');if(i)i.click();});
-  hd('Prieteni');
-  it('📲 Trimite aplicația unui prieten…','Link și cod QR: o instalează pe telefonul lui',function(){appShareOpen();});
   m.hidden=false;
   var b=$('#drExport').getBoundingClientRect();
   m.style.top=Math.round(b.bottom+6)+'px';m.style.right=Math.max(8,Math.round(window.innerWidth-b.right))+'px';
@@ -16832,7 +16826,7 @@ var STSLOTS=[
   ['pen','Peniță','Peniță',['gpen','sharp','fine','maru','turnip','kabura','school']],
   ['sketch','Schiță','Creion',['pencil','chalk']],
   ['paint','Pictură','Pensulă',['brush','marker','air']],
-  ['deco','Decor','',[]],
+  ['deco','Ton','',[]],
   ['eraser','Radieră','Radieră',['eraser','smudge','blur']],
   ['fill','Umplere','Umplere',['fill','grad','tone']],
   ['shape','Forme','Forme',['fx','bubble','shape','line','crack','fore']],
@@ -18638,7 +18632,7 @@ var AN=(function(){
   function homeInject(){var h=document.getElementById('home');if(!h||h.hidden)return;var on=AN.isOn();hmBusy=true;
     try{var crow=h.querySelector('.hmcrow'),c=h.querySelector('.anhmc');
       if(!on){if(c)c.remove();var s0=h.querySelector('.anhms');if(s0)s0.remove();return;}
-      if(crow&&!c){css();var b=E('button','hmpc anhmc');b.type='button';var ii=E('span','hmpcic anhmic');ii.innerHTML=IC.film;b.appendChild(ii);var tx=E('span');tx.appendChild(E('b',null,'Animation'));
+      if(crow&&!c){css();var b=E('button','hmpc anhmc');b.type='button';var ii=E('span','hmpcic anhmic');ii.innerHTML=IC.film;b.appendChild(ii);var tx=E('span');tx.appendChild(E('b',null,T('Animație','Animation')));
         tx.appendChild(E('small',null,T('Cadru cu cadru, din desenele tale · PRO+','Frame by frame, from your drawings · PRO+')));b.appendChild(tx);b.addEventListener('click',startDlg);crow.appendChild(b);}
       var hero=h.querySelector('.hmhero');if(hero&&!h.querySelector('.anhms')){var sec=E('div','anhms');hero.parentNode.insertBefore(sec,hero.nextSibling);homeList(sec);}
     }finally{setTimeout(function(){hmBusy=false;},0);}}
@@ -18666,7 +18660,7 @@ var AN=(function(){
     var l=E('label','toggle'),i=E('input'),s=E('span',null,T('Animation (în test): cardul de pe Acasă și „Animațiile mele”','Animation (testing): the Home card and “My animations”'));i.type='checkbox';i.checked=AN.isOn();
     i.addEventListener('change',function(){AN.LSs('trasso-anim',i.checked?'1':'0');var h=document.getElementById('home');if(h&&!h.hidden&&typeof hmRender==='function')hmRender();});l.appendChild(i);l.appendChild(s);box.appendChild(l);return true;}
   function newHook(){var n=document.getElementById('drNew');if(!n||n.querySelector('.annew'))return !!n;var h2=n.querySelector('h2');if(!h2)return false;
-    var b=E('button','btn annew');b.type='button';b.appendChild(E('b',null,'Animation'));b.appendChild(E('small',null,T('Cadru cu cadru sau din desenele tale · PRO+','Frame by frame or from your drawings · PRO+')));
+    var b=E('button','btn annew');b.type='button';b.appendChild(E('b',null,T('Animație','Animation')));b.appendChild(E('small',null,T('Cadru cu cadru sau din desenele tale · PRO+','Frame by frame or from your drawings · PRO+')));
     b.addEventListener('click',function(){if(!AN.isOn()){AN.toast&&0;}startDlg();});h2.parentNode.insertBefore(b,h2.nextSibling);
     var mo=new MutationObserver(function(){b.hidden=!AN.isOn();});mo.observe(n,{attributes:true,attributeFilter:['hidden']});b.hidden=!AN.isOn();return true;}
   var tries=0;
@@ -19821,6 +19815,121 @@ function hmCss(){
   '@media (prefers-reduced-motion:reduce){#home .hmA *,#home .hmbig svg.ic{animation:none!important}#home .hmAol,#home .hmAsw{stroke-dashoffset:0}#home .hmAex{transform:translate(4px,4px)}#home .hmAfb,#home .hmAbu,#home .hmAbo,#home .hmAfx,#home .hmAgs{opacity:0}}';
   document.head.appendChild(st);
 }
+
+/* ===== 2026.11.26c – Reorganizarea meniurilor, etapa 1 (propunerea aprobată) =====
+   1) Bara de sus: limba (e în Setări → Aspect) și „Potrivește” (e butonul de zoom) ies din bară.
+   2) Starea salvării stă lângă titlu; copia de siguranță se deschide de acolo, nu mai împinge straturile în jos.
+   3) Pagină: „Desenezi în” cu miniatura paginii; atingi panoul în care desenezi.
+   4) Pe foaie, când desenezi pe toată pagina: eticheta „Toată pagina ▾” deschide alegerea panoului.
+   5) Anulează / Refă stau sus în ambele moduri. */
+function trL(ro,en){try{return lgCur()==='en'?en:ro;}catch(e){return ro;}}
+function trReoCss(){
+  if($('#trReoSt'))return;
+  var st=document.createElement('style');st.id='trReoSt';st.textContent=
+  'html #dr .drtop #drLang,html #dr .drtop #drFit{display:none!important}'+
+  'html body.hasrail #drUndo,html body.hasrail #drRedo{display:inline-flex!important}'+
+  '#drRail .rbtn:not([id]){display:none!important}'+
+  '.trsv{display:inline-flex;align-items:center;gap:5px;margin-left:10px;padding:4px 10px;border-radius:999px;border:0;cursor:pointer;font:600 12px/1 var(--ui,system-ui);background:#e8f4ec;color:#22663f;white-space:nowrap}'+
+  '.trsv svg{width:13px;height:13px}.trsv.old{background:#fdf1dc;color:#7a4a05}.trsv:hover{filter:brightness(.97)}'+
+  '.trsv .trsvd{width:7px;height:7px;border-radius:50%;background:#e08a00;display:none}.trsv.old .trsvd{display:inline-block}'+
+  '#trSvPop{position:fixed;z-index:60;width:min(340px,92vw);background:var(--card,#fff);color:var(--ink,#1d1d24);border:1px solid var(--sk-line,#e3e2e7);border-radius:16px;box-shadow:0 14px 36px rgba(20,20,30,.18);padding:14px 16px;max-height:80vh;overflow:auto}'+
+  '#trSvPop[hidden]{display:none}#trSvPop .h{cursor:default!important}#trSvPop .h::after{display:none!important}'+
+  '#trSvPop .trsvx{position:absolute;right:10px;top:10px;width:32px;height:32px;border:0;border-radius:9px;background:transparent;cursor:pointer;color:inherit;font-size:16px}'+
+  '.trpm{display:flex;gap:14px;align-items:flex-start;width:100%}'+
+  '.trpm svg.trpmsv{flex:none;width:112px;height:auto;background:#fff;border:1px solid var(--sk-line,#e3e2e7);border-radius:4px;box-shadow:0 2px 8px rgba(30,30,50,.08);touch-action:manipulation}'+
+  '.trpm .trpq{fill:#efedf2;stroke:#bdbac6;stroke-width:6;cursor:pointer}.trpm .trpq:hover{fill:#e6e1d6}'+
+  '.trpm .trpq.on{fill:var(--acc,#f2a93b);stroke:var(--acc,#f2a93b)}.trpm .trpq.dim{fill:#f6f5f8}'+
+  '.trpm text{font:700 64px var(--ui,system-ui);fill:#6b6b76;pointer-events:none}.trpm text.on{fill:var(--acc-ink,#3d2a07)}'+
+  '.trpm .trpmr{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}.trpm .trpmr b{font:600 15px/1.2 var(--ui,system-ui)}'+
+  '.trpm .trpmr small{font-size:12px;line-height:1.4;color:var(--ink-2,#5e5e6a)}'+
+  '.trpm .trpall{align-self:flex-start;min-height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--sk-line,#e3e2e7);background:var(--card,#fff);color:inherit;font:500 13px var(--ui,system-ui);cursor:pointer}'+
+  '.trpm .trpall[aria-pressed="true"]{background:var(--acc,#f2a93b);color:var(--acc-ink,#3d2a07);border-color:transparent}'+
+  '#trPChip{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:6;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;border:0;cursor:pointer;background:#fdf1dc;color:#7a4a05;font:600 13px var(--ui,system-ui);box-shadow:0 2px 10px rgba(242,169,59,.25)}'+
+  '#trPChip[hidden]{display:none}#trPChip svg{width:15px;height:15px}';
+  document.head.appendChild(st);
+}
+var TRSV_CHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+var TRP_IC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 10h16M12 10v11"/></svg>';
+/* --- 2) starea salvării lângă titlu --- */
+function trSaveInit(){
+  var doc=document.querySelector('#dr .drtop .skdoc'),box=document.querySelector('#drSide .sfbox');
+  if(!doc||!box||$('#trSv'))return;
+  var name=$('#drDocName'),pane=box.parentNode,h=null;
+  for(var x=name&&name.previousElementSibling;x;x=x.previousElementSibling)if(x.classList.contains('h')){h=x;break;}
+  var pop=el('div');pop.id='trSvPop';pop.hidden=true;pop.setAttribute('role','dialog');pop.setAttribute('aria-label',trL('Salvare și copii de siguranță','Saving and backups'));
+  var cx=el('button','trsvx','✕');cx.type='button';cx.setAttribute('aria-label',trL('Închide','Close'));cx.addEventListener('click',function(){pop.hidden=true;});pop.appendChild(cx);
+  pop.appendChild(el('div','h',trL('Salvare și copii','Saving and backups')));
+  if(name)pop.appendChild(name);
+  pop.appendChild(box);
+  if(h)h.hidden=true;
+  var gone=pane&&pane.querySelector(':scope > .btns.hmgone');if(gone)pop.appendChild(gone);
+  document.body.appendChild(pop);
+  var b=el('button','trsv');b.id='trSv';b.type='button';b.setAttribute('aria-haspopup','dialog');
+  b.innerHTML=TRSV_CHK+'<span class="trsvt">'+trL('Salvat','Saved')+'</span><span class="trsvd" aria-hidden="true"></span>';
+  (doc.querySelector('div')||doc).appendChild(b);
+  b.addEventListener('click',function(e){e.stopPropagation();
+    if(!pop.hidden){pop.hidden=true;return;}
+    pop.hidden=false;var r=b.getBoundingClientRect(),w=pop.offsetWidth;
+    pop.style.left=Math.round(clamp(r.left+r.width/2-w/2,8,Math.max(8,innerWidth-w-8)))+'px';pop.style.top=Math.round(r.bottom+8)+'px';});
+  document.addEventListener('pointerdown',function(e){if(!pop.hidden&&!pop.contains(e.target)&&!b.contains(e.target))pop.hidden=true;},true);
+  function paint(){
+    var s=box.querySelector('.sfstat'),old=!!(s&&s.classList.contains('old'));
+    b.classList.toggle('old',old);
+    b.title=old?trL('Salvat pe tabletă. Copia de siguranță e veche: atinge ca s-o faci.','Saved on the tablet. Your backup is old: tap to make one.'):trL('Salvat pe tabletă.','Saved on the tablet.');b.setAttribute('aria-label',b.title);
+  }
+  new MutationObserver(paint).observe(box,{subtree:true,attributes:true,attributeFilter:['class'],childList:true,characterData:true});
+  DR.sync.push(paint);paint();
+}
+/* --- 3) Pagină: miniatura panourilor --- */
+function trPanelMapInit(){
+  var pb=document.querySelector('#drSide .btns.uxpchips');if(!pb||pb.getAttribute('data-trpm'))return;
+  pb.setAttribute('data-trpm','1');
+  var NS='http://www.w3.org/2000/svg';
+  DR.sync.push(function(){
+    if(DR.kind!=='page'||!S.page)return;
+    var qs=pageQuads(S.page.layout),n=qs.length;if(!n)return;
+    var sel=Math.max(0,Math.min(n-1,DR.panel|0)),all=!DR.clip;
+    pb.innerHTML='';
+    var w=el('div','trpm'),sv=document.createElementNS(NS,'svg');sv.setAttribute('class','trpmsv');sv.setAttribute('viewBox','0 0 '+PW+' '+PH);
+    sv.setAttribute('role','group');sv.setAttribute('aria-label',trL('Alege panoul în care desenezi','Choose the panel you draw in'));
+    qs.forEach(function(q,i){
+      var p=document.createElementNS(NS,'polygon');p.setAttribute('points',q.p.map(function(a){return a[0]+','+a[1];}).join(' '));
+      p.setAttribute('class','trpq'+(i===sel&&!all?' on':'')+(all?' dim':''));p.setAttribute('tabindex','0');p.setAttribute('role','button');
+      p.setAttribute('aria-label',trL('Panoul ','Panel ')+(i+1));p.setAttribute('aria-pressed',String(i===sel&&!all));
+      function go(){DR.panel=i;DR.clip=true;drSync();drDirty();}
+      p.addEventListener('click',go);p.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
+      sv.appendChild(p);
+      var t=document.createElementNS(NS,'text');t.setAttribute('x',q.x+q.w/2);t.setAttribute('y',q.y+q.h/2+22);t.setAttribute('text-anchor','middle');
+      if(i===sel&&!all)t.setAttribute('class','on');t.textContent=String(i+1);sv.appendChild(t);
+    });
+    w.appendChild(sv);
+    var r=el('div','trpmr');
+    r.appendChild(el('b',null,all?trL('Toată pagina','Whole page'):trL('Panoul ','Panel ')+(sel+1)));
+    r.appendChild(el('small',null,all?trL('Desenezi oriunde pe pagină. Atinge un panou ca să desenezi doar în el.','You draw anywhere on the page. Tap a panel to draw only inside it.'):trL('Desenezi doar în acest panou. Atinge altul pe miniatură ca să schimbi.','You draw only inside this panel. Tap another one on the thumbnail to switch.')));
+    var ab=el('button','trpall',trL('Toată pagina','Whole page'));ab.type='button';ab.setAttribute('aria-pressed',String(all));
+    ab.addEventListener('click',function(){DR.clip=false;drSync();drDirty();});r.appendChild(ab);
+    w.appendChild(r);pb.appendChild(w);
+  });
+}
+/* --- 4) eticheta „Panoul N” pe foaie --- */
+function trPanelChipInit(){
+  var wrap=$('#drWrap');if(!wrap||$('#trPChip'))return;
+  var c=el('button');c.id='trPChip';c.type='button';c.hidden=true;wrap.appendChild(c);
+  c.addEventListener('pointerdown',function(e){e.stopPropagation();});
+  c.addEventListener('click',function(){var s=$('#drSide');if(s)s.hidden=false;if(DRTABS)uiTabGo(DRTABS,'pg',true);drSync();});
+  DR.sync.push(function(){
+    var n=(DR.kind==='page'&&S.page)?pageQuads(S.page.layout).length:0,on=DR.ready&&n>1&&!DR.clip; /* cu un panou ales, aplicația arată deja „Desenezi doar în panoul N” */
+    c.hidden=!on;if(!on)return;
+    c.innerHTML=TRP_IC+'<span>'+trL('Toată pagina','Whole page')+'</span><span aria-hidden="true">▾</span>';
+    c.setAttribute('aria-label',trL('Desenezi pe toată pagina. Alege un panou','You draw on the whole page. Choose a panel'));
+  });
+}
+function trReoInit(){trReoCss();trSaveInit();trPanelMapInit();trPanelChipInit();drSync();}
+(function trReoBoot(n){
+  if(typeof DR==='undefined'||!DR.built||!$('#dr .drtop .skdoc')||!document.querySelector('#drSide .sfbox')||!document.querySelector('#drSide .uxpchips')){if(n<240)setTimeout(function(){trReoBoot(n+1);},250);return;}
+  try{trReoInit();}catch(e){console.error(e);}
+})(0);
+
 })();
 </script>
 <script>
