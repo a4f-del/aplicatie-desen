@@ -18172,7 +18172,10 @@ var AN=(function(){
   function maxFrames(w,h){return Math.max(8,Math.floor(MEM/(w*h*4*1.15)));}
   /* ---------- starea ---------- */
   var A=null,UI=null,play=false,raf=0,last=0,sub=0,undo=[],redo=[],saveT=0,tool='pen',col='#141414',size=6,penSeen=false,stroke=null,sel=null,drag=null;
-  function newFrame(w,h){return {c:MK(w,h),hold:1,dirty:true,b:null};}
+  /* 2026.11.26g: fiecare cadru are trei straturi — Schiță (sk, nu se exportă), Linie (c) și Culoare (cl, sub linie). sk și cl se fac la prima folosire. */
+  function newFrame(w,h){return {c:MK(w,h),cl:null,sk:null,hold:1,dirty:true,b:null,clB:null,skB:null};}
+  function lay(f,k){if(!f[k])f[k]=MK(A.w,A.h);return f[k];}
+  function cpFrame(f){return {c:CP(f.c),cl:f.cl?CP(f.cl):null,sk:f.sk?CP(f.sk):null,hold:f.hold||1,dirty:true,b:null,clB:null,skB:null};}
   function newDoc(o){var w=o.w,h=o.h;return {id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:o.name||T('Animație','Animation'),kind:o.kind||'cel',w:w,h:h,fps:o.fps||12,loop:true,
     frames:[newFrame(w,h)],bg:MK(w,h),bgDirty:true,bgB:null,cur:0,tgt:'frame',onion:{on:true,n:1,a:.35},range:{on:false,a:1,b:2},fx:[],t:Date.now()};}
   function curF(){return A.frames[A.cur];}
@@ -18182,12 +18185,12 @@ var AN=(function(){
   var saving=null;
   function save(){if(!A)return Promise.resolve();clearTimeout(saveT);var D=A;
     var run=function(){
-      var jobs=D.frames.map(function(f){return f.dirty||!f.b?toBlob(f.c).then(function(b){f.b=b;f.dirty=false;}):null;});
+      var jobs=D.frames.map(function(f){return f.dirty||!f.b?Promise.all([toBlob(f.c),f.cl?toBlob(f.cl):null,f.sk?toBlob(f.sk):null]).then(function(r){f.b=r[0];f.clB=r[1];f.skB=r[2];f.dirty=false;}):null;});
       if(D.bgDirty||!D.bgB)jobs.push(toBlob(D.bg).then(function(b){D.bgB=b;D.bgDirty=false;}));
       if(D.pp&&D.ppSave)jobs.push(D.ppSave());
       return Promise.all(jobs).then(function(){
         var rec={id:D.id,name:D.name,kind:D.kind,w:D.w,h:D.h,fps:D.fps,loop:D.loop,onion:D.onion,range:D.range,fx:D.fx,t:D.t,cur:D.cur,
-          frames:D.frames.map(function(f){return {b:f.b,hold:f.hold||1};}),bg:D.bgB,pp:D.ppRec||null,film:D.film||null,filmDur:D.filmDur||0};
+          frames:D.frames.map(function(f){return {b:f.b,hold:f.hold||1,cl:f.clB||null,sk:f.skB||null};}),bg:D.bgB,pp:D.ppRec||null,film:D.film||null,filmDur:D.filmDur||0};
         var th=MK(240,Math.round(240*D.h/D.w));if(th.height>300){th.width=Math.round(300*D.w/D.h);th.height=300;}
         composeTo(th.getContext('2d'),Math.min(D.cur,D.frames.length-1),th.width/D.w,D);
         return Promise.all([dput('a:'+D.id,rec),toBlob(th,'image/jpeg',.85)]).then(function(r){
@@ -18201,13 +18204,13 @@ var AN=(function(){
   function durOf(D){if(D.kind==='film')return D.filmDur||0;if(D.kind==='puppet'&&D.pp)return D.pp.n/D.fps;var n=0;D.frames.forEach(function(f){n+=f.hold||1;});return n/D.fps;}
   function load(id){return dget('a:'+id).then(function(r){if(!r)return null;
     var D={id:r.id,name:r.name,kind:r.kind||'cel',w:r.w,h:r.h,fps:r.fps||12,loop:r.loop!==false,onion:r.onion||{on:true,n:1,a:.35},range:r.range||{on:false,a:1,b:2},fx:r.fx||[],t:r.t,cur:r.cur||0,tgt:'frame',bgB:r.bg,bgDirty:false,ppRec:r.pp||null,film:r.film||null,filmDur:r.filmDur||0};
-    return Promise.all([blobCv(r.bg,r.w,r.h)].concat(r.frames.map(function(f){return blobCv(f.b,r.w,r.h);}))).then(function(cs){
-      D.bg=cs[0];D.frames=r.frames.map(function(f,i){return {c:cs[i+1],hold:f.hold||1,dirty:false,b:f.b};});
+    return Promise.all([blobCv(r.bg,r.w,r.h)].concat(r.frames.map(function(f){return Promise.all([blobCv(f.b,r.w,r.h),f.cl?blobCv(f.cl,r.w,r.h):null,f.sk?blobCv(f.sk,r.w,r.h):null]);}))).then(function(cs){
+      D.bg=cs[0];D.frames=r.frames.map(function(f,i){var q=cs[i+1];return {c:q[0],cl:q[1],sk:q[2],hold:f.hold||1,dirty:false,b:f.b,clB:f.cl||null,skB:f.sk||null};});
       if(!D.frames.length)D.frames=[newFrame(D.w,D.h)];D.cur=Math.min(D.cur,D.frames.length-1);
       return (AN.ppLoad&&D.ppRec?AN.ppLoad(D):Promise.resolve()).then(function(){return D;});});});}
   /* ---------- compunere ---------- */
   function composeTo(x,i,k,D){D=D||A;if(D.kind==='film'&&AN.filmThumb){AN.filmThumb(x,k,D);return;}x.save();x.setTransform(k,0,0,k,0,0);x.fillStyle='#fff';x.fillRect(0,0,D.w,D.h);x.drawImage(D.bg,0,0);
-    if(D.kind==='puppet'&&AN.ppDraw)AN.ppDraw(x,i,D);else if(D.frames[i])x.drawImage(D.frames[i].c,0,0);
+    if(D.kind==='puppet'&&AN.ppDraw)AN.ppDraw(x,i,D);else if(D.frames[i]){if(D.frames[i].cl)x.drawImage(D.frames[i].cl,0,0);x.drawImage(D.frames[i].c,0,0);}
     if(AN.fxDraw)AN.fxDraw(x,i,D);x.restore();}
   var TMP=null;
   function tint(x,src,color,a){if(!TMP||TMP.width!==A.w||TMP.height!==A.h)TMP=MK(A.w,A.h);var t=TMP.getContext('2d');t.globalCompositeOperation='source-over';t.clearRect(0,0,A.w,A.h);t.drawImage(src,0,0);
@@ -18221,16 +18224,23 @@ var AN=(function(){
     if(o.on&&!play){for(var k=o.n;k>=1;k--){var a=o.a*(1-(k-1)/(o.n+.5)),p=A.cur-k,q=A.cur+k;
       if(p>=0)tint(x,A.frames[p].c,'#d0553f',a);else if(A.loop&&n>2)tint(x,A.frames[(p%n+n)%n].c,'#d0553f',a*.6);
       if(q<n)tint(x,A.frames[q].c,'#2f8f6a',a);else if(A.loop&&n>2)tint(x,A.frames[q%n].c,'#2f8f6a',a*.6);}}
-    x.drawImage(curF().c,0,0);
+    var F=curF();
+    if(A.tgt==='bg')liveOn(x,A.bg);
+    if(F.cl){x.drawImage(F.cl,0,0);}liveOn(x,F.cl);
+    x.drawImage(F.c,0,0);liveOn(x,F.c);
+    if(!play&&A.skShow!==false&&F.sk){tint(x,F.sk,'#3b82f6',A.skA||.55);}if(F.sk)liveOn(x,F.sk);
     if(AN.fxDraw)AN.fxDraw(x,A.cur,A);
     if(sel&&!play){x.drawImage(sel.img,sel.x,sel.y);x.save();x.setLineDash([8,6]);x.lineWidth=2*A.w/900;x.strokeStyle='#F2A93B';x.strokeRect(sel.x,sel.y,sel.img.width,sel.img.height);x.restore();}
     if(stroke&&stroke.lasso){x.save();x.setLineDash([8,6]);x.strokeStyle='#F2A93B';x.lineWidth=2*A.w/900;x.beginPath();stroke.lasso.forEach(function(p,i){i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]);});x.stroke();x.restore();}
     if(A.tgt==='bg'&&!play){x.fillStyle='rgba(203,187,160,.14)';x.fillRect(0,0,A.w,A.h);}
     if(AN.fxOverlay)AN.fxOverlay(x);
     status();}
+  /* trăsătura în lucru stă într-un tampon: opacitatea nu face „mărgele” unde segmentele se suprapun */
+  function liveOn(x,c){if(!stroke||!stroke.sb||!c||stroke.c!==c)return;x.globalAlpha=stroke.op*(c===curF().sk?.6:1);x.drawImage(stroke.sb,0,0);x.globalAlpha=1;}
+  var LAYN={frame:T('Linie','Line'),color:T('Culoare','Colour'),rough:T('Schiță','Rough'),bg:T('Fundal','Background')};
   function status(){if(!UI)return;var b=UI.badge,c=UI.cnt;
     if(A.kind==='puppet'&&AN.ppStatus){AN.ppStatus(b,c);return;}
-    b.textContent=A.tgt==='bg'&&!play?T('Desenezi pe fundal','Drawing on the background'):T('Cadrul ','Frame ')+(A.cur+1)+' / '+A.frames.length;
+    b.textContent=A.tgt==='bg'&&!play?T('Desenezi pe fundal','Drawing on the background'):T('Cadrul ','Frame ')+(A.cur+1)+' / '+A.frames.length+(play?'':' · '+(LAYN[A.tgt]||LAYN.frame));
     c.textContent=(A.cur+1)+' / '+A.frames.length;}
   /* ---------- miniaturi și bandă ---------- */
   function thumb(i){var f=A.frames[i];if(!f)return;var tw=120,th=Math.round(120*A.h/A.w);if(th>150){th=150;tw=Math.round(150*A.w/A.h);}
@@ -18254,7 +18264,7 @@ var AN=(function(){
   function pushFr(){undo.push({k:'fr',frames:A.frames.slice(),cur:A.cur});redo=[];trimUndo();}
   function trimUndo(){var px=0;for(var i=undo.length-1;i>=0;i--){if(undo[i].k==='px'){px++;if(px>20){undo.splice(i,1);}}}if(undo.length>60)undo.shift();}
   function addFrame(dup){stopPlay();commitSel();if(A.frames.length>=maxFrames(A.w,A.h))return toast(T('Nu mai e loc pentru cadre pe dispozitivul ăsta.','No room for more frames on this device.'));
-    pushFr();var f=newFrame(A.w,A.h);f.hold=curF().hold||1;if(dup){f.c.getContext('2d').drawImage(curF().c,0,0);f.hold=curF().hold||1;}
+    pushFr();var f=dup?cpFrame(curF()):newFrame(A.w,A.h);f.hold=curF().hold||1;
     A.frames.splice(A.cur+1,0,f);A.cur++;strip();selFrame();dirty();AN.durNote&&AN.durNote();
     toast(dup?T('Cadrul e copiat. Schimbă doar ce se mișcă.','Frame copied. Change only what moves.'):T('Cadru nou, gol. Vezi slab cadrul dinainte.','New empty frame. The previous one shows faintly.'));}
   function delFrame(){stopPlay();commitSel();if(A.frames.length<2)return toast(T('Animația are nevoie de cel puțin un cadru.','The animation needs at least one frame.'));
@@ -18263,11 +18273,10 @@ var AN=(function(){
   function setHold(h){if(A.kind==='puppet')return;pushFr();A.frames=A.frames.slice();A.frames[A.cur]=Object.assign({},curF(),{hold:h});strip();selFrame();dirty();AN.durNote&&AN.durNote();}
   function reverse(){pushFr();A.frames=A.frames.slice().reverse();A.cur=A.frames.length-1-A.cur;strip();selFrame();dirty();toast(T('Ordinea cadrelor e inversată.','Frame order reversed.'));}
   function pingpong(){var add=A.frames.slice(1,-1).reverse();if(A.frames.length+add.length>maxFrames(A.w,A.h))return toast(T('Nu e loc pentru toate cadrele.','Not enough room for all frames.'));
-    pushFr();A.frames=A.frames.concat(add.map(function(f){return {c:f.c,hold:f.hold,dirty:true,b:null,shared:true};}));
-    A.frames=A.frames.map(function(f){if(f.shared){return {c:CP(f.c),hold:f.hold,dirty:true,b:null};}return f;});strip();selFrame();dirty();AN.durNote&&AN.durNote();toast(T('Am adăugat drumul înapoi: animația merge dus-întors.','Added the way back: the animation now plays back and forth.'));}
-  function clearFrame(){commitSel();var c=A.tgt==='bg'?A.bg:curF().c;pushPx(c);c.getContext('2d').clearRect(0,0,A.w,A.h);markDirty(c);thumbAll(c===A.bg);render();}
+    pushFr();A.frames=A.frames.concat(add.map(function(f){return cpFrame(f);}));strip();selFrame();dirty();AN.durNote&&AN.durNote();toast(T('Am adăugat drumul înapoi: animația merge dus-întors.','Added the way back: the animation now plays back and forth.'));}
+  function clearFrame(){commitSel();var c=target();pushPx(c);c.getContext('2d').clearRect(0,0,A.w,A.h);markDirty(c);thumbAll(c===A.bg);render();}
   function pushPx(c){undo.push({k:'px',c:c,d:c.getContext('2d').getImageData(0,0,c.width,c.height)});redo=[];trimUndo();}
-  function markDirty(c){if(c===A.bg){A.bgDirty=true;}else A.frames.forEach(function(f){if(f.c===c)f.dirty=true;});dirty();}
+  function markDirty(c){if(c===A.bg){A.bgDirty=true;}else A.frames.forEach(function(f){if(f.c===c||f.cl===c||f.sk===c)f.dirty=true;});dirty();}
   function thumbAll(all){if(A.kind==='puppet')return;if(all){A.frames.forEach(function(f,i){thumb(i);});}else thumb(A.cur);}
   function doUndo(){if(A.kind==='puppet'&&AN.ppUndo)return AN.ppUndo();commitSel();var u=undo.pop();if(!u)return toast(T('Nimic de anulat.','Nothing to undo.'));
     if(u.k==='px'){var x=u.c.getContext('2d');redo.push({k:'px',c:u.c,d:x.getImageData(0,0,u.c.width,u.c.height)});x.putImageData(u.d,0,0);markDirty(u.c);thumbAll(u.c===A.bg);}
@@ -18291,7 +18300,7 @@ var AN=(function(){
     if(ts-last>step*6)last=ts;if(m)selFrame();raf=requestAnimationFrame(tick);}
   /* ---------- desen ---------- */
   function pt(e){var r=UI.cv.getBoundingClientRect();return [(e.clientX-r.left)*A.w/r.width,(e.clientY-r.top)*A.h/r.height];}
-  function target(){return A.tgt==='bg'?A.bg:curF().c;}
+  function target(){if(A.tgt==='bg')return A.bg;var f=curF();if(A.tgt==='color')return lay(f,'cl');if(A.tgt==='rough')return lay(f,'sk');return f.c;}
   function inSel(p){return sel&&p[0]>=sel.x&&p[1]>=sel.y&&p[0]<=sel.x+sel.img.width&&p[1]<=sel.y+sel.img.height;}
   function commitSel(){if(!sel)return;var c=sel.c,x=c.getContext('2d');x.drawImage(sel.img,sel.x,sel.y);sel=null;markDirty(c);thumbAll(c===A.bg);selBar();render();}
   function dropSel(){if(!sel)return;sel=null;markDirty(target());thumbAll(A.tgt==='bg');selBar();render();}
@@ -18311,21 +18320,68 @@ var AN=(function(){
     if(AN.fxPlacing&&AN.fxPlacing()){AN.fxPlace(pt(e));return;}
     UI.cv.setPointerCapture(e.pointerId);var p=pt(e);
     if(tool==='lasso'){if(inSel(p)){drag={dx:p[0]-sel.x,dy:p[1]-sel.y};return;}commitSel();stroke={lasso:[p]};return;}
-    commitSel();var c=target();pushPx(c);stroke={x:c.getContext('2d'),l:p,m:p,c:c,id:e.pointerId};}
+    if(tool==='pick'){pick(p);return;}
+    if(tool==='fill'){commitSel();fill(p);return;}
+    commitSel();var c=target();pushPx(c);var B=brushOf(),er=tool==='eraser';
+    var sb=null;if(!er){if(!SB||SB.width!==A.w||SB.height!==A.h)SB=MK(A.w,A.h);sb=SB;sb.getContext('2d').clearRect(0,0,A.w,A.h);}
+    stroke={x:(sb||c).getContext('2d'),sb:sb,l:p,m:p,c:c,id:e.pointerId,B:B,er:er,op:er?1:(B.op*(AN.op||1)),s:p,acc:0};
+    if(B.stamp){stampSeg(stroke,p,p,e.pointerType==='pen'?(e.pressure||.5):.62);render();}}
+  /* pensulele: k0+apăsare×k1 = grosimea; stamp = urme de pensulă (creion, aerograf, radieră moale) */
+  var BR={gpen:{k0:.15,k1:1.15,op:1},fine:{k0:.12,k1:.55,op:1},maru:{k0:.35,k1:.6,op:1},brush:{k0:.05,k1:1.7,op:1},marker:{k0:1,k1:0,op:.6},
+    pencil:{k0:.5,k1:.6,op:1,stamp:1,grain:1,sp:.18,a:.32},air:{k0:2.2,k1:1.6,op:1,stamp:1,soft:1,sp:.12,a:.06},
+    ehard:{k0:.25,k1:.95,op:1,m:3},esoft:{k0:2,k1:1.5,op:1,stamp:1,soft:1,sp:.15,a:.18,m:3}};
+  var SB=null;
+  function brushOf(){if(tool==='eraser')return BR[AN.ebrush==='soft'?'esoft':'ehard'];return BR[AN.brush]||BR.gpen;}
+  function bwid(B,pr){return size*(B.m||1)*(B.k0+pr*B.k1)*(A.w/1080);}
+  function stampSeg(st,a,b,pr){var B=st.B,x=st.x,r=Math.max(.6,bwid(B,pr)/2),dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy),step=Math.max(.6,r*2*B.sp),t=st.acc;
+    x.globalCompositeOperation=st.er?'destination-out':'source-over';
+    if(d===0&&t===0){dot(st,a[0],a[1],r,pr);}
+    while(t<=d){var k=d?t/d:0;dot(st,a[0]+dx*k,a[1]+dy*k,r,pr);t+=step;}st.acc=t-d;x.globalCompositeOperation='source-over';}
+  function dot(st,px,py,r,pr){var B=st.B,x=st.x,al=B.a*(.35+pr*.9);
+    if(B.grain){for(var i=0;i<3;i++){var ox=(Math.random()-.5)*r*1.4,oy=(Math.random()-.5)*r*1.4;x.globalAlpha=al*(.4+Math.random()*.6);x.fillStyle=col;x.beginPath();x.arc(px+ox,py+oy,Math.max(.5,r*(.35+Math.random()*.4)),0,6.283);x.fill();}x.globalAlpha=1;return;}
+    if(B.soft){var g=x.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,hexA(st.er?'#000000':col,al));g.addColorStop(1,hexA(st.er?'#000000':col,0));x.fillStyle=g;x.beginPath();x.arc(px,py,r,0,6.283);x.fill();return;}
+    x.globalAlpha=al;x.fillStyle=col;x.beginPath();x.arc(px,py,r,0,6.283);x.fill();x.globalAlpha=1;}
+  function hexA(h,a){var n=parseInt(String(h).slice(1),16);if(String(h).length===4){var r0=String(h);n=parseInt(r0[1]+r0[1]+r0[2]+r0[2]+r0[3]+r0[3],16);}return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
+  /* pipeta: culoarea din cadrul ales (fundal + culoare + linie) */
+  function pick(p){var t=MK(1,1),g=t.getContext('2d'),X=Math.floor(p[0]),Y=Math.floor(p[1]),f=curF();g.fillStyle='#fff';g.fillRect(0,0,1,1);
+    [A.bg,f.cl,f.c].forEach(function(c){if(c)g.drawImage(c,-X,-Y);});var d=g.getImageData(0,0,1,1).data;
+    col='#'+[d[0],d[1],d[2]].map(function(v){return ('0'+v.toString(16)).slice(-2);}).join('');tool=AN.prevTool||'pen';if(AN.syncTools)AN.syncTools();toast(T('Culoarea e luată.','Colour picked.'));}
+  /* găleata: liniile cadrului sunt pereții; umple pe stratul Culoare (sub linie) și intră puțin sub contur */
+  function fill(p){var f=curF(),W=A.w,H=A.h,X=Math.floor(p[0]),Y=Math.floor(p[1]);if(X<0||Y<0||X>=W||Y>=H)return;
+    var dest=(A.tgt==='frame'&&AN.fillTo!=='same')?lay(f,'cl'):target(),src=A.tgt==='bg'?A.bg:f.c;
+    var ld=src.getContext('2d').getImageData(0,0,W,H).data,N=W*H,wall=new Uint8Array(N),i;
+    for(i=0;i<N;i++)wall[i]=ld[i*4+3]>90?1:0;
+    var gap=AN.gap==null?2:AN.gap;for(var it=0;it<gap;it++)wall=grow(wall,W,H);
+    if(wall[Y*W+X]){toast(T('Ai atins o linie. Atinge în interiorul formei.','You tapped a line. Tap inside the shape.'));return;}
+    var m=new Uint8Array(N),st=[Y*W+X],n=0;m[Y*W+X]=1;
+    while(st.length){var q=st.pop(),qx=q%W;n++;
+      if(qx>0&&!m[q-1]&&!wall[q-1]){m[q-1]=1;st.push(q-1);}if(qx<W-1&&!m[q+1]&&!wall[q+1]){m[q+1]=1;st.push(q+1);}
+      if(q>=W&&!m[q-W]&&!wall[q-W]){m[q-W]=1;st.push(q-W);}if(q<N-W&&!m[q+W]&&!wall[q+W]){m[q+W]=1;st.push(q+W);}}
+    if(n>N*.97&&!AN.fillAllOk){toast(T('Forma nu e închisă: s-ar umple tot cadrul. Mărește „Închide goluri” sau închide linia.','The shape is not closed: the whole frame would fill. Raise “Close gaps” or close the line.'));return;}
+    for(it=0;it<gap+2;it++)m=grow(m,W,H);
+    pushPx(dest);var dx=dest.getContext('2d'),im=dx.getImageData(0,0,W,H),dd=im.data,c0=parseInt(col.slice(1),16),r0=(c0>>16)&255,g0=(c0>>8)&255,b0=c0&255;
+    for(i=0;i<N;i++)if(m[i]){var o=i*4;dd[o]=r0;dd[o+1]=g0;dd[o+2]=b0;dd[o+3]=255;}
+    dx.putImageData(im,0,0);markDirty(dest);thumb(A.cur);render();}
+  function grow(a,W,H){var b=new Uint8Array(a.length),N=a.length;for(var i=0;i<N;i++){if(a[i]){b[i]=1;continue;}var x=i%W;
+    if((x>0&&a[i-1])||(x<W-1&&a[i+1])||(i>=W&&a[i-W])||(i<N-W&&a[i+W]))b[i]=1;}return b;}
   function move(e){if(!A)return;if(A.kind==='puppet'&&AN.ppMove){AN.ppMove(e,pt(e));return;}
     if(drag){var p=pt(e);sel.x=p[0]-drag.dx;sel.y=p[1]-drag.dy;render();return;}
     if(!stroke)return;if(stroke.lasso){stroke.lasso.push(pt(e));render();return;}
     if(e.pointerId!==stroke.id)return;
     var evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];if(!evs.length)evs=[e];
-    evs.forEach(function(ev){var p=pt(ev),pr=ev.pointerType==='pen'?(ev.pressure||.5):.62,x=stroke.x,l=stroke.l,m=[(l[0]+p[0])/2,(l[1]+p[1])/2];
-      var er=tool==='eraser';x.globalCompositeOperation=er?'destination-out':'source-over';x.strokeStyle=col;x.lineCap='round';x.lineJoin='round';
-      x.lineWidth=(er?size*3*(.25+pr*.95):size*AN.bw(pr))*(A.w/1080);x.beginPath();x.moveTo(stroke.m[0],stroke.m[1]);x.quadraticCurveTo(l[0],l[1],m[0],m[1]);x.stroke();x.globalCompositeOperation='source-over';
-      stroke.l=p;stroke.m=m;});
+    evs.forEach(function(ev){var raw=pt(ev),pr=ev.pointerType==='pen'?(ev.pressure||.5):.62,k=1-Math.min(.92,AN.stab||0);
+      stroke.s=[stroke.s[0]+(raw[0]-stroke.s[0])*k,stroke.s[1]+(raw[1]-stroke.s[1])*k];var p=stroke.s,x=stroke.x,l=stroke.l,m=[(l[0]+p[0])/2,(l[1]+p[1])/2],B=stroke.B;
+      if(B.stamp){stampSeg(stroke,stroke.m,m,pr);}
+      else{x.globalCompositeOperation=stroke.er?'destination-out':'source-over';x.strokeStyle=col;x.lineCap='round';x.lineJoin='round';
+      x.lineWidth=bwid(B,pr);x.beginPath();x.moveTo(stroke.m[0],stroke.m[1]);x.quadraticCurveTo(l[0],l[1],m[0],m[1]);x.stroke();x.globalCompositeOperation='source-over';}
+      stroke.l=p;stroke.m=m;stroke.pr=pr;});
     render();}
   function up(e){if(!A)return;if(A.kind==='puppet'&&AN.ppUp){AN.ppUp(e);return;}
     if(drag){drag=null;return;}if(!stroke)return;var s=stroke;stroke=null;
     if(s.lasso){if(s.lasso.length>4)makeSel(s.lasso);render();return;}
-    var x=s.x,l=s.l;x.lineCap='round';x.globalCompositeOperation=tool==='eraser'?'destination-out':'source-over';x.strokeStyle=col;x.beginPath();x.moveTo(s.m[0],s.m[1]);x.lineTo(l[0],l[1]);x.stroke();x.globalCompositeOperation='source-over';
+    var x=s.x,l=s.l;if(!s.B.stamp){x.lineCap='round';x.lineWidth=bwid(s.B,s.pr||.5);x.globalCompositeOperation=s.er?'destination-out':'source-over';x.strokeStyle=col;x.beginPath();x.moveTo(s.m[0],s.m[1]);x.lineTo(l[0],l[1]);x.stroke();x.globalCompositeOperation='source-over';}
+    else stampSeg(s,s.m,l,s.pr||.5);
+    if(s.sb){var tx=s.c.getContext('2d');tx.globalAlpha=s.op;tx.drawImage(s.sb,0,0);tx.globalAlpha=1;}
     markDirty(s.c);thumbAll(s.c===A.bg);render();}
   /* ---------- mesaje și ferestre ---------- */
   function toast(t){if(!UI)return;var e=UI.toast;e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(function(){e.classList.remove('on');},2600);}
@@ -18343,7 +18399,7 @@ var AN=(function(){
     newDoc:newDoc,newFrame:newFrame,save:save,load:load,dirty:dirty,render:render,strip:strip,selFrame:selFrame,thumb:thumb,thumbAll:thumbAll,composeTo:composeTo,tint:tint,
     addFrame:addFrame,delFrame:delFrame,moveFrame:moveFrame,setHold:setHold,reverse:reverse,pingpong:pingpong,clearFrame:clearFrame,pushPx:pushPx,markDirty:markDirty,
     undo:doUndo,redo:doRedo,startPlay:startPlay,stopPlay:stopPlay,tick:tick,down:down,move:move,up:up,commitSel:commitSel,dropSel:dropSel,cancelSel:cancelSel,
-    toast:toast,dlg:dlg,ask:ask,durOf:durOf,ticks:ticks,mem:mem,pt:pt,get undoS(){return undo;},resetUndo:function(){undo=[];redo=[];},
+    toast:toast,dlg:dlg,ask:ask,durOf:durOf,curF:curF,ticks:ticks,mem:mem,pt:pt,get undoS(){return undo;},resetUndo:function(){undo=[];redo=[];},
     pushFn:function(u,r){undo.push({k:'fn',undo:u,redo:r});redo=[];}};
 })();
 
@@ -18423,6 +18479,8 @@ var AN=(function(){
   var IC={
     pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg>',
     eraser:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h12"/><path d="M4.5 15.5l9-9a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L11 19H8z"/></svg>',
+    fill:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11.5l7-7 7 7-7 7z"/><path d="M5 11.5h14"/><path d="M20 15.5c.8 1.3 1.3 2.3 1.3 3a1.3 1.3 0 01-2.6 0c0-.7.5-1.7 1.3-3z"/></svg>',
+    pick:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 2.5a2.8 2.8 0 014 4l-2 2-4-4z"/><path d="M14.5 8.5L5 18v2.5h2.5L17 11"/></svg>',
     lasso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9" rx="8" ry="5.5" stroke-dasharray="3 2.5"/><path d="M7 13.5c-1 2-.5 4 1.5 5"/></svg>',
     film:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><rect x="6" y="10" width="36" height="28" rx="4"/><path d="M6 17h36M6 31h36M12 10v7M20 10v7M28 10v7M36 10v7M12 31v7M20 31v7M28 31v7M36 31v7"/><path d="M21 20.5v7l6-3.5z" fill="currentColor"/></svg>',
     zero:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="26" height="32" rx="3"/><rect x="14" y="12" width="26" height="32" rx="3" opacity=".45"/><path d="M15 30c4-8 8-8 12 0"/></svg>',
@@ -18441,13 +18499,13 @@ var AN=(function(){
     var help=E('button','anbtn','ⓘ');help.type='button';help.setAttribute('aria-label',T('Cum funcționează','How it works'));hd.appendChild(help);
     var exp=E('button','anbtn pri',T('Exportă','Export'));exp.type='button';hd.appendChild(exp);
     var tools=E('nav','antools');tools.setAttribute('aria-label',T('Unelte','Tools'));ov.appendChild(tools);
-    [['pen',T('Peniță','Pen')],['eraser',T('Radieră','Eraser')],['lasso',T('Selecție (lasou): muți, ștergi','Selection (lasso): move, delete')]].forEach(function(t){
+    [['pen',T('Pensulă','Brush')],['eraser',T('Radieră','Eraser')],['fill',T('Găleată: umple o formă închisă','Fill: fill a closed shape')],['pick',T('Pipetă: ia o culoare din desen','Eyedropper: pick a colour from the drawing')],['lasso',T('Selecție (lasou): muți, ștergi','Selection (lasso): move, delete')]].forEach(function(t){
       var b=E('button','antool');b.type='button';b.dataset.tool=t[0];b.title=t[1];b.setAttribute('aria-label',t[1]);b.innerHTML=IC[t[0]];b.setAttribute('aria-pressed',String(t[0]==='pen'));
-      b.addEventListener('click',function(){AN.commitSel();AN.tool=t[0];syncTools();});tools.appendChild(b);});
+      b.addEventListener('click',function(){AN.commitSel();if(t[0]==='pick'&&AN.tool!=='pick')AN.prevTool=AN.tool==='lasso'?'pen':AN.tool;AN.tool=t[0];syncTools();if(AN.pBL)AN.pBL();});tools.appendChild(b);});
     tools.appendChild(E('hr'));
     [['#141414',T('Negru','Black')],['#5c5f66',T('Gri','Grey')],['#c2412d',T('Roșu','Red')],['#3b6fd8',T('Albastru','Blue')],['#ffffff',T('Alb','White')]].forEach(function(c){
       var b=E('button','answ');b.type='button';b.dataset.col=c[0];b.style.background=c[0];b.title=c[1];b.setAttribute('aria-label',c[1]);
-      b.addEventListener('click',function(){AN.col=c[0];if(AN.tool==='eraser'||AN.tool==='lasso')AN.tool='pen';syncTools();});tools.appendChild(b);});
+      b.addEventListener('click',function(){AN.col=c[0];if(AN.tool==='eraser'||AN.tool==='lasso'||AN.tool==='pick')AN.tool='pen';syncTools();});tools.appendChild(b);});
     var ci=E('input','ancol');ci.type='color';ci.value='#8a5a2b';ci.title=T('Altă culoare','Other colour');ci.setAttribute('aria-label',T('Altă culoare','Other colour'));
     ci.addEventListener('input',function(){AN.col=ci.value;AN.tool='pen';syncTools();});tools.appendChild(ci);
     var stage=E('main','anstage');ov.appendChild(stage);var sheet=E('div','ansheet');stage.appendChild(sheet);
@@ -18506,13 +18564,20 @@ var AN=(function(){
       var go=function(){var v=i.value.trim().slice(0,60);if(v){A.name=v;AN.UI.name.textContent=v;AN.dirty();}close();};ok.addEventListener('click',go);i.addEventListener('keydown',function(e){if(e.key==='Enter')go();});setTimeout(function(){i.focus();i.select();},30);});}
   /* panoul din dreapta (cadru cu cadru) */
   /* 2026.11.26f: pensule pentru animație — aceleași nume ca în Desen, cu felul lor de a răspunde la apăsare */
-  var ANB={gpen:[.15,1.15],fine:[.12,.55],maru:[.35,.6],brush:[.05,1.7],marker:[1,0]};
-  try{AN.brush=localStorage.getItem('trasso-anbrush')||'gpen';}catch(e){AN.brush='gpen';}if(!ANB[AN.brush])AN.brush='gpen';
+  var ANB={gpen:[.15,1.15],fine:[.12,.55],maru:[.35,.6],brush:[.05,1.7],marker:[1,0],pencil:[.5,.6],air:[1,1]};
+  try{AN.brush=localStorage.getItem('trasso-anbrush')||'gpen';var _ap=JSON.parse(localStorage.getItem('trasso-anpen')||'{}');AN.op=_ap.op||1;AN.stab=_ap.stab==null?.3:_ap.stab;AN.gap=_ap.gap==null?2:_ap.gap;AN.ebrush=_ap.eb||'hard';AN.fillTo=_ap.ft||'color';}catch(e){AN.brush='gpen';AN.op=1;AN.stab=.3;AN.gap=2;AN.ebrush='hard';AN.fillTo='color';}if(!ANB[AN.brush])AN.brush='gpen';
+  function anPrefs(){try{localStorage.setItem('trasso-anbrush',AN.brush);localStorage.setItem('trasso-anpen',JSON.stringify({op:AN.op,stab:AN.stab,gap:AN.gap,eb:AN.ebrush,ft:AN.fillTo}));}catch(e){}}
   AN.bw=function(pr){var b=ANB[AN.brush]||ANB.gpen;return b[0]+pr*b[1];};
+  /* previzualizarea pensulei: o linie în S, cu apăsare crescătoare spre mijloc */
+  function anPrev(cv,k){var x=cv.getContext('2d'),w=cv.width,h=cv.height,dk=document.documentElement.getAttribute('data-theme')==='dark';x.clearRect(0,0,w,h);var ink=dk?'#e8e6e3':'#1b1b1f',n=40;
+    for(var i=0;i<n;i++){var t=i/(n-1),px=6+t*(w-12),py=h/2+Math.sin(t*Math.PI*2)*h*.22,pr=Math.sin(t*Math.PI),b=ANB[k]||ANB.gpen,r=Math.max(.5,(b[0]+pr*b[1])*2.2);
+      if(k==='pencil'){for(var j=0;j<3;j++){x.globalAlpha=.25+Math.random()*.3;x.fillStyle=ink;x.beginPath();x.arc(px+(Math.random()-.5)*2.2,py+(Math.random()-.5)*2.2,.9,0,6.283);x.fill();}continue;}
+      if(k==='air'){var g=x.createRadialGradient(px,py,0,px,py,7);g.addColorStop(0,dk?'rgba(232,230,227,.18)':'rgba(27,27,31,.16)');g.addColorStop(1,'rgba(0,0,0,0)');x.globalAlpha=1;x.fillStyle=g;x.beginPath();x.arc(px,py,7,0,6.283);x.fill();continue;}
+      x.globalAlpha=k==='marker'?.55:1;x.fillStyle=ink;x.beginPath();x.arc(px,py,k==='marker'?3.2:r,0,6.283);x.fill();}x.globalAlpha=1;}
   function sideCel(){var A=AN.A,S0=AN.UI.side,S=S0;S0.innerHTML='';
     /* 2026.11.26e: patru file scurte în loc de o listă lungă */
     if(AN.onionBtn)AN.onionBtn.setAttribute('aria-pressed',String(!!A.onion.on));
-    var TB=[['draw',T('Desen','Draw')],['onion','Onion'],['play',T('Redare','Playback')],['fx',T('Efecte','Effects')]],tabs=E('div','antabs'),P={};tabs.setAttribute('role','tablist');S0.appendChild(tabs);
+    var TB=[['draw',T('Pensulă','Brush')],['lay',T('Straturi','Layers')],['onion','Onion'],['play',T('Redare','Playback')],['fx',T('Efecte','Effects')]],tabs=E('div','antabs'),P={};tabs.setAttribute('role','tablist');S0.appendChild(tabs);
     if(!AN.sideTab)AN.sideTab='draw';
     TB.forEach(function(t){var b=E('button',null,t[1]);b.type='button';b.setAttribute('role','tab');b.dataset.k=t[0];b.addEventListener('click',function(){AN.sideTab=t[0];paintT();});tabs.appendChild(b);var pn=E('div','anpane');pn.setAttribute('role','tabpanel');S0.appendChild(pn);P[t[0]]=pn;});
     function paintT(){[].forEach.call(tabs.children,function(b){var on=b.dataset.k===AN.sideTab;b.setAttribute('aria-selected',String(on));P[b.dataset.k].hidden=!on;});}
@@ -18525,12 +18590,39 @@ var AN=(function(){
     var rng=function(lab,min,max,stepv,get,set,fmt){var d=E('div','anlab');var a=E('span',null,lab),v=E('span');d.appendChild(a);d.appendChild(v);S.appendChild(d);
       var r=E('input');r.type='range';r.min=min;r.max=max;r.step=stepv;r.value=get();r.setAttribute('aria-label',lab);v.textContent=fmt(get());
       r.addEventListener('input',function(){set(+r.value);v.textContent=fmt(+r.value);});S.appendChild(r);return function(){r.value=get();v.textContent=fmt(get());};};
-    h(T('Pensulă','Brush'));
-    seg([['gpen','G-Pen'],['fine',T('Peniță fină','Fine pen')],['maru','Maru-Pen'],['brush',T('Pensulă','Brush')],['marker','Marker']],function(){return AN.brush;},function(v){AN.brush=v;try{localStorage.setItem('trasso-anbrush',v);}catch(e){}},T('Pensula','Brush'));
-    rng(T('Mărime','Size'),1,40,1,function(){return AN.size;},function(v){AN.size=v;},function(v){return v+' px';});
-    h(T('Desenezi pe','Drawing on'));
-    seg([['frame',T('Cadrul ales','Selected frame')],['bg',T('Fundal (toate)','Background (all)')]],function(){return A.tgt;},function(v){AN.commitSel();A.tgt=v;AN.render();},T('Unde desenezi','Where you draw'));
-    S.appendChild(E('p','annote',T('Ce desenezi pe fundal apare sub fiecare cadru, ca să nu-l desenezi de fiecare dată.','What you draw on the background shows under every frame, so you draw it only once.')));
+    /* 2026.11.26g: pensule ca într-un program de animație — schiță, curățare (linie), culoare */
+    var BL=[['gpen','G-Pen',T('Linie curată, subțire la capete','Clean line, thin ends')],['fine',T('Peniță fină','Fine pen'),T('Detalii, păr, ochi','Details, hair, eyes')],['maru','Maru-Pen',T('Linie egală','Even line')],
+      ['pencil',T('Creion','Pencil'),T('Schițe, cu textură','Roughs, with grain')],['brush',T('Pensulă','Brush'),T('Contrast mare la apăsare','Strong pressure')],['marker','Marker',T('Transparent, egal','See-through, even')],['air',T('Aerograf','Airbrush'),T('Umbre și lumini moi','Soft shading')]];
+    h(T('Pensula','Brush'));
+    var bl=E('div','anbl');bl.setAttribute('role','group');bl.setAttribute('aria-label',T('Pensula','Brush'));S.appendChild(bl);
+    function pBL(){[].forEach.call(bl.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.b===AN.brush&&AN.tool==='pen'));});}
+    BL.forEach(function(q){var b=E('button','anbli');b.type='button';b.dataset.b=q[0];var pv=E('canvas');pv.width=120;pv.height=28;anPrev(pv,q[0]);b.appendChild(pv);var tx=E('span');tx.appendChild(E('b',null,q[1]));tx.appendChild(E('small',null,q[2]));b.appendChild(tx);
+      b.addEventListener('click',function(){AN.brush=q[0];if(AN.tool!=='pen'){AN.commitSel();AN.tool='pen';}anPrefs();pBL();AN.syncTools();});bl.appendChild(b);});pBL();AN.pBL=pBL;
+    rng(T('Mărime','Size'),1,60,1,function(){return AN.size;},function(v){AN.size=v;},function(v){return v+' px';});
+    rng(T('Opacitate','Opacity'),5,100,1,function(){return Math.round((AN.op||1)*100);},function(v){AN.op=v/100;anPrefs();},function(v){return v+'%';});
+    rng(T('Stabilizare','Stabiliser'),0,90,1,function(){return Math.round((AN.stab||0)*100);},function(v){AN.stab=v/100;anPrefs();},function(v){return v+'%';});
+    S.appendChild(E('p','annote',T('Stabilizarea netezește linia: mai mult = linii mai calme, dar urmăresc creionul mai încet.','Stabilising smooths the line: more = calmer lines that follow the pen more slowly.')));
+    h(T('Radieră','Eraser'));
+    seg([['hard',T('Tare','Hard')],['soft',T('Moale','Soft')]],function(){return AN.ebrush;},function(v){AN.ebrush=v;anPrefs();if(AN.tool!=='eraser'){AN.commitSel();AN.tool='eraser';AN.syncTools();}},T('Radiera','Eraser'));
+    h(T('Găleată','Fill'));
+    S.appendChild(E('div','anlab',T('Închide goluri','Close gaps')));
+    seg([[0,T('Deloc','None')],[2,T('Mici','Small')],[4,T('Medii','Medium')],[7,T('Mari','Large')]],function(){return AN.gap;},function(v){AN.gap=v;anPrefs();},T('Închide goluri','Close gaps'));
+    S.appendChild(E('div','anlab',T('Când desenezi pe Linie, găleata umple','When drawing on Line, the fill goes')));
+    seg([['color',T('Pe stratul Culoare','On the Colour layer')],['same',T('Pe Linie','On Line')]],function(){return AN.fillTo;},function(v){AN.fillTo=v;anPrefs();},T('Unde umple găleata','Where the fill goes'));
+    S.appendChild(E('p','annote',T('Liniile cadrului sunt pereții. Culoarea intră puțin sub linie, ca să nu rămână margini albe.','The frame lines are the walls. The colour goes slightly under the line so no white edges remain.')));
+    S=P.lay;h(T('Desenezi pe','Drawing on'));
+    var LY=[['rough',T('Schiță','Rough'),T('Albastră, nu se exportă','Blue, never exported')],['frame',T('Linie','Line'),T('Desenul curat al cadrului','The clean drawing of the frame')],['color',T('Culoare','Colour'),T('Sub linie: găleata și pensula','Under the line: fill and brush')],['bg',T('Fundal','Background'),T('Același sub toate cadrele','The same under every frame')]];
+    var ly=E('div','anbl');ly.setAttribute('role','group');ly.setAttribute('aria-label',T('Stratul pe care desenezi','The layer you draw on'));S.appendChild(ly);
+    function pLY(){[].forEach.call(ly.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.t===A.tgt));});}
+    LY.forEach(function(q){var b=E('button','anbli anly');b.type='button';b.dataset.t=q[0];var tx=E('span');tx.appendChild(E('b',null,q[1]));tx.appendChild(E('small',null,q[2]));b.appendChild(tx);
+      b.addEventListener('click',function(){AN.commitSel();A.tgt=q[0];pLY();AN.render();});ly.appendChild(b);});pLY();
+    S.appendChild(E('p','annote',T('Lucrezi ca în animația clasică: schițezi mișcarea pe Schiță, o curăți pe Linie, apoi colorezi pe Culoare.','Work like classic animation: rough the motion on Rough, clean it up on Line, then colour it on Colour.')));
+    h(T('Schița','Rough'));
+    tg(T('Arată schița','Show the rough'),function(){return A.skShow!==false;},function(v){A.skShow=v;AN.render();});
+    rng(T('Cât de vizibilă','How visible'),10,100,1,function(){return Math.round((A.skA||.55)*100);},function(v){A.skA=v/100;AN.render();},function(v){return v+'%';});
+    var cb=E('div','anrow');S.appendChild(cb);
+    var c1=E('button','anbtn',T('Șterge schița din cadru','Clear the rough in this frame'));c1.type='button';c1.addEventListener('click',function(){var f=AN.curF();if(!f.sk)return;AN.pushPx(f.sk);f.sk.getContext('2d').clearRect(0,0,A.w,A.h);AN.markDirty(f.sk);AN.render();});cb.appendChild(c1);
+    var c2=E('button','anbtn',T('Din toate cadrele…','From all frames…'));c2.type='button';c2.addEventListener('click',function(){AN.ask(T('Ștergi schița din toate cadrele?','Clear the rough from every frame?'),T('Liniile și culoarea rămân. Nu se poate anula.','Lines and colour stay. This cannot be undone.'),[{t:T('Șterge schițele','Clear roughs'),danger:1,fn:function(){A.frames.forEach(function(f){if(f.sk){f.sk=null;f.skB=null;f.dirty=true;}});AN.dirty();AN.render();}},{t:T('Renunță','Cancel')}]);});cb.appendChild(c2);
     S=P.onion;h('Onion skin');
     tg(T('Arată cadrele vecine','Show neighbouring frames'),function(){return A.onion.on;},function(v){A.onion.on=v;if(AN.onionBtn)AN.onionBtn.setAttribute('aria-pressed',String(!!v));AN.render();AN.dirty();});
     rng(T('Câte cadre','How many frames'),1,3,1,function(){return A.onion.n;},function(v){A.onion.n=v;AN.render();},function(v){return T(v+' înainte · '+v+' după',v+' before · '+v+' after');});
@@ -20081,7 +20173,12 @@ function trReo2Init(){trReo2Css();var n=0;(function f(){if(!trFormatMove()&&n++<
   '.anside .antabs button{flex:1;min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--ink-2,#5e5e6a);font:500 13px var(--ui,system-ui);cursor:pointer;padding:0 6px;white-space:nowrap}'+
   '.anside .antabs button[aria-selected="true"]{background:var(--card,#fff);color:var(--ink,#1d1d24);box-shadow:0 1px 3px rgba(0,0,0,.12)}'+
   '.anside .anpane[hidden]{display:none}.anside .anpane>h3:first-child{margin-top:0}'+
-  '.antlbar .anon[aria-pressed="true"]{background:#F2A93B!important;color:#2a1a00!important;border-color:transparent!important}';
+  '.antlbar .anon[aria-pressed="true"]{background:#F2A93B!important;color:#2a1a00!important;border-color:transparent!important}'+
+  '.anside .anbl{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}'+
+  '.anside .anbli{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;padding:6px 10px;border-radius:11px;border:1px solid var(--sk-line,#e3e2e7);background:var(--card,#fff);color:inherit;cursor:pointer;text-align:left;font:inherit}'+
+  '.anside .anbli canvas{flex:none;width:72px;height:17px}.anside .anbli span{display:flex;flex-direction:column;min-width:0}.anside .anbli b{font:600 13px var(--ui,system-ui)}.anside .anbli small{font-size:11.5px;color:var(--ink-2,#5e5e6a)}'+
+  '.anside .anbli[aria-pressed="true"]{border-color:#F2A93B;box-shadow:inset 0 0 0 1px #F2A93B;background:rgba(242,169,59,.10)}'+
+  '.anside .anly{min-height:44px}.anside .antabs{display:flex!important}.anside .antabs button{flex:1 1 auto!important}.anside .antabs{gap:1px!important;padding:2px!important}.anside .antabs button{font-size:11px;letter-spacing:-.01em;padding:0;min-width:0;overflow:hidden;text-overflow:clip}';
   (document.head||document.documentElement).appendChild(st);
 })();
 /* ===== 2026.11.26f – Reorganizarea meniurilor, etapa 4 =====
