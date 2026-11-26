@@ -6064,9 +6064,9 @@ function idbOpen(){
     r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};
   });
 }
-function idbPut(k,v){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});});}
+function idbPut(k,v){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};tx.onabort=function(){rej(tx.error||new DOMException('Scrierea a fost întreruptă','AbortError'));};});});}
 function idbGet(k){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('kv','readonly'),r=tx.objectStore('kv').get(k);r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});});}
-function idbDel(k){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('kv','readwrite');tx.objectStore('kv').delete(k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});});}
+function idbDel(k){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('kv','readwrite');tx.objectStore('kv').delete(k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};tx.onabort=function(){rej(tx.error||new DOMException('Scrierea a fost întreruptă','AbortError'));};});});}
 function drKey(id){return id==='legacy'?'doc':'doc:'+id;}
 function drIdx(){
   return idbGet('docs').then(function(ix){
@@ -6123,18 +6123,31 @@ function drSaveSoon(){
   clearTimeout(DR.saveT);
   DR.saveT=setTimeout(drSaveNow,1500);
 }
+/* 2026.11.26: instantaneul desenului deschis (referințe, ca să putem trece imediat la alt desen) */
+function drSnap(){
+  if(!DR.id)DR.id='d'+Date.now().toString(36);
+  return {id:DR.id,name:DR.name,w:DR.w,h:DR.h,kind:DR.kind,cur:DR.cur,nid:DR.nid,trace:{mode:DR.trace.mode,op:DR.trace.op,on:DR.trace.on},pr:{fmt:DR.print.fmt,bl:DR.print.bl,cw:DR.print.cw,ch:DR.print.ch,on:DR.print.on},recent:DR.recent.slice(),layers:DR.layers.slice(),hist:drHistPick(),sk:DR.sketch||null,bg3:DR.bg3d||null,ppl:DR.ppl||null,vpts:DR.pr?JSON.parse(JSON.stringify(DR.pr)):null,spread:DR.spread?JSON.parse(JSON.stringify(DR.spread)):null,planEx:(DR.kind==='page'&&S.page&&S.page.plan)?String(S.page.plan).replace(/\s+/g,' ').slice(0,140):'',link:DR.link?JSON.parse(JSON.stringify(DR.link)):null,pg:(DR.kind==='page'?JSON.stringify(S.page):null)};
+}
+/* instantaneu → înregistrarea din IndexedDB; un strat care nu s-a putut codifica e eroare, nu un strat gol */
+function drSnapMeta(snap){
+  return drHistEnc(snap.hist).then(function(hist){snap.histE=hist;return Promise.all(snap.layers.map(function(L){return new Promise(function(res){L.cv.toBlob(res,'image/png');});}));}).then(function(blobs){
+      if(blobs.some(function(x){return !x;}))throw new Error('toBlob');
+      var meta={v:2,id:snap.id,name:snap.name,w:snap.w,h:snap.h,kind:snap.kind,cur:snap.cur,nid:snap.nid,trace:snap.trace,pr:snap.pr,t:Date.now(),recent:snap.recent,pg:snap.pg,link:snap.link,spread:snap.spread,vpts:snap.vpts,sk:snap.sk,ppl:snap.ppl,hist:snap.histE,
+        layers:snap.layers.map(function(L,i){return {id:L.id,name:L.name,vis:L.vis,op:L.op,blend:L.blend,lock:!!L.lock,alock:!!L.alock,clip:!!L.clip,draft:!!L.draft,lib:L.lib||null,grp:L.grp||'',blob:blobs[i]};})};
+      return meta;
+    });
+}
+function drIdxSet(e,snap,meta){
+  e.name=snap.name;e.t=meta.t;e.w=snap.w;e.h=snap.h;e.kind=snap.kind;e.plan=snap.planEx||'';e.link=snap.link?{page:snap.link.page,panel:snap.link.panel}:null;
+}
 function drSaveNow(){
   if(!DR.ready||!window.indexedDB)return Promise.resolve();
   clearTimeout(DR.saveT);
-  if(!DR.id)DR.id='d'+Date.now().toString(36);
-  /* instantaneu: păstrăm referințe la stratul curent, ca să putem trece la alt desen imediat */
-  var snap={id:DR.id,name:DR.name,w:DR.w,h:DR.h,kind:DR.kind,cur:DR.cur,nid:DR.nid,trace:{mode:DR.trace.mode,op:DR.trace.op,on:DR.trace.on},pr:{fmt:DR.print.fmt,bl:DR.print.bl,cw:DR.print.cw,ch:DR.print.ch,on:DR.print.on},recent:DR.recent.slice(),layers:DR.layers.slice(),hist:drHistPick(),sk:DR.sketch||null,bg3:DR.bg3d||null,ppl:DR.ppl||null,vpts:DR.pr?JSON.parse(JSON.stringify(DR.pr)):null,spread:DR.spread?JSON.parse(JSON.stringify(DR.spread)):null,planEx:(DR.kind==='page'&&S.page&&S.page.plan)?String(S.page.plan).replace(/\s+/g,' ').slice(0,140):'',link:DR.link?JSON.parse(JSON.stringify(DR.link)):null,pg:(DR.kind==='page'?JSON.stringify(S.page):null)};
+  var snap=drSnap();
   var job=function(){
     /* 2026.11.26: desenul a fost șters definitiv între timp – nu-l mai recreez */
-    if(DR.gone&&DR.gone[snap.id])return Promise.resolve();
-    return drHistEnc(snap.hist).then(function(hist){snap.histE=hist;return Promise.all(snap.layers.map(function(L){return new Promise(function(res){L.cv.toBlob(res,'image/png');});}));}).then(function(blobs){
-      var meta={v:2,id:snap.id,name:snap.name,w:snap.w,h:snap.h,kind:snap.kind,cur:snap.cur,nid:snap.nid,trace:snap.trace,pr:snap.pr,t:Date.now(),recent:snap.recent,pg:snap.pg,link:snap.link,spread:snap.spread,vpts:snap.vpts,sk:snap.sk,ppl:snap.ppl,hist:snap.histE,
-        layers:snap.layers.map(function(L,i){return {id:L.id,name:L.name,vis:L.vis,op:L.op,blend:L.blend,lock:!!L.lock,alock:!!L.alock,clip:!!L.clip,draft:!!L.draft,lib:L.lib||null,grp:L.grp||'',blob:blobs[i]};})};
+    if(DR.gone&&DR.gone[snap.id])return Promise.resolve({ok:true,id:snap.id});
+    return drSnapMeta(snap).then(function(meta){
       return idbPut(drKey(snap.id),meta).then(function(){return meta;});
     }).then(function(meta){
       return Promise.all([drThumbOf(snap),drIdx(),rcyLoad()]).then(function(r){
@@ -6142,13 +6155,47 @@ function drSaveNow(){
         /* 2026.11.26: dacă desenul e în „Șterse recent”, salvez datele (ca recuperarea să aibă ultima versiune), dar nu-l pun înapoi în listă */
         if(!e&&r[2].some(function(x){return rcyIds(x).indexOf(snap.id)>=0;}))return;
         if(!e){e={id:snap.id};ix.unshift(e);}
-        e.name=snap.name;e.t=meta.t;e.w=snap.w;e.h=snap.h;e.kind=snap.kind;e.thumb=r[0];e.plan=snap.planEx||'';e.link=snap.link?{page:snap.link.page,panel:snap.link.panel}:null;
+        e.thumb=r[0];drIdxSet(e,snap,meta);
         return idbPut('docs',ix);
       });
-    }).catch(function(){});
+    /* 2026.11.26: eroarea nu mai e înghițită – rezultatul spune dacă desenul chiar e pe tabletă */
+    }).then(function(){return {ok:true,id:snap.id};},function(err){return {ok:false,id:snap.id,err:err};});
   };
-  DR.saveQ=DR.saveQ.then(job,job);
+  DR.saveN=(DR.saveN||0)+1;drSaveSt();
+  DR.saveQ=DR.saveQ.then(job,job).then(function(r){
+    DR.saveN=Math.max(0,DR.saveN-1);
+    if(r&&r.ok){if(DR.saveErr&&DR.saveErr.id===r.id)DR.saveErr=null;}
+    else if(r){
+      DR.saveErr={id:r.id,err:r.err,full:!!(r.err&&r.err.name==='QuotaExceededError'),t:Date.now()};
+      /* unele browsere spun doar „întrerupt”: verific dacă spațiul e aproape plin */
+      try{if(!DR.saveErr.full&&navigator.storage&&navigator.storage.estimate)navigator.storage.estimate().then(function(q){
+        if(q&&q.quota&&q.usage/q.quota>.9&&DR.saveErr&&DR.saveErr.id===r.id){DR.saveErr.full=true;drSaveFire();}}).catch(function(){});}catch(e){}
+    }
+    try{drSaveSt();}catch(e){}
+    return r;
+  });
   return DR.saveQ;
+}
+/* 2026.11.26: starea salvării pentru desenul deschis: ok / saving / fail */
+function drSaveInfo(){
+  var e=(DR.saveErr&&DR.ready&&DR.saveErr.id===DR.id)?DR.saveErr:null,busy=(DR.saveN||0)>0;
+  return {st:(busy&&DR.saveSlow)?'saving':(e?'fail':'ok'),busy:busy,full:!!(e&&e.full),err:e};
+}
+function drOnSave(f){(DR.saveL=DR.saveL||[]).push(f);}
+function drSaveFire(){var i=drSaveInfo();(DR.saveL||[]).forEach(function(f){try{f(i);}catch(e){}});}
+function drSaveSt(){
+  clearTimeout(DR.saveSlowT);
+  /* „Se salvează…” apare doar dacă durează, ca butonul să nu clipească la fiecare linie */
+  if((DR.saveN||0)>0){if(!DR.saveSlow)DR.saveSlowT=setTimeout(function(){if((DR.saveN||0)>0){DR.saveSlow=true;drSaveFire();}},400);}
+  else DR.saveSlow=false;
+  var i=drSaveInfo();
+  if(i.err&&!i.busy&&!DR.saveWarned){
+    DR.saveWarned=true;
+    drMsg(i.full?trL('Desenul NU s-a salvat: tableta nu mai are spațiu. Atinge butonul roșu de lângă titlu.','Your drawing was NOT saved: the tablet is out of space. Tap the red button next to the title.')
+               :trL('Desenul NU s-a salvat. Atinge butonul roșu de lângă titlu.','Your drawing was NOT saved. Tap the red button next to the title.'));
+  }
+  if(!i.err)DR.saveWarned=false;
+  drSaveFire();
 }
 function drLoadSaved(id){
   if(!window.indexedDB)return Promise.resolve(false);
@@ -8996,7 +9043,22 @@ function bkDeser(v,ent){
 }
 function bkBuild(){
   if(DR.ready&&DR.float)drFloatCommit();
-  return (DR.ready?drSaveNow():Promise.resolve()).then(idbAll).then(function(rows){
+  return (DR.ready?drSaveNow():Promise.resolve()).then(function(sv){
+    return idbAll().then(function(rows){
+      /* 2026.11.26: salvarea pe tabletă n-a mers (ex. spațiu plin) → în IndexedDB e versiunea veche; copia ia desenul deschis din memorie */
+      if(!(sv&&sv.ok===false&&DR.ready&&sv.id===DR.id))return rows;
+      var snap=drSnap();
+      return Promise.all([drSnapMeta(snap),drThumbOf(snap)]).then(function(q){
+        var put=function(k,v){for(var i=0;i<rows.length;i++)if(rows[i][0]===k){rows[i]=[k,v];return;}rows.push([k,v]);};
+        var ix=[];rows.forEach(function(x){if(x[0]==='docs'&&Array.isArray(x[1]))ix=x[1].slice();});
+        var j=-1;ix.forEach(function(x,i){if(x&&x.id===snap.id)j=i;});
+        var e=j>=0?Object.assign({},ix[j]):{id:snap.id};if(j>=0)ix[j]=e;else ix.unshift(e);
+        e.thumb=q[1];drIdxSet(e,snap,q[0]);
+        put(drKey(snap.id),q[0]);put('docs',ix);
+        return rows;
+      },function(){return rows;});
+    });
+  }).then(function(rows){
     var files=[],keys=rows.map(function(r){return {k:r[0],v:bkSer(r[1],files)};}),enc=new TextEncoder();
     var out=[{name:'backup.json',data:enc.encode(JSON.stringify({app:'blocuri-persp-backup',v:1,t:Date.now(),keys:keys}))}],sc={cur:null,scenes:null};
     try{sc.cur=localStorage.getItem(KEY);sc.scenes=localStorage.getItem(SKEY);}catch(e){}
@@ -12427,12 +12489,15 @@ function sfBuild(){
     var nx=hs.nextElementSibling;hs.parentNode.insertBefore(box,nx?nx.nextElementSibling:null);
     var paint=function(){
       var last=sfBkTime(),days=last?(Date.now()-last)/864e5:1e9,old=days>=3;
-      sv.textContent='Salvat pe tabletă: '+sfAgo(DR.savedAt)+'.';
+      var si=drSaveInfo();
+      sv.textContent=si.st==='fail'?(si.full?trL('NU s-a salvat pe tabletă: spațiu plin.','NOT saved on the tablet: storage full.'):trL('NU s-a salvat pe tabletă.','NOT saved on the tablet.'))+' '+trL('Ultima salvare reușită: ','Last successful save: ')+sfAgo(DR.savedAt)+'.'
+        :'Salvat pe tabletă: '+sfAgo(DR.savedAt)+'.';
+      st.classList.toggle('fail',si.st==='fail');
       bk.textContent='Ultima copie de siguranță: '+sfAgo(last)+'.';
-      st.classList.toggle('old',old);bb.classList.toggle('solid',old);
+      st.classList.toggle('old',old);bb.classList.toggle('solid',old||si.st==='fail');
       ln.textContent=SF.persist===false?'Atenție: browserul poate șterge datele dacă rămâne fără spațiu — fă copii des.':'';ln.hidden=!ln.textContent;
     };
-    DR.sync.push(paint);setInterval(function(){if(DR.on)paint();},30000);
+    DR.sync.push(paint);drOnSave(paint);setInterval(function(){if(DR.on)paint();},30000);
   }
   /* aminitirea pentru copie, cel mult o dată pe zi */
   var ban=el('div','sfban');ban.id='sfBan';ban.hidden=true;ban.setAttribute('role','status');
@@ -12491,7 +12556,7 @@ function cfInit(){
   DR.sync.push(function(){if(DR.ready&&DR.id&&DR.id!==lastId){lastId=DR.id;setTimeout(sfMaybeRemind,1500);}});
 }
 /* ora ultimei salvări */
-(function(){var f=drSaveNow;drSaveNow=function(){var p=f.apply(this,arguments);return Promise.resolve(p).then(function(r){if(DR.ready)DR.savedAt=Date.now();return r;});};})();
+(function(){var f=drSaveNow;drSaveNow=function(){var p=f.apply(this,arguments);return Promise.resolve(p).then(function(r){if(DR.ready&&r&&r.ok)DR.savedAt=Date.now();return r;});};})();
 /* ===== Selecția activă: se vede și se scoate dintr-o atingere ===== */
 function slChipInit(){
   if($('#slChip'))return;
@@ -20143,6 +20208,10 @@ function trReoCss(){
   '.trsv{display:inline-flex;align-items:center;gap:5px;margin-left:10px;padding:4px 10px;border-radius:999px;border:0;cursor:pointer;font:600 12px/1 var(--ui,system-ui);background:#e8f4ec;color:#22663f;white-space:nowrap}'+
   '.trsv svg{width:13px;height:13px}.trsv.old{background:#fdf1dc;color:#7a4a05}.trsv:hover{filter:brightness(.97)}'+
   '.trsv .trsvd{width:7px;height:7px;border-radius:50%;background:#e08a00;display:none}.trsv.old .trsvd{display:inline-block}'+
+  '.trsv .trsvi{display:inline-flex;align-items:center}.trsv.saving{background:#eef0f3;color:#4a5160}.trsv.fail{background:#fde4e4;color:#a3161b;box-shadow:inset 0 0 0 1.5px #e3a0a2}'+
+  '.trsvsp{width:10px;height:10px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:trsvsp .8s linear infinite}@keyframes trsvsp{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){.trsvsp{animation:none;border-right-color:currentColor;opacity:.6}}'+
+  '.trsvw{margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#fde4e4;color:#6d0f13;font-size:13px;line-height:1.45}.trsvw p{margin:0 0 8px}.trsvw[hidden]{display:none}'+
+  '.sfstat.fail .sfsv{color:#a3161b;font-weight:600}'+
   '#trSvPop{position:fixed;z-index:60;width:min(340px,92vw);background:var(--card,#fff);color:var(--ink,#1d1d24);border:1px solid var(--sk-line,#e3e2e7);border-radius:16px;box-shadow:0 14px 36px rgba(20,20,30,.18);padding:14px 16px;max-height:80vh;overflow:auto}'+
   '#trSvPop[hidden]{display:none}#trSvPop .h{cursor:default!important}#trSvPop .h::after{display:none!important}'+
   '#trSvPop .trsvx{position:absolute;right:10px;top:10px;width:32px;height:32px;border:0;border-radius:9px;background:transparent;cursor:pointer;color:inherit;font-size:16px}'+
@@ -20159,6 +20228,7 @@ function trReoCss(){
   '#trPChip[hidden]{display:none}#trPChip svg{width:15px;height:15px}';
   document.head.appendChild(st);
 }
+var TRSV_WARN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>';
 var TRSV_CHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
 var TRP_IC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 10h16M12 10v11"/></svg>';
 /* --- 2) starea salvării lângă titlu --- */
@@ -20176,7 +20246,13 @@ function trSaveInit(){
   var gone=pane&&pane.querySelector(':scope > .btns.hmgone');if(gone)pop.appendChild(gone);
   document.body.appendChild(pop);
   var b=el('button','trsv');b.id='trSv';b.type='button';b.setAttribute('aria-haspopup','dialog');
-  b.innerHTML=TRSV_CHK+'<span class="trsvt">'+trL('Salvat','Saved')+'</span><span class="trsvd" aria-hidden="true"></span>';
+  b.innerHTML='<span class="trsvi">'+TRSV_CHK+'</span><span class="trsvt">'+trL('Salvat','Saved')+'</span><span class="trsvd" aria-hidden="true"></span>';
+  /* 2026.11.26: când salvarea eșuează, fereastra spune ce s-a întâmplat și ce faci acum */
+  var warn=el('div','trsvw');warn.hidden=true;warn.setAttribute('role','alert');
+  var wt=el('p'),wr=el('button','btn sm',trL('Încearcă din nou','Try again'));wr.type='button';
+  wr.addEventListener('click',function(){if(DR.ready)drSaveNow();});
+  warn.appendChild(wt);warn.appendChild(wr);
+  pop.insertBefore(warn,pop.querySelector('.h').nextSibling);
   (doc.querySelector('div')||doc).appendChild(b);
   b.addEventListener('click',function(e){e.stopPropagation();
     if(!pop.hidden){pop.hidden=true;return;}
@@ -20184,12 +20260,26 @@ function trSaveInit(){
     pop.style.left=Math.round(clamp(r.left+r.width/2-w/2,8,Math.max(8,innerWidth-w-8)))+'px';pop.style.top=Math.round(r.bottom+8)+'px';});
   document.addEventListener('pointerdown',function(e){if(!pop.hidden&&!pop.contains(e.target)&&!b.contains(e.target))pop.hidden=true;},true);
   function paint(){
-    var s=box.querySelector('.sfstat'),old=!!(s&&s.classList.contains('old'));
-    b.classList.toggle('old',old);
+    var s=box.querySelector('.sfstat'),old=!!(s&&s.classList.contains('old')),si=drSaveInfo(),k=si.st;
+    if(b.getAttribute('data-st')!==k){b.setAttribute('data-st',k);b.querySelector('.trsvi').innerHTML=k==='fail'?TRSV_WARN:k==='saving'?'<span class="trsvsp"></span>':TRSV_CHK;}
+    b.classList.toggle('fail',k==='fail');b.classList.toggle('saving',k==='saving');
+    b.classList.toggle('old',old&&k==='ok');
+    warn.hidden=k!=='fail';
+    if(k==='fail'){
+      b.querySelector('.trsvt').textContent=si.full?trL('Nu s-a salvat: spațiu plin','Not saved: storage full'):trL('Nu s-a salvat','Not saved');
+      wt.textContent=(si.full?trL('Tableta nu mai are spațiu, așa că ultimele modificări nu sunt salvate. ','The tablet is out of space, so your latest changes are not saved. ')
+                             :trL('Ultimele modificări nu s-au putut salva pe tabletă. ','Your latest changes could not be saved on the tablet. '))+
+        trL('Fă acum o copie de siguranță („Copie acum” mai jos): ia desenul deschis, cu tot ce nu s-a salvat. Apoi fă loc (șterge desene vechi sau golește „Șterse recent”) și atinge „Încearcă din nou”. Nu închide aplicația până nu ai copia.',
+            'Make a backup now ("Back up now" below): it takes the open drawing, including what was not saved. Then free up space (delete old drawings or empty "Recently deleted") and tap "Try again". Do not close the app until you have the backup.');
+      b.title=si.full?trL('Desenul NU s-a salvat: tableta nu mai are spațiu. Atinge pentru copie de siguranță.','Your drawing was NOT saved: the tablet is out of space. Tap to make a backup.'):trL('Desenul NU s-a salvat. Atinge pentru copie de siguranță.','Your drawing was NOT saved. Tap to make a backup.');
+      b.setAttribute('aria-label',b.title);return;
+    }
+    if(k==='saving'){b.querySelector('.trsvt').textContent=trL('Se salvează…','Saving…');b.title=trL('Se salvează pe tabletă…','Saving on the tablet…');b.setAttribute('aria-label',b.title);return;}
+    b.querySelector('.trsvt').textContent=trL('Salvat','Saved');
     b.title=old?trL('Salvat pe tabletă. Copia de siguranță e veche: atinge ca s-o faci.','Saved on the tablet. Your backup is old: tap to make one.'):trL('Salvat pe tabletă.','Saved on the tablet.');b.setAttribute('aria-label',b.title);
   }
   new MutationObserver(paint).observe(box,{subtree:true,attributes:true,attributeFilter:['class'],childList:true,characterData:true});
-  DR.sync.push(paint);paint();
+  DR.sync.push(paint);drOnSave(paint);paint();
 }
 /* --- 3) Pagină: miniatura panourilor --- */
 function trPanelMapInit(){
