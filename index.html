@@ -18749,7 +18749,8 @@ var AN=(function(){
   /* ---------- Acasă: card și „Animațiile mele” ---------- */
   var hmBusy=false;
   function homeHook(){var h=document.getElementById('home');if(!h||h._an)return;h._an=1;
-    new MutationObserver(function(){if(!hmBusy)setTimeout(homeInject,30);}).observe(h,{childList:true,subtree:true});homeInject();}
+    /* 2026.11.26h: verific după fiecare schimbare (nu doar când nu e „ocupat”): altfel, dacă Acasă se redesena în timp ce lista animațiilor se încărca, placa Animation nu mai apărea până la repornire. homeInject nu schimbă nimic dacă placa și lista sunt deja acolo, deci nu intră în buclă. */
+    var pend=0;new MutationObserver(function(){if(pend)return;pend=1;setTimeout(function(){pend=0;homeInject();},30);}).observe(h,{childList:true,subtree:true});homeInject();}
   function homeInject(){var h=document.getElementById('home');if(!h||h.hidden)return;var on=AN.isOn();hmBusy=true;
     try{var crow=h.querySelector('.hmcrow'),c=h.querySelector('.anhmc');
       if(!on){if(c)c.remove();var s0=h.querySelector('.anhms');if(s0)s0.remove();return;}
