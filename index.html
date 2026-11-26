@@ -6203,8 +6203,8 @@ function drSaveSoon(){
   clearTimeout(DR.saveT);
   DR.saveT=setTimeout(drSaveNow,1500);
 }
-/* 2026.11.26: instantaneul desenului deschis (referințe, ca să putem trece imediat la alt desen) */
-function drSnap(){
+/* 2026.11.26: instantaneul desenului deschis (numit drSnapshot: „drSnap(p)” e lipirea pe grilă a lasoului și formelor) (referințe, ca să putem trece imediat la alt desen) */
+function drSnapshot(){
   if(!DR.id)DR.id='d'+Date.now().toString(36);
   return {id:DR.id,name:DR.name,w:DR.w,h:DR.h,kind:DR.kind,cur:DR.cur,nid:DR.nid,trace:{mode:DR.trace.mode,op:DR.trace.op,on:DR.trace.on},pr:{fmt:DR.print.fmt,bl:DR.print.bl,cw:DR.print.cw,ch:DR.print.ch,on:DR.print.on},recent:DR.recent.slice(),layers:DR.layers.slice(),hist:drHistPick(),sk:DR.sketch||null,bg3:DR.bg3d||null,ppl:DR.ppl||null,vpts:DR.pr?JSON.parse(JSON.stringify(DR.pr)):null,spread:DR.spread?JSON.parse(JSON.stringify(DR.spread)):null,planEx:(DR.kind==='page'&&S.page&&S.page.plan)?String(S.page.plan).replace(/\s+/g,' ').slice(0,140):'',link:DR.link?JSON.parse(JSON.stringify(DR.link)):null,pg:(DR.kind==='page'?JSON.stringify(S.page):null)};
 }
@@ -6223,7 +6223,7 @@ function drIdxSet(e,snap,meta){
 function drSaveNow(){
   if(!DR.ready||!window.indexedDB)return Promise.resolve();
   clearTimeout(DR.saveT);
-  var snap=drSnap();
+  var snap=drSnapshot();
   var job=function(){
     /* 2026.11.26: desenul a fost șters definitiv între timp – nu-l mai recreez */
     if(DR.gone&&DR.gone[snap.id])return Promise.resolve({ok:true,id:snap.id});
@@ -9194,7 +9194,7 @@ function bkBuild(){
     return idbAll().then(function(rows){
       /* 2026.11.26: salvarea pe tabletă n-a mers (ex. spațiu plin) → în IndexedDB e versiunea veche; copia ia desenul deschis din memorie */
       if(!(sv&&sv.ok===false&&DR.ready&&sv.id===DR.id))return rows;
-      var snap=drSnap();
+      var snap=drSnapshot();
       return Promise.all([drSnapMeta(snap),drThumbOf(snap)]).then(function(q){
         var put=function(k,v){for(var i=0;i<rows.length;i++)if(rows[i][0]===k){rows[i]=[k,v];return;}rows.push([k,v]);};
         var ix=[];rows.forEach(function(x){if(x[0]==='docs'&&Array.isArray(x[1]))ix=x[1].slice();});
