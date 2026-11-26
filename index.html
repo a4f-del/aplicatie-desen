@@ -6517,6 +6517,71 @@ function drColorIn(parent,label,get,set){
   DR.sync.push(function(){i.value=get();});
   return l;
 }
+/* 2026.11.26j: modul de culoare se alege dintr-un submeniu al fiecărui strat; iconița arată ce fel de strat e */
+var LMICO={
+  color:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="10" r="5" fill="#e0574a"/><circle cx="15" cy="10" r="5" fill="#3a9bd9" fill-opacity=".85"/><circle cx="12" cy="15" r="5" fill="#f2c230" fill-opacity=".85"/></svg>',
+  gray:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="6" height="12" rx="1" fill="#d4d4d4" stroke="currentColor" stroke-width=".8"/><rect x="9" y="6" width="6" height="12" fill="#8c8c8c"/><rect x="15" y="6" width="6" height="12" rx="1" fill="#3b3b3b"/></svg>',
+  mono:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="11" rx="1.5" fill="#fff" stroke="#111" stroke-width="1.3"/><path d="M12 6.5h7a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7z" fill="#111"/></svg>'
+};
+function drLMName(m){return m==='gray'?trL('Gri','Gray'):m==='mono'?trL('Monocrom','Monochrome'):trL('Culoare','Colour');}
+function drLMBtn(L,i){
+  var m=drModeOf(L),b=el('button','x lmb');b.type='button';b.innerHTML=LMICO[m];
+  b.setAttribute('data-mode',m);b.setAttribute('aria-haspopup','menu');b.title=trL('Mod de culoare: ','Colour mode: ')+drLMName(m);
+  b.setAttribute('aria-label',trL('Mod de culoare pentru ','Colour mode for ')+L.name+': '+drLMName(m));
+  b.addEventListener('click',function(e){e.stopPropagation();drLMOpen(L,b);});
+  return b;
+}
+function drLMClose(){var p=$('#drLMPop');if(p){var a=p._anchor;p.remove();if(a&&document.contains(a))try{a.focus();}catch(e){}}document.removeEventListener('pointerdown',drLMOut,true);}
+function drLMOut(e){var p=$('#drLMPop');if(p&&!p.contains(e.target)&&!(p._anchor&&p._anchor.contains(e.target)))drLMClose();}
+function drLMOpen(L,anchor){
+  var had=$('#drLMPop'),same=had&&had._L===L;drLMClose();if(same)return;
+  var p=el('div','lmpop');p.id='drLMPop';p.setAttribute('role','menu');p._L=L;p._anchor=anchor;
+  p.setAttribute('aria-label',trL('Mod de culoare – ','Colour mode – ')+L.name);
+  var h=el('div','lmph');h.appendChild(el('b',null,trL('Mod de culoare','Colour mode')));h.appendChild(el('span',null,L.name));p.appendChild(h);
+  var desc={color:trL('Se exportă în culori, cum îl vezi.','Exports in colour, as you see it.'),
+    gray:trL('Se exportă în tonuri de gri.','Exports as shades of gray.'),
+    mono:trL('Doar alb și negru pur, fără margini gri. Ideal pentru cerneală și tramă.','Pure black and white only, no gray edges. Best for ink and screentone.')};
+  var thrRow=null,bake=null;
+  function refresh(){
+    var m=drModeOf(L);
+    [].forEach.call(p.querySelectorAll('.lmpo'),function(o){o.setAttribute('aria-checked',String(o.getAttribute('data-mode')===m));});
+    if(thrRow)thrRow.hidden=m!=='mono';if(bake)bake.hidden=m==='color';
+  }
+  ['color','gray','mono'].forEach(function(k){
+    var o=el('button','lmpo');o.type='button';o.setAttribute('role','menuitemradio');o.setAttribute('data-mode',k);
+    var ic=el('span','lmpi');ic.innerHTML=LMICO[k];o.appendChild(ic);
+    var tx=el('span','lmpt');tx.appendChild(el('b',null,drLMName(k)));tx.appendChild(el('small',null,desc[k]));o.appendChild(tx);
+    o.addEventListener('click',function(){if(L.mode!==k){L.mode=k;if(L.thr==null)L.thr=50;drSaveSoon();drDirty();}refresh();drLayersUI();
+      p._anchor=null;});
+    p.appendChild(o);
+  });
+  thrRow=el('label','lmpthr');var tl=el('span',null,trL('Prag alb / negru','Black / white threshold')),tv=el('span','lmpv');
+  var rg=el('input');rg.type='range';rg.min=5;rg.max=95;rg.step=1;rg.value=L.thr==null?50:L.thr;tv.textContent=rg.value+'%';
+  rg.addEventListener('input',function(){L.thr=+rg.value;tv.textContent=rg.value+'%';drDirty();});
+  rg.addEventListener('change',function(){drSaveSoon();});
+  var tw=el('span','lmptl');tw.appendChild(tl);tw.appendChild(tv);thrRow.appendChild(tw);thrRow.appendChild(rg);p.appendChild(thrRow);
+  var act=el('div','lmpa');p.appendChild(act);
+  var pv=el('button','lmpb',trL('Vezi ca la export','Show as exported'));pv.type='button';pv.setAttribute('aria-pressed',String(!!DR.mprev));
+  pv.addEventListener('click',function(){drMPrev(!DR.mprev);pv.setAttribute('aria-pressed',String(!!DR.mprev));});act.appendChild(pv);
+  bake=el('button','lmpb',trL('Aplică definitiv','Apply permanently'));bake.type='button';act.appendChild(bake);
+  bake.addEventListener('click',function(){
+    if(drModeOf(L)==='color')return;
+    if(L.lock){drMsg(trL('Stratul e blocat. Deblochează-l mai întâi.','The layer is locked. Unlock it first.'));return;}
+    if(bake.getAttribute('data-armed')!=='1'){bake.setAttribute('data-armed','1');bake.textContent=trL('Sigur? Culorile se pierd','Sure? Colours are lost');
+      setTimeout(function(){if(bake){bake.removeAttribute('data-armed');bake.textContent=trL('Aplică definitiv','Apply permanently');}},3000);return;}
+    if(DR.float)drFloatCommit();
+    drBeginSnap(L);drModeApply(L.ctx,L.mode,L.thr,null);L.mode='color';drPush(L,[0,0,DR.w,DR.h]);
+    drMsg(trL('Gata: stratul a fost transformat. „Anulează” îl aduce înapoi.','Done: the layer was converted. Undo brings it back.'));
+    drLMClose();drSync();drDirty();drSaveSoon();
+  });
+  p.addEventListener('keydown',function(e){if(e.key==='Escape'){e.stopPropagation();drLMClose();}});
+  document.body.appendChild(p);refresh();
+  var r=anchor.getBoundingClientRect(),W=p.offsetWidth,H=p.offsetHeight,vw=innerWidth,vh=innerHeight;
+  var x=Math.max(8,Math.min(r.right-W,vw-W-8)),y=r.bottom+6;if(y+H>vh-8)y=Math.max(8,r.top-H-6);
+  p.style.left=x+'px';p.style.top=y+'px';
+  setTimeout(function(){document.addEventListener('pointerdown',drLMOut,true);},0);
+  var first=p.querySelector('.lmpo[aria-checked="true"]')||p.querySelector('.lmpo');if(first)first.focus();
+}
 function drLayersUI(){
   var ol=$('#drLayers');ol.innerHTML='';
   var i,seen={};DR.grpShut=DR.grpShut||{};
@@ -6536,12 +6601,12 @@ function drLayersUI(){
     var row=el('div','oi'+(g?' ingrp':'')),eye=el('button','x',L.vis?'●':'○'),b=el('button','li'),nm=el('span');
     nm.textContent=L.name;b.appendChild(nm);
     var sm=el('small'),bl=DBLENDS.filter(function(q){return q[0]===L.blend;})[0];
-    sm.textContent=Math.round(L.op*100)+'%'+(L.blend!=='source-over'&&bl?' · '+bl[1]:'')+(L.lock?' 🔒':'')+(L.alock?' α':'')+(L.clip?' ⤓':'')+(L.draft?' ✎':'')+(L.mode==='gray'?' · '+trL('Gri','Gray'):L.mode==='mono'?' · '+trL('Mono','Mono'):'');b.appendChild(sm);
+    sm.textContent=Math.round(L.op*100)+'%'+(L.blend!=='source-over'&&bl?' · '+bl[1]:'')+(L.lock?' 🔒':'')+(L.alock?' α':'')+(L.clip?' ⤓':'')+(L.draft?' ✎':'');b.appendChild(sm);
     eye.type='button';b.type='button';eye.setAttribute('aria-label','Arată sau ascunde stratul '+L.name);
     b.setAttribute('aria-pressed',String(i===DR.cur));
     eye.addEventListener('click',function(){L.vis=!L.vis;drSync();drDirty();drSaveSoon();});
     b.addEventListener('click',function(){if(DR.float)drFloatCommit();DR.cur=i;drSync();});
-    row.appendChild(b);row.appendChild(eye);ol.appendChild(row);
+    row.appendChild(b);row.appendChild(drLMBtn(L,i));row.appendChild(eye);ol.appendChild(row);
   })(i);
 }
 /* grupuri: straturi alăturate cu același nume de grup */
@@ -6847,38 +6912,6 @@ function drBuildSide(){
   lprop('Blochează transparența (colorezi doar ce e desenat)','alock');
   lprop('Mască de tăiere (apare doar peste stratul de dedesubt)','clip');
   lprop('Strat de ciornă (se vede, dar nu se exportă)','draft');
-  /* 2026.11.26i: modul de culoare al stratului – se vede la „Vezi ca la export” și în fișierul exportat */
-  var mdw=el('div','lmode');mdw.id='drLMode';lo.appendChild(mdw);
-  mdw.appendChild(el('div','lmodeh',trL('Mod de culoare','Colour mode')));
-  function lmSet(v){var L=DR.layers[DR.cur];if(!L||L.mode===v)return;L.mode=v;if(L.thr==null)L.thr=50;drSaveSoon();}
-  drSegBtn(mdw,[['color',trL('Culoare','Colour')],['gray',trL('Gri','Gray')],['mono',trL('Monocrom','Monochrome')]],
-    function(){return drModeOf(DR.layers[DR.cur]);},lmSet,'lmodeseg');
-  var mdn=el('p','note lmoden');mdw.appendChild(mdn);
-  var thr=drSlider(mdw,trL('Prag alb / negru','Black / white threshold'),5,95,1,
-    function(){var L=DR.layers[DR.cur];return L&&L.thr!=null?L.thr:50;},
-    function(v){var L=DR.layers[DR.cur];if(L){L.thr=v;drSaveSoon();}},function(v){return Math.round(v)+'%';});
-  thr.classList.add('lmodethr');
-  var mda=el('div','btns');mdw.appendChild(mda);
-  var pv=drBtn(mda,trL('Vezi ca la export','Show as exported'),function(){drMPrev(!DR.mprev);});pv.classList.add('lmodepv');
-  var bk=drBtn(mda,trL('Aplică definitiv','Apply permanently'),function(){
-    var L=DR.layers[DR.cur];if(!L||drModeOf(L)==='color')return;
-    if(L.lock){drMsg(trL('Stratul e blocat. Deblochează-l din panoul Straturi.','The layer is locked. Unlock it in the Layers panel.'));return;}
-    if(bk.getAttribute('data-armed')!=='1'){bk.setAttribute('data-armed','1');bk.textContent=trL('Sigur? Culorile se pierd','Sure? Colours are lost');
-      setTimeout(function(){bk.removeAttribute('data-armed');bk.textContent=trL('Aplică definitiv','Apply permanently');},3000);return;}
-    bk.removeAttribute('data-armed');bk.textContent=trL('Aplică definitiv','Apply permanently');
-    if(DR.float)drFloatCommit();
-    drBeginSnap(L);drModeApply(L.ctx,L.mode,L.thr,null);L.mode='color';drPush(L,[0,0,DR.w,DR.h]);
-    drMsg(trL('Gata: stratul a fost transformat. „Anulează” îl aduce înapoi.','Done: the layer was converted. Undo brings it back.'));
-    drSync();drDirty();drSaveSoon();
-  });
-  DR.sync.push(function(){
-    var m=drModeOf(DR.layers[DR.cur]);
-    mdn.textContent=m==='gray'?trL('La export devine tonuri de gri. Culorile tale rămân în strat.','Exports as shades of gray. Your colours stay in the layer.')
-      :m==='mono'?trL('La export rămân doar alb și negru pur, fără margini gri. Culorile tale rămân în strat.','Exports as pure black and white, no gray edges. Your colours stay in the layer.')
-      :trL('Stratul se exportă în culori, cum îl vezi.','The layer exports in colour, as you see it.');
-    thr.hidden=m!=='mono';bk.hidden=m==='color';
-    pv.setAttribute('aria-pressed',String(!!DR.mprev));
-  });
 
   sd.appendChild(el('div','h','Calc din perspectivă'));
   var ts=el('select','pick-sel');ts.setAttribute('aria-label','Ce calc se vede dedesubt');
@@ -20731,14 +20764,20 @@ function trExpModes(d){
   if(typeof DR==='undefined'||!DR.built||!$('#dr .drtop')||!$('#drWrap')){if(n<240)setTimeout(function(){mdBoot(n+1);},250);return;}
   try{
     var st=document.createElement('style');st.id='mdModeSt';st.textContent=
-      '#drLMode{display:flex;flex-direction:column;gap:6px;margin:10px 0 4px;padding:10px;border:1px solid var(--rule,#d3d8d1);border-radius:10px}'+
-      '#drLMode .lmodeh{font-weight:600;font-size:13px;color:var(--ink-2,#566170)}'+
-      '#drLMode .lmodeseg{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}'+
-      '#drLMode .lmodeseg button{min-height:40px}'+
-      '#drLMode .lmoden{margin:0}#drLMode .btns{gap:6px}#drLMode .btns .btn{flex:1 1 0}'+
-      '#drLMode [hidden]{display:none!important}'+
+      '#drLayers .oi .lmb{display:grid;place-items:center;padding:0}#drLayers .oi .lmb svg{width:22px;height:22px}'+
+      '#drLMPop{position:fixed;z-index:9000;width:290px;max-width:calc(100vw - 16px);display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:14px;background:var(--paper,#f3f4f1);color:var(--ink,#18202b);border:1px solid var(--rule,#d3d8d1);box-shadow:0 12px 32px rgba(24,32,43,.22)}'+
+      '#drLMPop .lmph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:2px 4px 6px;font-size:14px}#drLMPop .lmph span{color:var(--ink-2,#566170);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+      '#drLMPop .lmpo{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}'+
+      '#drLMPop .lmpo:hover{background:color-mix(in srgb,var(--ink,#18202b) 6%,transparent)}'+
+      '#drLMPop .lmpo[aria-checked="true"]{border-color:#E39A2C;background:var(--paper-2,#fff);box-shadow:0 0 0 1px #E39A2C,0 0 12px 1px rgba(242,169,59,.3)}'+
+      '#drLMPop .lmpi svg{width:28px;height:28px;display:block}#drLMPop .lmpt{display:flex;flex-direction:column;gap:1px}#drLMPop .lmpt b{font-size:15px}#drLMPop .lmpt small{font-size:12px;line-height:1.3;color:var(--ink-2,#566170)}'+
+      '#drLMPop .lmpthr{display:flex;flex-direction:column;gap:2px;padding:6px 10px 2px;font-size:13px}#drLMPop .lmptl{display:flex;justify-content:space-between}#drLMPop .lmpthr input{width:100%;height:32px;accent-color:#E39A2C}'+
+      '#drLMPop .lmpa{display:flex;gap:6px;padding-top:6px;margin-top:2px;border-top:1px solid var(--rule,#d3d8d1)}'+
+      '#drLMPop .lmpb{flex:1 1 0;min-height:40px;border:1px solid var(--rule,#d3d8d1);border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer}'+
+      '#drLMPop .lmpb[aria-pressed="true"]{border-color:#E39A2C;box-shadow:0 0 0 1px #E39A2C,0 0 10px 1px rgba(242,169,59,.3)}'+
+      '#drLMPop [hidden]{display:none!important}'+
       '#drMPrevB{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:0 10px}#drMPrevB svg{width:20px;height:20px;flex:none}'+
-      '#drMPrevB[aria-pressed="true"],#drLMode .lmodepv[aria-pressed="true"]{border-color:#E39A2C!important;box-shadow:0 0 0 1.5px #E39A2C,0 0 12px 2px rgba(242,169,59,.35)!important}'+
+      '#drMPrevB[aria-pressed="true"]{border-color:#E39A2C!important;box-shadow:0 0 0 1.5px #E39A2C,0 0 12px 2px rgba(242,169,59,.35)!important}'+
       '#drMPrevPill{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:30;pointer-events:none;display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:#18202b;color:#fff;font:500 13px/1.2 var(--ui,system-ui,sans-serif);white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}'+
       '#drMPrevPill::before{content:"";width:8px;height:8px;border-radius:50%;background:#F2A93B;flex:none}'+
       '#drMPrevPill[hidden]{display:none}'+
