@@ -2,6 +2,10 @@
 <html lang="ro">
 <head>
 <meta charset="utf-8">
+<style>/* 2026.11.26 pornire fără pâlpâit: pagina stă ascunsă până e gata Acasă (sau editorul) */html.tboot{background:#1f2023}html.tboot body{opacity:0}body{transition:opacity .16s ease-out}</style>
+<script>(function(){var d=document.documentElement,t;d.classList.add('tboot');
+window.__tbootEnd=function(){if(!d.classList.contains('tboot'))return;clearTimeout(t);requestAnimationFrame(function(){requestAnimationFrame(function(){d.classList.remove('tboot');});});};
+t=setTimeout(window.__tbootEnd,4000);/* plasă de siguranță: dacă ceva crapă, pagina tot apare */})();</script>
 <script>/* ---------- Limbă / Language: română sau engleză (stratul de traducere nu schimbă motorul) ---------- */
 (function(){
   var LS='trasso-lang',lang='en';
@@ -6425,6 +6429,7 @@ function drSync(){
   drPrefSaveSoon();
 }
 function drShowEditor(){
+  if(window.__tbootEnd)window.__tbootEnd();
   var hm=$('#home');if(hm)hm.hidden=true;
   $('#drNew').hidden=true;$('#drSide').hidden=window.innerWidth<900;
   drSize();drFit();drSync();drRender();
@@ -7093,7 +7098,7 @@ function drBuildTop(){
   DR.sync.push(function(){var b=$('#drSymB');if(b)b.setAttribute('aria-pressed',String(!!DR.symBar||!!(DR.sym&&DR.sym.mode!=='off')));});
   /* chooser */
   drBuildPageSet();
-  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();foInit();prInit();pplInit();txInit();txBrInit();weInit();skInit();phInit();drTabify();fsInit();qsInit();smInit();cfInit();trInit();cbInit();shInit();mdInit();hmInit();tdInit();npInit();edInit();insInit();dpsInit();abInit();prsInit();fltInit();chrInit();bgxInit();appShareInit();inpInit();layInit();if(!window.__persp)setTimeout(hmShow,0);
+  drBrInit();lbInit();chInit();bkInit();drMemInit();drHoverInit();drImportInit();plDrawInit();pcInit();foInit();prInit();pplInit();txInit();txBrInit();weInit();skInit();phInit();drTabify();fsInit();qsInit();smInit();cfInit();trInit();cbInit();shInit();mdInit();hmInit();tdInit();npInit();edInit();insInit();dpsInit();abInit();prsInit();fltInit();chrInit();bgxInit();appShareInit();inpInit();layInit();if(!window.__persp)setTimeout(hmShow,0);else if(window.__tbootEnd)window.__tbootEnd();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(err){}
   setTimeout(rcyAuto,4000);
   document.querySelectorAll('[data-drnew]').forEach(function(b){b.addEventListener('click',function(){
@@ -13374,6 +13379,7 @@ function shInit(){
 /* ---------- Acasă: continui ce lucrai, capitolele, desenele libere și „+ Nou” ---------- */
 var HM={urls:[]};
 function hmShow(){
+  if(window.__tbootEnd)window.__tbootEnd();
   if(DR.ready){if(DR.float)drFloatCommit();drSaveNow();}
   $('#dr').hidden=false;DR.on=true;
   var s=$('#drSide');if(s)s.hidden=true;
