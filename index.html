@@ -4613,9 +4613,10 @@ function drStrokeSrc(st,r){
   return DR.tmp2;
 }
 /* 2026.11.26i: modul de culoare al stratului (Culoare / Gri / Monocrom). Pixelii desenați rămân neatinși:
-   conversia se face doar la exportul imaginii unite (o.modes) și la „Vezi ca la export” (DR.mprev), pe o copie. */
+   conversia se face pe o copie. 2026.11.26j: pe ecran stratul se vede mereu în modul ales (imediat ce îl alegi);
+   la exportul imaginii unite se aplică după o.modes. */
 function drModeOf(L){return L&&(L.mode==='gray'||L.mode==='mono')?L.mode:'color';}
-function drModeOn(L,o){return drModeOf(L)!=='color'&&(o.flat?!!o.modes:!!DR.mprev);}
+function drModeOn(L,o){return drModeOf(L)!=='color'&&(o.flat?!!o.modes:true);}
 function drModeApply(x,mode,thr,r){
   var W=x.canvas.width,H=x.canvas.height,x0=r?Math.max(0,Math.floor(r[0])):0,y0=r?Math.max(0,Math.floor(r[1])):0,
     x1=r?Math.min(W,Math.ceil(r[2])):W,y1=r?Math.min(H,Math.ceil(r[3])):H,w=x1-x0,h=y1-y0;
@@ -6543,14 +6544,14 @@ function drLMOpen(L,anchor){
   var p=el('div','lmpop');p.id='drLMPop';p.setAttribute('role','menu');p._L=L;p._anchor=anchor;
   p.setAttribute('aria-label',trL('Mod de culoare – ','Colour mode – ')+L.name);
   var h=el('div','lmph');h.appendChild(el('b',null,trL('Mod de culoare','Colour mode')));h.appendChild(el('span',null,L.name));p.appendChild(h);
-  var desc={color:trL('Se exportă în culori, cum îl vezi.','Exports in colour, as you see it.'),
-    gray:trL('Se exportă în tonuri de gri.','Exports as shades of gray.'),
+  var desc={color:trL('Culorile așa cum le desenezi.','Colours exactly as you draw them.'),
+    gray:trL('Stratul se vede și se exportă în tonuri de gri.','The layer shows and exports as shades of gray.'),
     mono:trL('Doar alb și negru pur, fără margini gri. Ideal pentru cerneală și tramă.','Pure black and white only, no gray edges. Best for ink and screentone.')};
   var thrRow=null,bake=null;
   function refresh(){
     var m=drModeOf(L);
     [].forEach.call(p.querySelectorAll('.lmpo'),function(o){o.setAttribute('aria-checked',String(o.getAttribute('data-mode')===m));});
-    if(thrRow)thrRow.hidden=m!=='mono';if(bake)bake.hidden=m==='color';
+    if(thrRow)thrRow.hidden=m!=='mono';if(bake)bake.hidden=m==='color';var nt=p.querySelector('.lmpn');if(nt)nt.hidden=m==='color';
   }
   ['color','gray','mono'].forEach(function(k){
     var o=el('button','lmpo');o.type='button';o.setAttribute('role','menuitemradio');o.setAttribute('data-mode',k);
@@ -6566,8 +6567,7 @@ function drLMOpen(L,anchor){
   rg.addEventListener('change',function(){drSaveSoon();});
   var tw=el('span','lmptl');tw.appendChild(tl);tw.appendChild(tv);thrRow.appendChild(tw);thrRow.appendChild(rg);p.appendChild(thrRow);
   var act=el('div','lmpa');p.appendChild(act);
-  var pv=el('button','lmpb',trL('Vezi ca la export','Show as exported'));pv.type='button';pv.setAttribute('aria-pressed',String(!!DR.mprev));
-  pv.addEventListener('click',function(){drMPrev(!DR.mprev);pv.setAttribute('aria-pressed',String(!!DR.mprev));});act.appendChild(pv);
+  act.appendChild(el('small','lmpn',trL('Culorile originale se păstrează: alegi Culoare și revin.','Original colours are kept: pick Colour to get them back.')));
   bake=el('button','lmpb',trL('Aplică definitiv','Apply permanently'));bake.type='button';act.appendChild(bake);
   bake.addEventListener('click',function(){
     if(drModeOf(L)==='color')return;
@@ -14128,7 +14128,7 @@ function frCacheOk(){
   var st=DR.stroke;if(!st||!st.tctx||st.erase||st.direct||st.mask||st.sel||st.eye||st.fd||st.pc||st.prd||st.fo)return false;
   if(DR.sel||DR.float)return false;
   var L=DR.layers[st.layer];if(!L||L.clip||L.alock||drIsX(L.blend))return false;
-  if(DR.mprev&&drModeOf(L)!=='color')return false;
+  if(drModeOf(L)!=='color')return false;
   for(var i=st.layer+1;i<DR.layers.length;i++)if(DR.layers[i].clip||drIsX(DR.layers[i].blend))return false;
   return true;
 }
@@ -20735,7 +20735,7 @@ function trExpModes(d){
   var box=el('div','trxm');d.appendChild(box);
   box.appendChild(el('b',null,trL('Straturi cu mod de culoare','Layers with a colour mode')));
   var th=el('div','trxmth'),f1=el('figure'),f2=el('figure'),c1=el('canvas'),c2=el('canvas');
-  f1.appendChild(c1);f1.appendChild(el('figcaption',null,trL('Cum desenezi','As you draw')));
+  f1.appendChild(c1);f1.appendChild(el('figcaption',null,trL('Culorile originale','Original colours')));
   f2.appendChild(c2);f2.appendChild(el('figcaption',null,trL('Cum iese fișierul','How the file comes out')));
   th.appendChild(f1);th.appendChild(f2);box.appendChild(th);
   var ul=el('ul','trxml');
@@ -20781,6 +20781,7 @@ function trExpModes(d){
       '#drLMPop .lmpa{display:flex;gap:6px;padding-top:6px;margin-top:2px;border-top:1px solid var(--rule,#d3d8d1)}'+
       '#drLMPop .lmpb{flex:1 1 0;min-height:40px;border:1px solid var(--rule,#d3d8d1);border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer}'+
       '#drLMPop .lmpb[aria-pressed="true"]{border-color:#E39A2C;box-shadow:0 0 0 1px #E39A2C,0 0 10px 1px rgba(242,169,59,.3)}'+
+      '#drLMPop .lmpn{flex:1 1 0;align-self:center;font-size:12px;line-height:1.3;color:var(--ink-2,#566170)}'+
       '#drLMPop [hidden]{display:none!important}'+
       '#drMPrevB{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:0 10px}#drMPrevB svg{width:20px;height:20px;flex:none}'+
       '#drMPrevB[aria-pressed="true"]{border-color:#E39A2C!important;box-shadow:0 0 0 1.5px #E39A2C,0 0 12px 2px rgba(242,169,59,.35)!important}'+
@@ -20796,7 +20797,7 @@ function trExpModes(d){
       '#trExp .trxml{list-style:none;margin:0;padding:0;font-size:13px}#trExp .trxml li{display:flex;justify-content:space-between;gap:10px;padding:2px 0}'+
       '#trExp .trxml li span+span{color:var(--ink-2,#566170)}';
     document.head.appendChild(st);
-    if(!$('#drMPrevB')){
+    if(false&&!$('#drMPrevB')){
       var b=el('button','btn');b.id='drMPrevB';b.type='button';b.setAttribute('aria-pressed','false');
       b.setAttribute('aria-label',trL('Vezi ca la export (modurile Gri / Monocrom ale straturilor)','Show as exported (Gray / Monochrome layer modes)'));
       b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><path d="M15 9h3M15 12h3M15 15h3"/></svg>';
@@ -20805,7 +20806,7 @@ function trExpModes(d){
       var ref=$('#drFocusB')||$('#fsBtn')||$('#drMenu');
       if(ref&&ref.parentNode)ref.parentNode.insertBefore(b,ref);else $('#dr .drtop').appendChild(b);
     }
-    if(!$('#drMPrevPill')){
+    if(false&&!$('#drMPrevPill')){
       var p=el('div',null,trL('Previzualizare export – așa iese fișierul. Desenul tău nu se schimbă.','Export preview – this is how the file comes out. Your drawing does not change.'));
       p.id='drMPrevPill';p.hidden=!DR.mprev;$('#drWrap').appendChild(p);
     }
