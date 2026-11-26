@@ -8199,7 +8199,8 @@ function lbCapture(src){
 function lbFind(id){return LB.list.filter(function(e){return e.id===id;})[0]||null;}
 function lbSaveItem(cap,o){
   var vid=lbId('v'),item=o.item?lbFind(o.item):null;
-  return lbCvBlob(cap.cv).then(function(blob){
+  /* cap.blob: fișierul original (ex. JPG-ul unui fundal), păstrat ca atare în loc să fie re-codat ca PNG */
+  return (cap.blob?Promise.resolve(cap.blob):lbCvBlob(cap.cv)).then(function(blob){
     return lbCvBlob(lbThumbCv(cap.cv)).then(function(tb){
       var rec=item;
       if(rec){rec.vars.push({id:vid,name:o.vname||('Varianta '+(rec.vars.length+1)),x:cap.x,y:cap.y,w:cap.w,h:cap.h});}
@@ -15366,11 +15367,13 @@ function prLiraInstall0(say){
   });});
   return chain.then(function(){lbFoldSave();return rec?PR_LIRA.length:0;});
 }
+/* 2026.11.26 perf: instalările automate din bibliotecă pornesc după întârziere, dar doar când aplicația e liberă (nu în mijlocul unei linii) */
+function prIdle(fn,ms){setTimeout(function(){if(window.requestIdleCallback)requestIdleCallback(function(){fn();},{timeout:5000});else fn();},ms);}
 /* se pune singur o dată; dacă îl ștergi, nu mai revine (îl readuci cu butonul din bibliotecă) */
 function prLiraAuto(){
   var k='lira-preset-v1';try{if(localStorage.getItem(k)==='1')return;}catch(e){return;}
   if(!window.indexedDB)return;
-  setTimeout(function(){lbLoad().then(function(){return prLiraInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},1500);
+  prIdle(function(){lbLoad().then(function(){return prLiraInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},1500);
 }
 /* ---------- NPC: personaje de fundal (mulțime, copii, săteni), fiecare decupat separat ---------- */
 /* PR_NPC: vezi prPresetsData() mai sus */
@@ -15391,7 +15394,7 @@ function prNpcInstall0(say){
 function prNpcAuto(){
   var k='npc-preset-v1';try{if(localStorage.getItem(k)==='1')return;}catch(e){return;}
   if(!window.indexedDB)return;
-  setTimeout(function(){lbLoad().then(function(){return prNpcInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},2500);
+  prIdle(function(){lbLoad().then(function(){return prNpcInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},2500);
 }
 /* ---------- Pro: coafuri (8 unghiuri) și ochi (15 expresii). Marcate pro:true; se folosesc doar cu Trasso Pro ---------- */
 function lbIsPro(e){return !!(e&&(e.pro||e.pack==='pro'||e.pack==='lira'||e.pack==='npc'||e.pack==='bg'));}
@@ -15432,7 +15435,7 @@ function prProInstall2(say,PR_PRO){
 function prProAuto(){
   var k='pro-hair-eyes-v2';try{if(localStorage.getItem(k)==='1')return;}catch(e){return;}
   if(!window.indexedDB)return;
-  setTimeout(function(){lbLoad().then(function(){return prProInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},3500);
+  prIdle(function(){lbLoad().then(function(){return prProInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},3500);
 }
 /* ---------- Pro: fundaluri gata desenate, în folderul „Fundaluri” (se descarcă din trasso-bg.js + bg/) ---------- */
 var BG_RUN=null;
@@ -15442,6 +15445,13 @@ function bgProData(){
 }
 function bgImg(src){
   return new Promise(function(ok,no){var im=new Image();im.onload=function(){var cv=document.createElement('canvas');cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.getContext('2d').drawImage(im,0,0);ok(cv);};im.onerror=function(){no(new Error(src));};im.src=src;});
+}
+/* 2026.11.26 perf: JPG-ul fundalului (1–2 MB) intră în bibliotecă așa cum e; înainte era re-codat ca PNG (≈0,5 s blocaj și fișier mai mare) */
+function bgBlob(src){
+  return fetch(src).then(function(r){if(!r.ok)throw new Error(src);return r.blob();}).then(function(b){
+    if(!/^image\//.test(b.type))b=new Blob([b],{type:'image/jpeg'});
+    return lbBlobCv(b).then(function(cv){return {cv:cv,blob:b};});
+  }).catch(function(){return bgImg(src).then(function(cv){return {cv:cv,blob:null};});});
 }
 function bgProInstall(say){
   if(BG_RUN)return BG_RUN.then(function(){return 0;});
@@ -15460,8 +15470,8 @@ function bgProInstall2(say,L,G){
     L.forEach(function(it,i){if(have[it[0]])return;
       chain=chain.then(function(){
         if(say)say('Pun în bibliotecă „'+it[0]+'” ('+(i+1)+'/'+L.length+')…');
-        return bgImg(it[1]).then(function(cv){
-          return lbSaveItem({cv:cv,x:0,y:0,w:cv.width,h:cv.height},{name:it[0],cat:'Fundaluri',grp:G,vname:'Normal',pack:'bg'}).then(function(r){if(r){r.pro=true;r.bv=it[2]||1;}n++;});
+        return bgBlob(it[1]).then(function(o){var cv=o.cv;
+          return lbSaveItem({cv:cv,blob:o.blob,x:0,y:0,w:cv.width,h:cv.height},{name:it[0],cat:'Fundaluri',grp:G,vname:'Normal',pack:'bg'}).then(function(r){if(r){r.pro=true;r.bv=it[2]||1;}n++;});
         });
       });});
     return chain.then(function(){return lbIdxSave();}).then(function(){lbFoldSave();return n;});
@@ -15469,7 +15479,7 @@ function bgProInstall2(say,L,G){
 function bgProAuto(){
   var k='pro-bg-v2';try{if(localStorage.getItem(k)==='1')return;}catch(e){return;}
   if(!window.indexedDB)return;
-  setTimeout(function(){lbLoad().then(function(){return bgProInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},5000);
+  prIdle(function(){lbLoad().then(function(){return bgProInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},5000);
 }
 /* ---------- Fețe de bază: 8 unghiuri (fete, băieți) și tipuri de față. Gratuite; imaginile sunt în trasso-fete.js ---------- */
 var PR_FACES_RUN=null;
@@ -15503,7 +15513,7 @@ function prFacesInstall1(say){
 function prFacesAuto(){
   var k='faces-base-v1';try{if(localStorage.getItem(k)==='1')return;}catch(e){return;}
   if(!window.indexedDB)return;
-  setTimeout(function(){lbLoad().then(function(){return prFacesInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},4500);
+  prIdle(function(){lbLoad().then(function(){return prFacesInstall();}).then(function(n){try{localStorage.setItem(k,'1');}catch(e){}if(n&&LB.render)LB.render();},function(){});},4500);
 }
 /* ---------- 1) Creator de personaj  2) Manechin cu articulații  3) Potrivire pe cap  4) Unelte pentru ce pui din bibliotecă ---------- */
 
