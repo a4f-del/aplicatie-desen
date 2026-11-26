@@ -4472,7 +4472,7 @@ function drMsg(t){
 function hex2rgb(h){var n=parseInt(h.replace('#',''),16);return [(n>>16)&255,(n>>8)&255,n&255];}
 function rgb2hex(r,g,b){return '#'+[r,g,b].map(function(n){n=Math.max(0,Math.min(255,Math.round(n)));return (n<16?'0':'')+n.toString(16);}).join('');}
 function drAddLayer(name,at){
-  var cv=drMk(DR.w,DR.h),L={id:DR.nid++,name:name,cv:cv,ctx:cv.getContext('2d'),vis:true,op:1,blend:'source-over',lock:false,alock:false,clip:false,draft:false};
+  var cv=drMk(DR.w,DR.h),L={id:DR.nid++,name:name,cv:cv,ctx:cv.getContext('2d'),vis:true,op:1,blend:'source-over',lock:false,alock:false,clip:false,draft:false,mode:'color',thr:50};
   DR.layers.splice(at==null?DR.cur+1:at,0,L);return L;
 }
 function drBufs(){
@@ -4608,6 +4608,36 @@ function drStrokeSrc(st,r){
   c.restore();
   return DR.tmp2;
 }
+/* 2026.11.26i: modul de culoare al stratului (Culoare / Gri / Monocrom). Pixelii desenați rămân neatinși:
+   conversia se face doar la exportul imaginii unite (o.modes) și la „Vezi ca la export” (DR.mprev), pe o copie. */
+function drModeOf(L){return L&&(L.mode==='gray'||L.mode==='mono')?L.mode:'color';}
+function drModeOn(L,o){return drModeOf(L)!=='color'&&(o.flat?!!o.modes:!!DR.mprev);}
+function drModeApply(x,mode,thr,r){
+  var W=x.canvas.width,H=x.canvas.height,x0=r?Math.max(0,Math.floor(r[0])):0,y0=r?Math.max(0,Math.floor(r[1])):0,
+    x1=r?Math.min(W,Math.ceil(r[2])):W,y1=r?Math.min(H,Math.ceil(r[3])):H,w=x1-x0,h=y1-y0;
+  if(w<=0||h<=0)return;
+  x.save();x.setTransform(1,0,0,1,0,0);
+  var im=x.getImageData(x0,y0,w,h),d=im.data,n=d.length,i,a,l,t=(thr==null?50:thr)*2.55;
+  if(mode==='gray'){for(i=0;i<n;i+=4){if(!d[i+3])continue;l=(d[i]*77+d[i+1]*150+d[i+2]*29)>>8;d[i]=d[i+1]=d[i+2]=l;}}
+  else{
+    /* monocrom: doar negru, alb sau transparent; decid după cât de închis iese pixelul pe hârtie albă */
+    for(i=0;i<n;i+=4){a=d[i+3];if(!a)continue;l=(d[i]*77+d[i+1]*150+d[i+2]*29)>>8;
+      if(255-a*(255-l)/255<t){d[i]=d[i+1]=d[i+2]=0;d[i+3]=255;}
+      else if(a>=128&&l>=t){d[i]=d[i+1]=d[i+2]=255;d[i+3]=255;}
+      else d[i+3]=0;}
+  }
+  x.putImageData(im,x0,y0);x.restore();
+}
+/* copia convertită a stratului, refolosită cât timp stratul nu s-a schimbat (L._rev crește la fiecare pas din istoric) */
+function drModeCv(L){
+  var k=L.mode+'|'+(L.thr==null?50:L.thr)+'|'+(L._rev||0)+'|'+(DR.mrev||0),W=L.cv.width,H=L.cv.height;
+  if(L._mc&&L._mk===k&&L._mcs===L.cv&&L._mc.width===W&&L._mc.height===H)return L._mc;
+  var c=(L._mc&&L._mc.width===W&&L._mc.height===H)?L._mc:drMk(W,H),x=c.getContext('2d');
+  x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.clearRect(0,0,W,H);x.drawImage(L.cv,0,0);
+  drModeApply(x,L.mode,L.thr,null);
+  L._mc=c;L._mk=k;L._mcs=L.cv;return c;
+}
+function drModeAny(){return DR.layers.some(function(L){return L.vis&&!L.draft&&drModeOf(L)!=='color';});}
 function drCompose(x,o){
   o=o||{};
   var st=o.live?DR.stroke:null,fl=o.live?DR.float:null,w=DR.w,h=DR.h;
@@ -4618,8 +4648,8 @@ function drCompose(x,o){
     var base=null;
     if(L.clip){base=drLayerBase(i);if(!base||!base.vis)return;}
     var sr=(st&&st.layer===i&&!st.direct&&!st.sel&&!st.eye&&!st.fd)?drStrokeRect(st):null;
-    var hasFl=fl&&fl.L===L;
-    var slow=L.clip||hasFl||drIsX(L.blend)||(sr&&(st.mask||DR.sel||L.alock||st.erase));
+    var hasFl=fl&&fl.L===L,md=drModeOn(L,o);
+    var slow=md||L.clip||hasFl||drIsX(L.blend)||(sr&&(st.mask||DR.sel||L.alock||st.erase));
     if(!slow){
       x.globalAlpha=L.op;x.globalCompositeOperation=L.blend;x.drawImage(L.cv,0,0);
       if(sr){x.globalAlpha=L.op*st.alpha;x.drawImage(st.gl&&DR.gbuf?DR.gbuf:DR.sbuf,sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1],sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1]);}
@@ -4627,14 +4657,16 @@ function drCompose(x,o){
     }
     var tc=DR.tmp.getContext('2d');
     tc.save();tc.setTransform(1,0,0,1,0,0);tc.globalAlpha=1;tc.globalCompositeOperation='source-over';tc.clearRect(0,0,w,h);
-    tc.drawImage(L.cv,0,0);
+    tc.drawImage(md&&!o.flat?drModeCv(L):L.cv,0,0);
     if(sr){
       var src=drStrokeSrc(st,sr);
       tc.globalAlpha=st.alpha;if(st.erase)tc.globalCompositeOperation=L.alock?'destination-over':'destination-out';else if(L.alock)tc.globalCompositeOperation='source-atop';
       if(!(st.erase&&L.alock))tc.drawImage(src,sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1],sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1]);
       tc.globalAlpha=1;tc.globalCompositeOperation='source-over';
+      if(md&&!o.flat)drModeApply(tc,L.mode,L.thr,sr);
     }
     if(hasFl)drFloatDraw(tc,fl);
+    if(md&&o.flat)drModeApply(tc,L.mode,L.thr,null);
     if(base){tc.globalCompositeOperation='destination-in';tc.drawImage(base.cv,0,0);}
     tc.restore();
     drBlendDraw(x,L.blend,L.op,DR.tmp,0,0);
@@ -5166,6 +5198,7 @@ function drCrop(src,x,y,w,h){var c=drMk(w,h);c.getContext('2d').drawImage(src,x,
 function drPush(L,bb){
   var x0=Math.max(0,Math.floor(bb[0])-2),y0=Math.max(0,Math.floor(bb[1])-2),x1=Math.min(DR.w,Math.ceil(bb[2])+2),y1=Math.min(DR.h,Math.ceil(bb[3])+2),w=x1-x0,h=y1-y0;
   if(w<=0||h<=0)return;
+  L._rev=(L._rev||0)+1;
   DR.undo.push({id:L.id,x:x0,y:y0,w:w,h:h,b:drCrop(DR.bcv,x0,y0,w,h),a:drCrop(L.cv,x0,y0,w,h)});
   DR.undoPx+=w*h*2;
   while(DR.undo.length>1&&(DR.undo.length>60||DR.undoPx>90e6)){var o=DR.undo.shift();DR.undoPx-=o.w*o.h*2;}
@@ -5236,7 +5269,7 @@ function drUndo(){
   var u=DR.undo.pop();if(!u)return;
   DR.undoPx-=u.w*u.h*2;
   var L=DR.layers.filter(function(q){return q.id===u.id;})[0];
-  if(L){L.ctx.clearRect(u.x,u.y,u.w,u.h);L.ctx.drawImage(u.b,u.x,u.y);DR.redo.push(u);bubOnUndo(u);}
+  if(L){L._rev=(L._rev||0)+1;L.ctx.clearRect(u.x,u.y,u.w,u.h);L.ctx.drawImage(u.b,u.x,u.y);DR.redo.push(u);bubOnUndo(u);}
   drSync();drDirty();drSaveSoon();
 }
 function drRedo(){
@@ -5244,7 +5277,7 @@ function drRedo(){
   var u=DR.redo.pop();if(!u)return;
   DR.undoPx+=u.w*u.h*2;
   var L=DR.layers.filter(function(q){return q.id===u.id;})[0];
-  if(L){L.ctx.clearRect(u.x,u.y,u.w,u.h);L.ctx.drawImage(u.a,u.x,u.y);DR.undo.push(u);bubOnRedo(u);}
+  if(L){L._rev=(L._rev||0)+1;L.ctx.clearRect(u.x,u.y,u.w,u.h);L.ctx.drawImage(u.a,u.x,u.y);DR.undo.push(u);bubOnRedo(u);}
   drSync();drDirty();drSaveSoon();
 }
 /* ton (screentone) */
@@ -5915,7 +5948,7 @@ function drFlat(withFrames,o){
   o=o||{};
   var c=drMk(DR.w,DR.h),x=c.getContext('2d');
   x.fillStyle='#ffffff';x.fillRect(0,0,DR.w,DR.h);
-  drCompose(x,{flat:true});
+  drCompose(x,{flat:true,modes:o.modes!=null?!!o.modes:!DR.expColor});
   if(withFrames&&DR.kind==='page')drFrames(x);
   return c;
 }
@@ -5972,7 +6005,7 @@ function drProjMeta(files){
     print:{fmt:DR.print.fmt,bl:DR.print.bl,cw:DR.print.cw,ch:DR.print.ch,on:DR.print.on},
     trace:{mode:DR.trace.mode,op:DR.trace.op,on:DR.trace.on},
     pg:DR.kind==='page'?JSON.stringify(S.page):null,link:DR.link||null,
-    layers:DR.layers.map(function(L,i){return {id:L.id,file:files[i],name:L.name,vis:!!L.vis,op:L.op,blend:L.blend,lock:!!L.lock,alock:!!L.alock,clip:!!L.clip,draft:!!L.draft,grp:L.grp||'',lib:L.lib||null};})};
+    layers:DR.layers.map(function(L,i){return {id:L.id,file:files[i],name:L.name,vis:!!L.vis,op:L.op,blend:L.blend,lock:!!L.lock,alock:!!L.alock,clip:!!L.clip,draft:!!L.draft,mode:L.mode==='gray'||L.mode==='mono'?L.mode:'color',thr:L.thr==null?50:L.thr,grp:L.grp||'',lib:L.lib||null};})};
 }
 function drProjBlob(){
   var names=DR.layers.map(function(L,i){return 'straturi/'+(i+1<10?'0':'')+(i+1)+'-'+drSafe(L.name)+'.png';});
@@ -6038,7 +6071,7 @@ function drImportProject(file){
       DR.w=w;DR.h=h;DR.kind=m.kind==='page'?'page':'free';DR.nid=m.nid||m.layers.length+1;DR.undo=[];DR.redo=[];DR.layers=[];drBufs();DR.recent=[];
       var ok={};DBLENDS.forEach(function(b){ok[b[0]]=1;});
       m.layers.forEach(function(ld,i){
-        DR.layers.push({id:ld.id||i+1,name:String(ld.name||'Strat').slice(0,40),cv:cvs[i],ctx:cvs[i].getContext('2d'),vis:ld.vis!==false,op:clamp(+ld.op||0,0,1),blend:ok[ld.blend]?ld.blend:'source-over',lock:!!ld.lock,alock:!!ld.alock,clip:!!ld.clip,draft:!!ld.draft});
+        DR.layers.push({id:ld.id||i+1,name:String(ld.name||'Strat').slice(0,40),cv:cvs[i],ctx:cvs[i].getContext('2d'),vis:ld.vis!==false,op:clamp(+ld.op||0,0,1),blend:ok[ld.blend]?ld.blend:'source-over',lock:!!ld.lock,alock:!!ld.alock,clip:!!ld.clip,draft:!!ld.draft,mode:ld.mode==='gray'||ld.mode==='mono'?ld.mode:'color',thr:ld.thr==null?50:clamp(+ld.thr||50,5,95)});
       });
       var q=m.print;
       if(q){DR.print.fmt=DPRINT[q.fmt]?q.fmt:'b5';DR.print.bl=clamp(+q.bl||0,0,10);DR.print.cw=clamp(+q.cw||148,40,500);DR.print.ch=clamp(+q.ch||210,40,500);DR.print.on=!!q.on;}
@@ -6133,7 +6166,7 @@ function drSnapMeta(snap){
   return drHistEnc(snap.hist).then(function(hist){snap.histE=hist;return Promise.all(snap.layers.map(function(L){return new Promise(function(res){L.cv.toBlob(res,'image/png');});}));}).then(function(blobs){
       if(blobs.some(function(x){return !x;}))throw new Error('toBlob');
       var meta={v:2,id:snap.id,name:snap.name,w:snap.w,h:snap.h,kind:snap.kind,cur:snap.cur,nid:snap.nid,trace:snap.trace,pr:snap.pr,t:Date.now(),recent:snap.recent,pg:snap.pg,link:snap.link,spread:snap.spread,vpts:snap.vpts,sk:snap.sk,ppl:snap.ppl,hist:snap.histE,
-        layers:snap.layers.map(function(L,i){return {id:L.id,name:L.name,vis:L.vis,op:L.op,blend:L.blend,lock:!!L.lock,alock:!!L.alock,clip:!!L.clip,draft:!!L.draft,lib:L.lib||null,grp:L.grp||'',blob:blobs[i]};})};
+        layers:snap.layers.map(function(L,i){return {id:L.id,name:L.name,vis:L.vis,op:L.op,blend:L.blend,lock:!!L.lock,alock:!!L.alock,clip:!!L.clip,draft:!!L.draft,mode:L.mode==='gray'||L.mode==='mono'?L.mode:'color',thr:L.thr==null?50:L.thr,lib:L.lib||null,grp:L.grp||'',blob:blobs[i]};})};
       return meta;
     });
 }
@@ -6211,7 +6244,7 @@ function drLoadSaved(id){
       else if(m.kind==='page'){DR.print.fmt='b5';DR.print.bl=3;}
       return Promise.all(m.layers.map(function(ld){
         return new Promise(function(res){
-          var cv=drMk(DR.w,DR.h),L={id:ld.id,name:ld.name,cv:cv,ctx:cv.getContext('2d'),vis:ld.vis,op:ld.op,blend:ld.blend||'source-over',lock:!!ld.lock,alock:!!ld.alock,clip:!!ld.clip,draft:!!ld.draft,lib:ld.lib||null,grp:ld.grp||''};
+          var cv=drMk(DR.w,DR.h),L={id:ld.id,name:ld.name,cv:cv,ctx:cv.getContext('2d'),vis:ld.vis,op:ld.op,blend:ld.blend||'source-over',lock:!!ld.lock,alock:!!ld.alock,clip:!!ld.clip,draft:!!ld.draft,mode:ld.mode==='gray'||ld.mode==='mono'?ld.mode:'color',thr:ld.thr==null?50:clamp(+ld.thr||50,5,95),lib:ld.lib||null,grp:ld.grp||''};
           DR.layers.push(L);
           var url=URL.createObjectURL(ld.blob),img=new Image();
           img.onload=function(){L.ctx.drawImage(img,0,0);URL.revokeObjectURL(url);res();};
@@ -6503,7 +6536,7 @@ function drLayersUI(){
     var row=el('div','oi'+(g?' ingrp':'')),eye=el('button','x',L.vis?'●':'○'),b=el('button','li'),nm=el('span');
     nm.textContent=L.name;b.appendChild(nm);
     var sm=el('small'),bl=DBLENDS.filter(function(q){return q[0]===L.blend;})[0];
-    sm.textContent=Math.round(L.op*100)+'%'+(L.blend!=='source-over'&&bl?' · '+bl[1]:'')+(L.lock?' 🔒':'')+(L.alock?' α':'')+(L.clip?' ⤓':'')+(L.draft?' ✎':'');b.appendChild(sm);
+    sm.textContent=Math.round(L.op*100)+'%'+(L.blend!=='source-over'&&bl?' · '+bl[1]:'')+(L.lock?' 🔒':'')+(L.alock?' α':'')+(L.clip?' ⤓':'')+(L.draft?' ✎':'')+(L.mode==='gray'?' · '+trL('Gri','Gray'):L.mode==='mono'?' · '+trL('Mono','Mono'):'');b.appendChild(sm);
     eye.type='button';b.type='button';eye.setAttribute('aria-label','Arată sau ascunde stratul '+L.name);
     b.setAttribute('aria-pressed',String(i===DR.cur));
     eye.addEventListener('click',function(){L.vis=!L.vis;drSync();drDirty();drSaveSoon();});
@@ -6768,7 +6801,7 @@ function drBuildSide(){
   }
   function hist0(){DR.undo=[];DR.redo=[];DR.undoPx=0;}
   lbtn('+ Strat',function(){var L=drAddLayer('Strat '+DR.nid);DR.cur=DR.layers.indexOf(L);drSync();drDirty();drSaveSoon();});
-  lbtn('Duplică',function(){var s0=DR.layers[DR.cur];if(!s0)return;var L=drAddLayer(s0.name+' copie');L.ctx.drawImage(s0.cv,0,0);L.op=s0.op;L.blend=s0.blend;L.clip=s0.clip;DR.cur=DR.layers.indexOf(L);drSync();drDirty();drSaveSoon();});
+  lbtn('Duplică',function(){var s0=DR.layers[DR.cur];if(!s0)return;var L=drAddLayer(s0.name+' copie');L.ctx.drawImage(s0.cv,0,0);L.op=s0.op;L.blend=s0.blend;L.clip=s0.clip;L.mode=s0.mode||'color';L.thr=s0.thr==null?50:s0.thr;DR.cur=DR.layers.indexOf(L);drSync();drDirty();drSaveSoon();});
   lbtn('↑',function(){var i=DR.cur;if(i<DR.layers.length-1){var t=DR.layers[i];DR.layers[i]=DR.layers[i+1];DR.layers[i+1]=t;DR.cur=i+1;drSync();drDirty();drSaveSoon();}});
   lbtn('↓',function(){var i=DR.cur;if(i>0){var t=DR.layers[i];DR.layers[i]=DR.layers[i-1];DR.layers[i-1]=t;DR.cur=i-1;drSync();drDirty();drSaveSoon();}});
   lbtn('Îmbină jos',function(){
@@ -6814,6 +6847,38 @@ function drBuildSide(){
   lprop('Blochează transparența (colorezi doar ce e desenat)','alock');
   lprop('Mască de tăiere (apare doar peste stratul de dedesubt)','clip');
   lprop('Strat de ciornă (se vede, dar nu se exportă)','draft');
+  /* 2026.11.26i: modul de culoare al stratului – se vede la „Vezi ca la export” și în fișierul exportat */
+  var mdw=el('div','lmode');mdw.id='drLMode';lo.appendChild(mdw);
+  mdw.appendChild(el('div','lmodeh',trL('Mod de culoare','Colour mode')));
+  function lmSet(v){var L=DR.layers[DR.cur];if(!L||L.mode===v)return;L.mode=v;if(L.thr==null)L.thr=50;drSaveSoon();}
+  drSegBtn(mdw,[['color',trL('Culoare','Colour')],['gray',trL('Gri','Gray')],['mono',trL('Monocrom','Monochrome')]],
+    function(){return drModeOf(DR.layers[DR.cur]);},lmSet,'lmodeseg');
+  var mdn=el('p','note lmoden');mdw.appendChild(mdn);
+  var thr=drSlider(mdw,trL('Prag alb / negru','Black / white threshold'),5,95,1,
+    function(){var L=DR.layers[DR.cur];return L&&L.thr!=null?L.thr:50;},
+    function(v){var L=DR.layers[DR.cur];if(L){L.thr=v;drSaveSoon();}},function(v){return Math.round(v)+'%';});
+  thr.classList.add('lmodethr');
+  var mda=el('div','btns');mdw.appendChild(mda);
+  var pv=drBtn(mda,trL('Vezi ca la export','Show as exported'),function(){drMPrev(!DR.mprev);});pv.classList.add('lmodepv');
+  var bk=drBtn(mda,trL('Aplică definitiv','Apply permanently'),function(){
+    var L=DR.layers[DR.cur];if(!L||drModeOf(L)==='color')return;
+    if(L.lock){drMsg(trL('Stratul e blocat. Deblochează-l din panoul Straturi.','The layer is locked. Unlock it in the Layers panel.'));return;}
+    if(bk.getAttribute('data-armed')!=='1'){bk.setAttribute('data-armed','1');bk.textContent=trL('Sigur? Culorile se pierd','Sure? Colours are lost');
+      setTimeout(function(){bk.removeAttribute('data-armed');bk.textContent=trL('Aplică definitiv','Apply permanently');},3000);return;}
+    bk.removeAttribute('data-armed');bk.textContent=trL('Aplică definitiv','Apply permanently');
+    if(DR.float)drFloatCommit();
+    drBeginSnap(L);drModeApply(L.ctx,L.mode,L.thr,null);L.mode='color';drPush(L,[0,0,DR.w,DR.h]);
+    drMsg(trL('Gata: stratul a fost transformat. „Anulează” îl aduce înapoi.','Done: the layer was converted. Undo brings it back.'));
+    drSync();drDirty();drSaveSoon();
+  });
+  DR.sync.push(function(){
+    var m=drModeOf(DR.layers[DR.cur]);
+    mdn.textContent=m==='gray'?trL('La export devine tonuri de gri. Culorile tale rămân în strat.','Exports as shades of gray. Your colours stay in the layer.')
+      :m==='mono'?trL('La export rămân doar alb și negru pur, fără margini gri. Culorile tale rămân în strat.','Exports as pure black and white, no gray edges. Your colours stay in the layer.')
+      :trL('Stratul se exportă în culori, cum îl vezi.','The layer exports in colour, as you see it.');
+    thr.hidden=m!=='mono';bk.hidden=m==='color';
+    pv.setAttribute('aria-pressed',String(!!DR.mprev));
+  });
 
   sd.appendChild(el('div','h','Calc din perspectivă'));
   var ts=el('select','pick-sel');ts.setAttribute('aria-label','Ce calc se vede dedesubt');
@@ -14024,6 +14089,7 @@ function frCacheOk(){
   var st=DR.stroke;if(!st||!st.tctx||st.erase||st.direct||st.mask||st.sel||st.eye||st.fd||st.pc||st.prd||st.fo)return false;
   if(DR.sel||DR.float)return false;
   var L=DR.layers[st.layer];if(!L||L.clip||L.alock||drIsX(L.blend))return false;
+  if(DR.mprev&&drModeOf(L)!=='color')return false;
   for(var i=st.layer+1;i<DR.layers.length;i++)if(DR.layers[i].clip||drIsX(DR.layers[i].blend))return false;
   return true;
 }
@@ -20476,6 +20542,7 @@ function trExpOpen(){
   [[0,trL('Ca pânza','As canvas')],[150,'150 dpi'],[300,'300 dpi'],[600,'600 dpi']].forEach(function(q){var b=el('button',null,q[1]);b.type='button';b.setAttribute('data-d',String(q[0]));
     b.addEventListener('click',function(){DR.expDpi=q[0];try{drPrefSaveSoon();}catch(e){}paint();});seg.appendChild(b);});
   dpiRow.appendChild(seg);d.appendChild(dpiRow);d.appendChild(note);
+  if(DR.ready&&drModeAny())trExpModes(d);
   var a=el('div','trxa'),cn=el('button',null,trL('Renunță','Cancel')),go=el('button','trxgo',trL('Exportă','Export'));cn.type=go.type='button';
   cn.addEventListener('click',close);
   go.addEventListener('click',function(){var f=TRX.fmt;close();
@@ -20613,6 +20680,91 @@ function tr4Init(){tr4Css();tr4Layers();tr4ViewIcons();tr4Scene();DR.sync.push(f
 (function tr4Boot(n){
   if(typeof DR==='undefined'||!DR.built||!$('#drLayers')||!$('#drRot0')){if(n<240)setTimeout(function(){tr4Boot(n+1);},250);return;}
   try{tr4Init();}catch(e){console.error(e);}
+})(0);
+/* ===== 2026.11.26i – Mod de culoare pe strat (Culoare / Gri / Monocrom) =====
+   Gratuit. Pixelii desenați nu se schimbă: modul se aplică doar la „Vezi ca la export” și în imaginea exportată.
+   „Aplică definitiv” (în panoul Straturi) transformă stratul de-adevăratelea, cu Anulează. */
+function drMPrev(on){
+  DR.mprev=!!on;DR.mrev=(DR.mrev||0)+1;
+  if(!DR.mprev)(DR.layers||[]).forEach(function(L){L._mc=null;L._mk='';L._mcs=null;});
+  var b=$('#drMPrevB');if(b)b.setAttribute('aria-pressed',String(DR.mprev));
+  var p=$('#drMPrevPill');if(p)p.hidden=!DR.mprev;
+  if(DR.mprev&&!drModeAny())drMsg(trL('Niciun strat nu are mod Gri sau Monocrom: exportul arată ca acum. Modul îl alegi din panoul Straturi.','No layer is set to Gray or Monochrome: the export looks like this. Pick a mode in the Layers panel.'));
+  try{drSync();}catch(e){}drDirty();
+}
+function trExpModes(d){
+  var box=el('div','trxm');d.appendChild(box);
+  box.appendChild(el('b',null,trL('Straturi cu mod de culoare','Layers with a colour mode')));
+  var th=el('div','trxmth'),f1=el('figure'),f2=el('figure'),c1=el('canvas'),c2=el('canvas');
+  f1.appendChild(c1);f1.appendChild(el('figcaption',null,trL('Cum desenezi','As you draw')));
+  f2.appendChild(c2);f2.appendChild(el('figcaption',null,trL('Cum iese fișierul','How the file comes out')));
+  th.appendChild(f1);th.appendChild(f2);box.appendChild(th);
+  var ul=el('ul','trxml');
+  DR.layers.slice().reverse().forEach(function(L){
+    if(!L.vis||L.draft||drModeOf(L)==='color')return;
+    var li=el('li');li.appendChild(el('span',null,L.name));
+    li.appendChild(el('span',null,L.mode==='gray'?trL('Gri','Gray'):trL('Monocrom','Monochrome')+' · '+trL('prag ','threshold ')+Math.round(L.thr==null?50:L.thr)+'%'));
+    ul.appendChild(li);
+  });
+  box.appendChild(ul);
+  var r=el('div','trxr'),sg=el('div','trxs');r.appendChild(sg);box.appendChild(r);
+  var thumbs=null;
+  function draw(){
+    if(!thumbs)return;
+    [[c1,thumbs[0]],[c2,DR.expColor?thumbs[0]:thumbs[1]]].forEach(function(q){var c=q[0],s=q[1];c.width=s.width;c.height=s.height;c.getContext('2d').drawImage(s,0,0);});
+  }
+  [[false,trL('Folosește modurile straturilor','Use the layer modes')],[true,trL('Exportă totul în culori','Export everything in colour')]].forEach(function(q){
+    var b=el('button',null,q[1]);b.type='button';b.setAttribute('aria-pressed',String(!!DR.expColor===q[0]));
+    b.addEventListener('click',function(){DR.expColor=q[0];[].forEach.call(sg.children,function(x){x.setAttribute('aria-pressed',String(x===b));});draw();});
+    sg.appendChild(b);
+  });
+  setTimeout(function(){
+    try{
+      if(DR.float)drFloatCommit();
+      var a=drFlat(true,{modes:false}),m=drFlat(true,{modes:true}),k=Math.min(1,170/a.width,220/a.height);
+      thumbs=[a,m].map(function(s){var c=drMk(Math.max(1,Math.round(s.width*k)),Math.max(1,Math.round(s.height*k))),x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(s,0,0,c.width,c.height);return c;});
+      draw();
+    }catch(e){console.error(e);}
+  },30);
+}
+(function mdBoot(n){
+  if(typeof DR==='undefined'||!DR.built||!$('#dr .drtop')||!$('#drWrap')){if(n<240)setTimeout(function(){mdBoot(n+1);},250);return;}
+  try{
+    var st=document.createElement('style');st.id='mdModeSt';st.textContent=
+      '#drLMode{display:flex;flex-direction:column;gap:6px;margin:10px 0 4px;padding:10px;border:1px solid var(--rule,#d3d8d1);border-radius:10px}'+
+      '#drLMode .lmodeh{font-weight:600;font-size:13px;color:var(--ink-2,#566170)}'+
+      '#drLMode .lmodeseg{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}'+
+      '#drLMode .lmodeseg button{min-height:40px}'+
+      '#drLMode .lmoden{margin:0}#drLMode .btns{gap:6px}#drLMode .btns .btn{flex:1 1 0}'+
+      '#drLMode [hidden]{display:none!important}'+
+      '#drMPrevB{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:0 10px}#drMPrevB svg{width:20px;height:20px;flex:none}'+
+      '#drMPrevB[aria-pressed="true"],#drLMode .lmodepv[aria-pressed="true"]{border-color:#E39A2C!important;box-shadow:0 0 0 1.5px #E39A2C,0 0 12px 2px rgba(242,169,59,.35)!important}'+
+      '#drMPrevPill{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:30;pointer-events:none;display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:#18202b;color:#fff;font:500 13px/1.2 var(--ui,system-ui,sans-serif);white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}'+
+      '#drMPrevPill::before{content:"";width:8px;height:8px;border-radius:50%;background:#F2A93B;flex:none}'+
+      '#drMPrevPill[hidden]{display:none}'+
+      '#trExp .trxm{display:flex;flex-direction:column;gap:8px;margin:10px 0;padding:10px 12px;border:1px solid var(--rule,#d3d8d1);border-radius:10px}'+
+      '#trExp .trxmth{display:flex;gap:14px;justify-content:center}'+
+      '#trExp .trxmth figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px}'+
+      '#trExp .trxmth canvas{max-width:170px;max-height:220px;background:#fff;box-shadow:0 2px 10px rgba(24,32,43,.18)}'+
+      '#trExp .trxmth figure+figure canvas{box-shadow:0 0 0 2px #E39A2C,0 0 12px 2px rgba(242,169,59,.3)}'+
+      '#trExp .trxmth figcaption{font-size:12px;color:var(--ink-2,#566170)}'+
+      '#trExp .trxml{list-style:none;margin:0;padding:0;font-size:13px}#trExp .trxml li{display:flex;justify-content:space-between;gap:10px;padding:2px 0}'+
+      '#trExp .trxml li span+span{color:var(--ink-2,#566170)}';
+    document.head.appendChild(st);
+    if(!$('#drMPrevB')){
+      var b=el('button','btn');b.id='drMPrevB';b.type='button';b.setAttribute('aria-pressed','false');
+      b.setAttribute('aria-label',trL('Vezi ca la export (modurile Gri / Monocrom ale straturilor)','Show as exported (Gray / Monochrome layer modes)'));
+      b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><path d="M15 9h3M15 12h3M15 15h3"/></svg>';
+      b.title=trL('Vezi ca la export','Show as exported');
+      b.addEventListener('click',function(){drMPrev(!DR.mprev);});
+      var ref=$('#drFocusB')||$('#fsBtn')||$('#drMenu');
+      if(ref&&ref.parentNode)ref.parentNode.insertBefore(b,ref);else $('#dr .drtop').appendChild(b);
+    }
+    if(!$('#drMPrevPill')){
+      var p=el('div',null,trL('Previzualizare export – așa iese fișierul. Desenul tău nu se schimbă.','Export preview – this is how the file comes out. Your drawing does not change.'));
+      p.id='drMPrevPill';p.hidden=!DR.mprev;$('#drWrap').appendChild(p);
+    }
+  }catch(e){console.error(e);}
 })(0);
 
 
