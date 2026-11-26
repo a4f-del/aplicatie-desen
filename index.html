@@ -6571,6 +6571,7 @@ function drBuild(){
   var bar=$('#drSliders');
   var sz=drSlider(bar,'Mărime',1,160,1,function(){return drC().size;},function(v){drC().size=v;},function(v){return Math.round(v)+' px';});
   var op=drSlider(bar,'Opacitate',5,100,1,function(){return Math.round(drC().op*100);},function(v){drC().op=v/100;},function(v){return Math.round(v)+'%';});
+  ovFastSlider(sz);ovFastSlider(op);
   var stb=drSlider(bar,'Stabilizare',0,100,1,function(){return DR.stab==='rope'?Math.round(DR.rope/.8):Math.round(DR.smooth*100);},function(v){if(DR.stab==='rope')DR.rope=Math.round(v*.8);else DR.smooth=v/100;},function(v){return Math.round(v)+(DR.stab==='rope'?' (sfoară)':'%');});
   DR.sync.push(function(){sz.hidden=!!DNOSIZE[DR.tool];op.hidden=!!DNOOP[DR.tool];stb.hidden=!(DBRUSH[DR.tool]||DR.tool==='eraser');bar.hidden=sz.hidden&&op.hidden;});
   var sw=$('#drSw');
@@ -12347,10 +12348,10 @@ function rlSlider(parent,label,get,set,fmt,cls){
   w.setAttribute('role','slider');w.setAttribute('aria-label',label);w.tabIndex=0;
   tr.appendChild(fill);tr.appendChild(kn);w.appendChild(tr);w.appendChild(tip);parent.appendChild(w);
   function show(){var t=clamp(get(),0,1);kn.style.bottom=(t*100)+'%';fill.style.height=(t*100)+'%';tip.textContent=fmt();w.setAttribute('aria-valuetext',fmt());}
-  function at(e){var r=tr.getBoundingClientRect();set(clamp((r.bottom-e.clientY)/r.height,0,1));show();rlPreview(cls);drDirty();}
-  w.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();try{w.setPointerCapture(e.pointerId);}catch(x){}w.classList.add('drag');at(e);});
+  function at(e){var r=tr.getBoundingClientRect();set(clamp((r.bottom-e.clientY)/r.height,0,1));show();rlPreview(cls);ovSnapPing();drDirty();}
+  w.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();try{w.setPointerCapture(e.pointerId);}catch(x){}w.classList.add('drag');ovSnapStart();at(e);});
   w.addEventListener('pointermove',function(e){if(w.classList.contains('drag'))at(e);});
-  function up(){if(!w.classList.contains('drag'))return;w.classList.remove('drag');RL.prev=null;drSync();drDirty();drPrefSaveSoon();}
+  function up(){if(!w.classList.contains('drag'))return;w.classList.remove('drag');RL.prev=null;OVS.on=false;drSync();drDirty();drPrefSaveSoon();}
   w.addEventListener('pointerup',up);w.addEventListener('pointercancel',up);
   w.addEventListener('keydown',function(e){var d=e.key==='ArrowUp'?.03:e.key==='ArrowDown'?-.03:0;if(!d)return;set(clamp(get()+d,0,1));show();drSync();e.preventDefault();});
   DR.sync.push(show);
@@ -14067,6 +14068,41 @@ function frCacheBuild(st){
     if(DR.kind==='page'&&DR.clip){x.save();drViewTf(x,dpr);drPanelPath(x);x.lineWidth=3/v.s;x.strokeStyle='#f2c230';x.setLineDash([10/v.s,6/v.s]);x.stroke();x.restore();}
   };
 })();
+/* ---------- Viteză: cât tragi de Mărime/Opacitate, foaia nu se mai recompune la fiecare cadru.
+   Se face o poză a ecranului o dată la atingere și apoi se redesenează doar cercul pensulei peste ea. ---------- */
+var OVS={cv:null,on:false,last:0};
+function ovSnapStart(){
+  var c=DR.disp;if(!c||!DR.ready||DR.stroke)return;
+  var hp=DHOV.p,pv=RL.prev;DHOV.p=null;RL.prev=null;OVS.on=false;
+  if(DR.raf){cancelAnimationFrame(DR.raf);DR.raf=0;}
+  drRender();
+  DHOV.p=hp;RL.prev=pv;
+  if(!OVS.cv||OVS.cv.width!==c.width||OVS.cv.height!==c.height)OVS.cv=drMk(c.width,c.height);
+  var g=OVS.cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='copy';g.drawImage(c,0,0);g.globalCompositeOperation='source-over';
+  OVS.on=true;OVS.last=performance.now();
+}
+function ovSnapPing(){OVS.last=performance.now();}
+function ovSnapEnd(){if(!OVS.on)return;OVS.on=false;drDirty();}
+(function(){
+  var prev=drRender;
+  drRender=function(){
+    var c=DR.disp,x=DR.dctx;
+    /* plasă de siguranță: dacă nu s-a mai mișcat nimic ~0,7 s, revine la desenarea completă */
+    if(OVS.on&&performance.now()-OVS.last>700)OVS.on=false;
+    if(OVS.on&&c&&x&&DR.ready&&!DR.stroke&&!DR.float&&OVS.cv&&OVS.cv.width===c.width&&OVS.cv.height===c.height){
+      x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.drawImage(OVS.cv,0,0);
+      x.setTransform(DR.dpr,0,0,DR.dpr,0,0);rlOverlay(x);drHoverOverlay(x);return;
+    }
+    return prev();
+  };
+})();
+/* slider-ele Mărime și Opacitate din panoul lateral folosesc aceeași scurtătură */
+function ovFastSlider(row){
+  var inp=row&&row.querySelector('input');if(!inp)return;
+  inp.addEventListener('pointerdown',ovSnapStart);
+  inp.addEventListener('input',ovSnapPing);
+  ['pointerup','pointercancel','change','blur'].forEach(function(ev){inp.addEventListener(ev,ovSnapEnd);});
+}
 /* ---------- Plan în perspectivă: texturile pensulelor (cărămizi, lemn, ton, hașuri) și formele (iarbă, frunze) urmează podeaua sau peretele ---------- */
 var PPL={edit:false,tiles:{},key:'',H:null,Hi:null,ver:0};
 function plVPs(){
