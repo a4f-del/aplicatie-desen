@@ -18439,7 +18439,7 @@ var AN=(function(){
     var un=E('button','anbtn','↶');un.type='button';un.setAttribute('aria-label',T('Anulează','Undo'));un.title=T('Anulează (Ctrl+Z)','Undo (Ctrl+Z)');hd.appendChild(un);
     var re=E('button','anbtn','↷');re.type='button';re.setAttribute('aria-label',T('Refă','Redo'));re.title=T('Refă (Ctrl+Y)','Redo (Ctrl+Y)');hd.appendChild(re);
     var help=E('button','anbtn','ⓘ');help.type='button';help.setAttribute('aria-label',T('Cum funcționează','How it works'));hd.appendChild(help);
-    var exp=E('button','anbtn pri',T('Export','Export'));exp.type='button';hd.appendChild(exp);
+    var exp=E('button','anbtn pri',T('Exportă','Export'));exp.type='button';hd.appendChild(exp);
     var tools=E('nav','antools');tools.setAttribute('aria-label',T('Unelte','Tools'));ov.appendChild(tools);
     [['pen',T('Peniță','Pen')],['eraser',T('Radieră','Eraser')],['lasso',T('Selecție (lasou): muți, ștergi','Selection (lasso): move, delete')]].forEach(function(t){
       var b=E('button','antool');b.type='button';b.dataset.tool=t[0];b.title=t[1];b.setAttribute('aria-label',t[1]);b.innerHTML=IC[t[0]];b.setAttribute('aria-pressed',String(t[0]==='pen'));
@@ -18462,6 +18462,10 @@ var AN=(function(){
     var nx=E('button','anbtn','›');nx.type='button';nx.setAttribute('aria-label',T('Cadrul următor','Next frame'));bar.appendChild(nx);
     var cnt=E('span','ancnt');bar.appendChild(cnt);bar.appendChild(E('span','ansp'));
     var ops=E('span','anrow');ops.style.margin='0';bar.appendChild(ops);
+    /* 2026.11.26e: onion skin la o atingere, lângă cadre */
+    var onb=E('button','anbtn anon',T('Onion','Onion'));onb.type='button';onb.title=T('Arată / ascunde cadrele vecine (onion skin)','Show / hide neighbouring frames (onion skin)');onb.setAttribute('aria-label',onb.title);
+    onb.addEventListener('click',function(){var A=AN.A;if(!A)return;A.onion.on=!A.onion.on;onb.setAttribute('aria-pressed',String(A.onion.on));AN.render();AN.dirty();if(A.kind==='cel'&&AN.sideCel)AN.sideCel();});
+    ops.appendChild(onb);AN.onionBtn=onb;
     ops.appendChild(E('span','ancnt',T('Ține cadrul','Hold frame')));
     var hold=E('span','anseg');hold.setAttribute('role','group');hold.setAttribute('aria-label',T('Câte cadre ține desenul ales','How many frames the selected drawing is held'));ops.appendChild(hold);
     [1,2,3,4].forEach(function(h){var b=E('button',null,String(h));b.type='button';b.dataset.h=h;b.addEventListener('click',function(){AN.setHold(h);});hold.appendChild(b);});
@@ -18501,7 +18505,14 @@ var AN=(function(){
       var f=E('div','anfoot');b.appendChild(f);var ok=E('button','anbtn pri',T('Gata','Done'));ok.type='button';f.appendChild(ok);
       var go=function(){var v=i.value.trim().slice(0,60);if(v){A.name=v;AN.UI.name.textContent=v;AN.dirty();}close();};ok.addEventListener('click',go);i.addEventListener('keydown',function(e){if(e.key==='Enter')go();});setTimeout(function(){i.focus();i.select();},30);});}
   /* panoul din dreapta (cadru cu cadru) */
-  function sideCel(){var A=AN.A,S=AN.UI.side;S.innerHTML='';
+  function sideCel(){var A=AN.A,S0=AN.UI.side,S=S0;S0.innerHTML='';
+    /* 2026.11.26e: patru file scurte în loc de o listă lungă */
+    if(AN.onionBtn)AN.onionBtn.setAttribute('aria-pressed',String(!!A.onion.on));
+    var TB=[['draw',T('Desen','Draw')],['onion','Onion'],['play',T('Redare','Playback')],['fx',T('Efecte','Effects')]],tabs=E('div','antabs'),P={};tabs.setAttribute('role','tablist');S0.appendChild(tabs);
+    if(!AN.sideTab)AN.sideTab='draw';
+    TB.forEach(function(t){var b=E('button',null,t[1]);b.type='button';b.setAttribute('role','tab');b.dataset.k=t[0];b.addEventListener('click',function(){AN.sideTab=t[0];paintT();});tabs.appendChild(b);var pn=E('div','anpane');pn.setAttribute('role','tabpanel');S0.appendChild(pn);P[t[0]]=pn;});
+    function paintT(){[].forEach.call(tabs.children,function(b){var on=b.dataset.k===AN.sideTab;b.setAttribute('aria-selected',String(on));P[b.dataset.k].hidden=!on;});}
+    S=P.draw;
     var h=function(t){S.appendChild(E('h3',null,t));};
     var seg=function(opts,get,set,lab){var s=E('div','anseg');s.setAttribute('role','group');if(lab)s.setAttribute('aria-label',lab);
       opts.forEach(function(o){var b=E('button',null,o[1]);b.type='button';b.addEventListener('click',function(){set(o[0]);paint();});s.appendChild(b);});
@@ -18515,12 +18526,12 @@ var AN=(function(){
     h(T('Desenezi pe','Drawing on'));
     seg([['frame',T('Cadrul ales','Selected frame')],['bg',T('Fundal (toate)','Background (all)')]],function(){return A.tgt;},function(v){AN.commitSel();A.tgt=v;AN.render();},T('Unde desenezi','Where you draw'));
     S.appendChild(E('p','annote',T('Ce desenezi pe fundal apare sub fiecare cadru, ca să nu-l desenezi de fiecare dată.','What you draw on the background shows under every frame, so you draw it only once.')));
-    h('Onion skin');
-    tg(T('Arată cadrele vecine','Show neighbouring frames'),function(){return A.onion.on;},function(v){A.onion.on=v;AN.render();AN.dirty();});
+    S=P.onion;h('Onion skin');
+    tg(T('Arată cadrele vecine','Show neighbouring frames'),function(){return A.onion.on;},function(v){A.onion.on=v;if(AN.onionBtn)AN.onionBtn.setAttribute('aria-pressed',String(!!v));AN.render();AN.dirty();});
     rng(T('Câte cadre','How many frames'),1,3,1,function(){return A.onion.n;},function(v){A.onion.n=v;AN.render();},function(v){return T(v+' înainte · '+v+' după',v+' before · '+v+' after');});
     rng(T('Cât de vizibile','How visible'),10,70,1,function(){return Math.round(A.onion.a*100);},function(v){A.onion.a=v/100;AN.render();},function(v){return v+'%';});
     S.appendChild(E('p','annote',T('Roșu = cadrele de dinainte, verde = cele de după.','Red = frames before, green = frames after.')));
-    h(T('Redare','Playback'));
+    S=P.play;h(T('Redare','Playback'));
     var pf=seg([[8,'8'],[12,'12'],[24,'24'],[30,'30'],[60,'60']],function(){return A.fps;},function(v){A.fps=v;rf();dn();AN.dirty();},T('Cadre pe secundă','Frames per second'));
     var rf=rng(T('Cadre pe secundă','Frames per second'),1,60,1,function(){return A.fps;},function(v){A.fps=v;pf();dn();AN.dirty();},function(v){return String(v);});
     var dnote=E('p','annote');S.appendChild(dnote);
@@ -18530,10 +18541,12 @@ var AN=(function(){
     var rr=E('div','anrow');S.appendChild(rr);
     var ni=function(lab,key){var l=E('label','ancnt',lab);var i=E('input','anbtn');i.type='number';i.min=1;i.style.width='76px';i.value=A.range[key];i.addEventListener('change',function(){A.range[key]=Math.max(1,Math.min(A.frames.length,i.value|0||1));i.value=A.range[key];AN.dirty();});l.appendChild(i);rr.appendChild(l);};
     ni(T('de la cadrul ','from frame '),'a');ni(T(' până la ',' to '),'b');
-    if(AN.fxSide)AN.fxSide(S);}
+    S=P.fx;if(AN.fxSide)AN.fxSide(S);else S.appendChild(E('p','annote',T('Efectele nu sunt disponibile.','Effects are not available.')));
+    var fh=P.fx.querySelector('h3');if(fh)fh.remove();
+    paintT();}
   AN.sideCel=sideCel;
   /* ---------- deschidere / închidere ---------- */
-  function open(D){if(!AN.proPlus()){AN.ask('PRO+',T('Animation face parte din Trasso PRO+.','Animation is part of Trasso PRO+.'),[]);return;}
+  function open(D){if(!AN.proPlus()){AN.ask('PRO+',T('Animația face parte din Trasso PRO+.','Animation is part of Trasso PRO+.'),[]);return;}
     var go=function(){var U=build();AN.A=D;AN.resetUndo();AN.tool='pen';U.ov.hidden=false;U.name.textContent=D.name;U.sheet.style.setProperty('--ar',String(D.w/D.h));
       U.ops.style.display=D.kind==='cel'?'':'none';U.tools.classList.remove('anoff');
       if(D.kind==='puppet'&&AN.ppOpen)AN.ppOpen();else if(D.kind==='film'&&AN.filmOpen)AN.filmOpen();else sideCel();
@@ -18545,8 +18558,8 @@ var AN=(function(){
     AN.save().then(fin,fin);}
   AN.open=open;AN.close=close;
   /* ---------- început: De la zero / Din desenele mele / Din imagini ---------- */
-  function startDlg(){if(!AN.proPlus()){AN.ask('PRO+',T('Animation face parte din Trasso PRO+.','Animation is part of Trasso PRO+.'),[]);return;}css();
-    AN.dlg(T('Animation nouă','New animation'),function(b,close){
+  function startDlg(){if(!AN.proPlus()){AN.ask('PRO+',T('Animația face parte din Trasso PRO+.','Animation is part of Trasso PRO+.'),[]);return;}css();
+    AN.dlg(T('Animație nouă','New animation'),function(b,close){
       var row=E('div','anstart');b.appendChild(row);var opts=E('div','anopts');b.appendChild(opts);
       var cards=[['zero',T('De la zero','From scratch'),T('Foaie goală, desenezi cadru cu cadru','Blank sheet, you draw frame by frame')],
         ['mine',T('Din desenele mele','From my drawings'),T('Desenele din aplicație devin cadre','Drawings from the app become frames')],
@@ -20041,6 +20054,30 @@ function trReo2Init(){trReo2Css();var n=0;(function f(){if(!trFormatMove()&&n++<
   if(typeof DR==='undefined'||!DR.built||!document.querySelector('#drSide .uxpchips')){if(n<240)setTimeout(function(){trReo2Boot(n+1);},250);return;}
   try{trReo2Init();}catch(e){console.error(e);}
 })(0);
+/* ===== 2026.11.26e – Reorganizarea meniurilor, etapa 3 =====
+   1) Bara de sus din Desen stă pe un singur rând și pe tableta ținută vertical: butoanele rămân doar cu iconiță.
+   2) Animație: panoul din dreapta are patru file (Desen, Onion, Redare, Efecte); Onion se pornește și din bara cadrelor. */
+(function trReo3Css(){
+  if(document.getElementById('trReo3St'))return;
+  var st=document.createElement('style');st.id='trReo3St';st.textContent=
+  '@media (max-width:1000px){'+
+    'html #dr .drtop{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}html #dr .drtop::-webkit-scrollbar{display:none}'+
+    'html #dr .drtop :is(#drClose,#drUndo,#drRedo,#drMenu,#drRefB,#drLibB,#drFocusB,#fsBtn):has(svg){font-size:0!important;gap:0!important;min-width:40px;padding:0 8px!important;justify-content:center;flex:none}'+
+    'html #dr .drtop :is(#drClose,#drUndo,#drRedo,#drMenu,#drRefB,#drLibB,#drFocusB,#fsBtn) svg{width:20px!important;height:20px!important}'+
+    'html #dr .drtop :is(#drClose,#drUndo,#drRedo,#drMenu,#drRefB,#drLibB,#drFocusB,#fsBtn) .icemo{display:none}'+
+    'html #dr .drtop .trmode{min-width:0!important;flex:none}html #dr .drtop .trmode button{padding:0 10px!important}'+
+    'html #dr .drtop #drExport{flex:none;white-space:nowrap}html #dr .drtop .skdoc{min-width:0}'+
+  '}'+
+  '@media (max-width:820px){html #dr .drtop .skdoc small{display:none}html #dr .drtop .skdoc i{display:none}}'+
+  /* animație: filele din dreapta */
+  '.anside .antabs{display:flex;gap:2px;padding:3px;margin:0 0 12px;border-radius:12px;background:var(--paper-2,#ecebef);position:sticky;top:0;z-index:2}'+
+  '.anside .antabs button{flex:1;min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--ink-2,#5e5e6a);font:500 13px var(--ui,system-ui);cursor:pointer;padding:0 6px;white-space:nowrap}'+
+  '.anside .antabs button[aria-selected="true"]{background:var(--card,#fff);color:var(--ink,#1d1d24);box-shadow:0 1px 3px rgba(0,0,0,.12)}'+
+  '.anside .anpane[hidden]{display:none}.anside .anpane>h3:first-child{margin-top:0}'+
+  '.antlbar .anon[aria-pressed="true"]{background:#F2A93B!important;color:#2a1a00!important;border-color:transparent!important}';
+  (document.head||document.documentElement).appendChild(st);
+})();
+
 
 
 })();
