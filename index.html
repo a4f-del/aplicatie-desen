@@ -19321,7 +19321,7 @@ function hmShell(){
   var bin=nav('bin','trash','Șterse recent');var cnt=el('span','hmcnt');cnt.hidden=true;bin.appendChild(cnt);
   side.appendChild(el('div','hmsep'));
   act('backup','Copie de siguranță',function(){hmNew('bk');});
-  act('image','Deschide imagine / PSD',function(){var i=$('#drImpIn');if(i)i.click();});
+  act('image','Imagine sau PSD',function(){var i=$('#drImpIn');if(i)i.click();});
   act('cube','Scena 3D',function(){hmHide();if(DR.ready)drSaveNow();$('#dr').hidden=true;DR.on=false;});
   side.appendChild(el('div','hmgrow'));
   act('sparkle','Turul aplicației',hmTour);
