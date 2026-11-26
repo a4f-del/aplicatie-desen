@@ -6130,13 +6130,17 @@ function drSaveNow(){
   /* instantaneu: păstrăm referințe la stratul curent, ca să putem trece la alt desen imediat */
   var snap={id:DR.id,name:DR.name,w:DR.w,h:DR.h,kind:DR.kind,cur:DR.cur,nid:DR.nid,trace:{mode:DR.trace.mode,op:DR.trace.op,on:DR.trace.on},pr:{fmt:DR.print.fmt,bl:DR.print.bl,cw:DR.print.cw,ch:DR.print.ch,on:DR.print.on},recent:DR.recent.slice(),layers:DR.layers.slice(),hist:drHistPick(),sk:DR.sketch||null,bg3:DR.bg3d||null,ppl:DR.ppl||null,vpts:DR.pr?JSON.parse(JSON.stringify(DR.pr)):null,spread:DR.spread?JSON.parse(JSON.stringify(DR.spread)):null,planEx:(DR.kind==='page'&&S.page&&S.page.plan)?String(S.page.plan).replace(/\s+/g,' ').slice(0,140):'',link:DR.link?JSON.parse(JSON.stringify(DR.link)):null,pg:(DR.kind==='page'?JSON.stringify(S.page):null)};
   var job=function(){
+    /* 2026.11.26: desenul a fost șters definitiv între timp – nu-l mai recreez */
+    if(DR.gone&&DR.gone[snap.id])return Promise.resolve();
     return drHistEnc(snap.hist).then(function(hist){snap.histE=hist;return Promise.all(snap.layers.map(function(L){return new Promise(function(res){L.cv.toBlob(res,'image/png');});}));}).then(function(blobs){
       var meta={v:2,id:snap.id,name:snap.name,w:snap.w,h:snap.h,kind:snap.kind,cur:snap.cur,nid:snap.nid,trace:snap.trace,pr:snap.pr,t:Date.now(),recent:snap.recent,pg:snap.pg,link:snap.link,spread:snap.spread,vpts:snap.vpts,sk:snap.sk,ppl:snap.ppl,hist:snap.histE,
         layers:snap.layers.map(function(L,i){return {id:L.id,name:L.name,vis:L.vis,op:L.op,blend:L.blend,lock:!!L.lock,alock:!!L.alock,clip:!!L.clip,draft:!!L.draft,lib:L.lib||null,grp:L.grp||'',blob:blobs[i]};})};
       return idbPut(drKey(snap.id),meta).then(function(){return meta;});
     }).then(function(meta){
-      return Promise.all([drThumbOf(snap),drIdx()]).then(function(r){
+      return Promise.all([drThumbOf(snap),drIdx(),rcyLoad()]).then(function(r){
         var ix=r[1],e=ix.filter(function(q){return q.id===snap.id;})[0];
+        /* 2026.11.26: dacă desenul e în „Șterse recent”, salvez datele (ca recuperarea să aibă ultima versiune), dar nu-l pun înapoi în listă */
+        if(!e&&r[2].some(function(x){return rcyIds(x).indexOf(snap.id)>=0;}))return;
         if(!e){e={id:snap.id};ix.unshift(e);}
         e.name=snap.name;e.t=meta.t;e.w=snap.w;e.h=snap.h;e.kind=snap.kind;e.thumb=r[0];e.plan=snap.planEx||'';e.link=snap.link?{page:snap.link.page,panel:snap.link.panel}:null;
         return idbPut('docs',ix);
@@ -6183,14 +6187,20 @@ function drLoadSaved(id){
 var RCY_DAYS=30;
 function rcyLoad(){return window.indexedDB?idbGet('trash').then(function(a){return Array.isArray(a)?a:[];},function(){return [];}):Promise.resolve([]);}
 function rcySave(a){return idbPut('trash',a);}
-function drPurgeDoc(id){
+/* 2026.11.26: ștergerea, golirea coșului și recuperarea trec prin aceeași coadă ca salvarea (DR.saveQ, prin uxQ),
+   ca o salvare pornită înainte să nu pună desenul înapoi după ștergere. Atenție: uxQ doar la nivelul de sus, niciodată
+   dintr-o sarcină aflată deja în coadă (s-ar aștepta pe ea însăși). rcyDetach și drPurgeDocNow sunt interne, fără coadă. */
+function drGone(id){DR.gone=DR.gone||{};DR.gone[id]=1;if(DR.id===id){clearTimeout(DR.saveT);DR.savePend=false;}}
+function drPurgeDoc(id){return uxQ(function(){return drPurgeDocNow(id);});}
+function drPurgeDocNow(id){
+  drGone(id);
   return drIdx().then(function(ix){
     return idbDel(drKey(id)).then(function(){return idbPut('docs',ix.filter(function(q){return q.id!==id;}));}).then(function(){return chRemoveDoc(id);});
   });
 }
 /* o scoate din index și din capitol, dar păstrează datele; întoarce intrarea din index (sau null) */
 function rcyDetach(id){
-  if(DR.id===id)clearTimeout(DR.saveT);
+  if(DR.id===id){clearTimeout(DR.saveT);DR.savePend=false;}
   return drIdx().then(function(ix){
     var e=ix.filter(function(q){return q.id===id;})[0]||null;
     return idbPut('docs',ix.filter(function(q){return q.id!==id;})).then(function(){return chRemoveDoc(id);}).then(function(){return e;});
@@ -6200,24 +6210,26 @@ function drDeleteDoc(id,o){
   o=o||{};
   if(o.hard||!window.indexedDB)return drPurgeDoc(id);
   var c=chOf(id),chi=o.ch||(c?{id:c.id,name:c.name,pos:c.pages.indexOf(id)}:null);
-  return rcyDetach(id).then(function(e){
+  if(DR.id===id){clearTimeout(DR.saveT);DR.savePend=false;}
+  return uxQ(function(){return rcyDetach(id).then(function(e){
     if(!e)return;
     return rcyLoad().then(function(a){
       a=a.filter(function(x){return !(x.k==='doc'&&x.e&&x.e.id===id);});
       a.unshift({k:'doc',e:e,dt:Date.now(),ch:chi});
       return rcySave(a);
     });
-  }).then(function(){rcyChanged();});
+  });}).then(function(){rcyChanged();});
 }
 /* capitolul (cu sau fără pagini) intră în coș ca o singură intrare */
 function rcyChapter(ch,withPages){
   var clone=JSON.parse(JSON.stringify(ch)),ids=withPages?ch.pages.slice():[];
   var docs=[];
-  return ids.reduce(function(q,id){return q.then(function(){return rcyDetach(id).then(function(e){if(e)docs.push(e);});}).catch(function(){});},Promise.resolve())
+  if(ids.indexOf(DR.id)>=0){clearTimeout(DR.saveT);DR.savePend=false;}
+  return uxQ(function(){return ids.reduce(function(q,id){return q.then(function(){return rcyDetach(id).then(function(e){if(e)docs.push(e);});}).catch(function(){});},Promise.resolve())
   .then(function(){return rcyLoad();}).then(function(a){
     a.unshift({k:'chap',ch:clone,docs:docs,dt:Date.now()});
     return rcySave(a);
-  }).then(function(){rcyChanged();});
+  });}).then(function(){rcyChanged();});
 }
 function rcyChanged(){try{if($('#home')&&!$('#home').hidden&&typeof hmRender==='function')hmRender();}catch(e){}}
 function rcyLeft(x){return Math.max(0,Math.ceil((x.dt+RCY_DAYS*864e5-Date.now())/864e5));}
@@ -6233,6 +6245,10 @@ function rcyReindex(list){
   });
 }
 function rcyRestore(x){
+  return uxQ(function(){return rcyRestoreNow(x);});
+}
+function rcyRestoreNow(x){
+  rcyIds(x).forEach(function(id){if(DR.gone)delete DR.gone[id];});
   return chLoad().then(function(){
     return rcyReindex(x.k==='doc'?[x.e]:(x.docs||[]));
   }).then(function(have){
@@ -6252,8 +6268,15 @@ function rcyRestore(x){
   });
 }
 function rcyPurge(x){
-  return rcyIds(x).reduce(function(q,id){return q.then(function(){return idbDel(drKey(id)).catch(function(){});});},Promise.resolve())
-  .then(function(){return rcyLoad();}).then(function(a){return rcySave(a.filter(function(y){return y.dt!==x.dt||y.k!==x.k;}));});
+  return uxQ(function(){
+    return drIdx().then(function(ix){
+      /* 2026.11.26: un desen care e totuși în listă (lăsat așa de versiunile cu bug-ul de ștergere) e folosit în continuare:
+         nu-i șterg datele, scot doar intrarea din coș */
+      var live={};ix.forEach(function(q){live[q.id]=1;});
+      var ids=rcyIds(x).filter(function(id){return !live[id];});ids.forEach(drGone);
+      return ids.reduce(function(q,id){return q.then(function(){return idbDel(drKey(id)).catch(function(){});});},Promise.resolve());
+    }).then(function(){return rcyLoad();}).then(function(a){return rcySave(a.filter(function(y){return y.dt!==x.dt||y.k!==x.k;}));});
+  });
 }
 /* la pornire: ce a stat mai mult de RCY_DAYS zile se șterge de tot */
 function rcyAuto(){
