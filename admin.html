@@ -538,6 +538,20 @@ dialog.ask { width: min(440px, calc(100vw - 32px)); border-radius: 14px; }
           </div>
         </form>
         <div class="panel">
+          <h2>Testeri pentru funcțiile noi</h2>
+          <p class="mut small">Funcția apare doar pentru conturile din listă, pe orice tabletă pe care se conectează în Trasso. Persoana trebuie să se fi conectat măcar o dată. Schimbarea ajunge la ea după ce repornește aplicația (uneori de două ori).</p>
+          <div class="fields">
+            <label class="field"><span>Emailul contului</span><input type="email" id="tEmail" placeholder="nume@gmail.com" list="emails" autocomplete="off"></label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tColor"> Colorare</label>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tManhwa" checked> Mod Manhwa</label>
+              <button class="btn pri sm" id="tAdd" type="button">Adaugă tester</button>
+            </div>
+            <p class="mut small" id="tMsg" role="status"></p>
+            <div id="tList"></div>
+          </div>
+        </div>
+        <div class="panel">
           <h2>Testează pe acest dispozitiv</h2>
           <p class="mut small">Pornește o funcție doar aici, ca s-o încerci înainte s-o dai tuturor. Deschide consola în Chrome pe tableta pe care ai aplicația, bifează, apoi repornește aplicația.</p>
           <div class="fields">
@@ -763,6 +777,7 @@ async function load() {
     $('upd').textContent = 'Actualizat la ' + new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
     $('emails').innerHTML = USERS.filter((u) => u.email).map((u) => `<option value="${esc(u.email)}">${esc(u.name)}</option>`).join('');
     renderAll();
+    renderTesters();
     if (openId) openUser(openId);
   } catch (e) {
     $('upd').textContent = 'Datele nu s-au încărcat';
@@ -1152,8 +1167,52 @@ function show() {
   if (!isDirty() || $('saveBar').hidden) fillForm(); // nu-ți strica modificările nesalvate
   renderBilling();
   renderAll();
+  renderTesters();
 }
 $('cfgForm').addEventListener('input', () => { $('saveBar').hidden = !isDirty(); });
+/* testeri: config/app.beta = { uid: ['manhwa', 'color2'] } (după uid, nu după email: config/app e citit de toată lumea) */
+const FEATN = { color2: 'Colorare', manhwa: 'Mod Manhwa' };
+function renderTesters() {
+  const box = $('tList'); if (!box) return;
+  const beta = (cfg.beta && typeof cfg.beta === 'object') ? cfg.beta : {};
+  const ids = Object.keys(beta).filter((k) => Array.isArray(beta[k]) && beta[k].length);
+  if (!ids.length) { box.innerHTML = '<p class="mut small">Niciun tester încă.</p>'; return; }
+  box.innerHTML = ids.map((uid) => {
+    const u = USERS.find((x) => x.__id === uid), who = u ? esc(u.email || u.name || uid) : `<span class="mut">${esc(uid)}</span>`;
+    const chips = Object.keys(FEATN).map((f) => `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-tu="${esc(uid)}" data-tf="${f}" ${beta[uid].includes(f) ? 'checked' : ''}> ${FEATN[f]}</label>`).join('');
+    return `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line,#ddd)"><b style="flex:1;min-width:180px">${who}</b>${chips}<button class="btn ghost sm" type="button" data-tdel="${esc(uid)}">Scoate</button></div>`;
+  }).join('');
+}
+async function saveBeta(next, msg) {
+  try { await F.updateDoc(cfgRef, { beta: next, updatedAt: F.serverTimestamp() }); toast(msg); $('tMsg').textContent = msg; }
+  catch (e) { const t = 'Nu am putut salva lista: ' + (e.code || e.message); toast(t, true); $('tMsg').textContent = t; }
+}
+const betaNow = () => JSON.parse(JSON.stringify((cfg.beta && typeof cfg.beta === 'object') ? cfg.beta : {}));
+$('tAdd').onclick = async () => {
+  const v = $('tEmail').value.trim().toLowerCase();
+  if (!v) { toast('Scrie emailul contului.', true); return; }
+  const u = USERS.find((x) => (x.email || '').toLowerCase() === v);
+  if (!u) { toast(USERS.length ? 'Nu găsesc contul. Persoana trebuie să se conecteze o dată în Trasso.' : 'Lista de conturi nu s-a încărcat încă.', true); return; }
+  const fs = [['tColor', 'color2'], ['tManhwa', 'manhwa']].filter(([id]) => $(id).checked).map(([, f]) => f);
+  if (!fs.length) { toast('Bifează cel puțin o funcție.', true); return; }
+  const b = betaNow(); b[u.__id] = Array.from(new Set([...(b[u.__id] || []), ...fs]));
+  await saveBeta(b, `${u.email} poate testa: ${b[u.__id].map((f) => FEATN[f]).join(', ')}.`);
+  $('tEmail').value = '';
+};
+$('tList').addEventListener('change', async (e) => {
+  const c = e.target.closest('[data-tu]'); if (!c) return;
+  const b = betaNow(), uid = c.dataset.tu, f = c.dataset.tf;
+  const cur = new Set(b[uid] || []); if (c.checked) cur.add(f); else cur.delete(f);
+  if (cur.size) b[uid] = [...cur]; else delete b[uid];
+  await saveBeta(b, 'Lista de testeri a fost actualizată.');
+});
+$('tList').addEventListener('click', async (e) => {
+  const d = e.target.closest('[data-tdel]'); if (!d) return;
+  const uid = d.dataset.tdel, u = USERS.find((x) => x.__id === uid), who = u ? u.email : uid;
+  if (!(await ask({ title: 'Scoți testerul?', body: `${who} nu mai vede funcțiile în test după ce repornește aplicația.`, ok: 'Scoate', danger: true }))) return;
+  const b = betaNow(); delete b[uid];
+  await saveBeta(b, `${who} a fost scos din testeri.`);
+});
 /* funcții noi doar pe acest dispozitiv (localStorage, același site ca aplicația) */
 (() => {
   const get = () => { try { return (localStorage.getItem('trasso-beta') || '').split(',').filter(Boolean); } catch (e) { return []; } };
