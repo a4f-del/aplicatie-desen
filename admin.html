@@ -534,6 +534,8 @@ dialog.ask { width: min(440px, calc(100vw - 32px)); border-radius: 14px; }
                 <label class="sw"><span class="sr">Colorare pornită pentru toți</span><input type="checkbox" id="fColor"><span></span></label></div>
               <div class="panel-h"><div><b>Mod Manhwa</b><p class="mut small">Banda verticală pentru webtoon.</p></div>
                 <label class="sw"><span class="sr">Mod Manhwa pornit pentru toți</span><input type="checkbox" id="fManhwa"><span></span></label></div>
+              <div class="panel-h"><div><b>Linie cu latență mică</b><p class="mut small">Linia ține pasul cu creionul: puncte imediate, puncte prezise pe ecran și pânză trimisă direct la afișaj. De încercat întâi pe tableta ta (poate pâlpâi pe unele tablete).</p></div>
+                <label class="sw"><span class="sr">Linie cu latență mică pornită pentru toți</span><input type="checkbox" id="fLowlat"><span></span></label></div>
             </div>
           </div>
         </form>
@@ -545,6 +547,7 @@ dialog.ask { width: min(440px, calc(100vw - 32px)); border-radius: 14px; }
             <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
               <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tColor"> Colorare</label>
               <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tManhwa" checked> Mod Manhwa</label>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tLowlat"> Latență mică</label>
               <button class="btn pri sm" id="tAdd" type="button">Adaugă tester</button>
             </div>
             <p class="mut small" id="tMsg" role="status"></p>
@@ -557,6 +560,7 @@ dialog.ask { width: min(440px, calc(100vw - 32px)); border-radius: 14px; }
           <div class="fields">
             <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="bColor"> <span>Colorare</span></label>
             <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="bManhwa"> <span>Mod Manhwa</span></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="bLowlat"> <span>Linie cu latență mică</span></label>
           </div>
         </div>
         <div class="savebar" id="saveBar" hidden>
@@ -650,7 +654,7 @@ const FOREVER = Date.UTC(2099, 0, 1);
 const PRODUCTS = { trasso_pro_monthly: 'pro', trasso_pro_yearly: 'pro', trasso_proplus_monthly: 'proplus', trasso_proplus_yearly: 'proplus' };
 const PNAME = { trasso_pro_monthly: 'PRO lunar', trasso_pro_yearly: 'PRO anual', trasso_proplus_monthly: 'PRO+ lunar', trasso_proplus_yearly: 'PRO+ anual' };
 const DEF = { billingEnabled: false, referralEnabled: true, referralRewardDays: 30, referralMaxPerUser: 2,
-  referralMaxAccountAgeDays: 14, cloudMaxProjects: 10, cloudMaxMB: 50, featColor2: false, featManhwa: false, products: PRODUCTS };
+  referralMaxAccountAgeDays: 14, cloudMaxProjects: 10, cloudMaxMB: 50, featColor2: false, featManhwa: false, featLowlat: false, products: PRODUCTS };
 let cfg = { ...DEF };
 
 const ms = (t) => (t && typeof t.toMillis === 'function' ? t.toMillis() : (typeof t === 'number' ? t : 0));
@@ -1149,7 +1153,7 @@ function renderMoney(m) {
 
 /* ---------- setări (config/app) ---------- */
 const CF = [['refOn', 'referralEnabled'], ['refDays', 'referralRewardDays', 0, 365], ['refMax', 'referralMaxPerUser', 0, 50],
-  ['refAge', 'referralMaxAccountAgeDays', 1, 90], ['cMax', 'cloudMaxProjects', 0, 200], ['cMB', 'cloudMaxMB', 1, 100], ['fColor', 'featColor2'], ['fManhwa', 'featManhwa']];
+  ['refAge', 'referralMaxAccountAgeDays', 1, 90], ['cMax', 'cloudMaxProjects', 0, 200], ['cMB', 'cloudMaxMB', 1, 100], ['fColor', 'featColor2'], ['fManhwa', 'featManhwa'], ['fLowlat', 'featLowlat']];
 const formVals = () => Object.fromEntries(CF.map(([id, k, min, max]) => [k, $(id).type === 'checkbox' ? $(id).checked : Math.max(min, Math.min(max, parseInt($(id).value, 10) || 0))]));
 const cfgVals = () => Object.fromEntries(CF.map(([, k]) => [k, k === 'referralEnabled' ? cfg[k] !== false : (k.startsWith('feat') ? cfg[k] === true : cfg[k])]));
 const isDirty = () => JSON.stringify(formVals()) !== JSON.stringify(cfgVals());
@@ -1171,7 +1175,7 @@ function show() {
 }
 $('cfgForm').addEventListener('input', () => { $('saveBar').hidden = !isDirty(); });
 /* testeri: config/app.beta = { uid: ['manhwa', 'color2'] } (după uid, nu după email: config/app e citit de toată lumea) */
-const FEATN = { color2: 'Colorare', manhwa: 'Mod Manhwa' };
+const FEATN = { color2: 'Colorare', manhwa: 'Mod Manhwa', lowlat: 'Latență mică' };
 function renderTesters() {
   const box = $('tList'); if (!box) return;
   const beta = (cfg.beta && typeof cfg.beta === 'object') ? cfg.beta : {};
@@ -1193,7 +1197,7 @@ $('tAdd').onclick = async () => {
   if (!v) { toast('Scrie emailul contului.', true); return; }
   const u = USERS.find((x) => (x.email || '').toLowerCase() === v);
   if (!u) { toast(USERS.length ? 'Nu găsesc contul. Persoana trebuie să se conecteze o dată în Trasso.' : 'Lista de conturi nu s-a încărcat încă.', true); return; }
-  const fs = [['tColor', 'color2'], ['tManhwa', 'manhwa']].filter(([id]) => $(id).checked).map(([, f]) => f);
+  const fs = [['tColor', 'color2'], ['tManhwa', 'manhwa'], ['tLowlat', 'lowlat']].filter(([id]) => $(id).checked).map(([, f]) => f);
   if (!fs.length) { toast('Bifează cel puțin o funcție.', true); return; }
   const b = betaNow(); b[u.__id] = Array.from(new Set([...(b[u.__id] || []), ...fs]));
   await saveBeta(b, `${u.email} poate testa: ${b[u.__id].map((f) => FEATN[f]).join(', ')}.`);
@@ -1217,7 +1221,7 @@ $('tList').addEventListener('click', async (e) => {
 (() => {
   const get = () => { try { return (localStorage.getItem('trasso-beta') || '').split(',').filter(Boolean); } catch (e) { return []; } };
   const set = (a) => { try { if (a.length) localStorage.setItem('trasso-beta', a.join(',')); else localStorage.removeItem('trasso-beta'); } catch (e) {} };
-  [['bColor', 'color2'], ['bManhwa', 'manhwa']].forEach(([id, n]) => {
+  [['bColor', 'color2'], ['bManhwa', 'manhwa'], ['bLowlat', 'lowlat']].forEach(([id, n]) => {
     const c = $(id); c.checked = get().includes(n) || get().includes('all');
     c.onchange = () => { const a = get().filter((x) => x !== n && x !== 'all'); if (c.checked) a.push(n); set(a); toast(c.checked ? 'Pornită pe acest dispozitiv. Repornește aplicația.' : 'Oprită pe acest dispozitiv.'); };
   });
