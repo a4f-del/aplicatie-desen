@@ -4786,27 +4786,60 @@ function drModeCv(L){
    la fiecare cadru se convertește doar bucata nouă de linie. Înainte se convertea pixel cu pixel tot
    dreptunghiul liniei la fiecare cadru, iar pe tabletă asta făcea lag. */
 function drModeLiveOk(st){return !!(st&&st.mdb&&!st.gest&&st.tool!=='crack'&&st.tool!=='bubble');}
-function drModeLive(L,st,sr){
+/* 2026.11.27b: cât timp linia e în desfășurare NU mai convertesc pixeli deloc (nici pe procesor, nici cu filtre):
+   pun peste stratul deja convertit linia colorată direct în tonul final (gri, negru sau alb). E doar o copiere
+   pe placa video, la fel de ieftină ca pe un strat Color. Conversia exactă se face o singură dată, la ridicarea creionului. */
+function drModeTint(L,st){
+  var c=st.cb&&st.cb.p&&st.cb.p.col?hex2rgb(st.cb.p.col):(st.rgb||[0,0,0]),l=(c[0]*77+c[1]*150+c[2]*29)>>8;
+  if(drModeOf(L)==='gray')return 'rgb('+l+','+l+','+l+')';
+  return l<(L.thr==null?50:L.thr)*2.55?'#000':'#fff';
+}
+function drModeLive(L,st,sr,exact){
   var W=L.cv.width,H=L.cv.height,c=DR.mlive,r;
   if(!c||c.width!==W||c.height!==H)c=DR.mlive=drMk(W,H);
   var x=c.getContext('2d');x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
+  var base=drModeCv(L);
   if(st._mlL!==L){
-    x.clearRect(0,0,W,H);x.drawImage(drModeCv(L),0,0);st._mlL=L;r=sr;
+    x.clearRect(0,0,W,H);x.drawImage(base,0,0);st._mlL=L;r=sr;
   }else{
-    r=st.mdb;if(!(r[2]>r[0]))return c;
+    r=exact?sr:st.mdb;if(!(r[2]>r[0]))return c;
   }
   st.mdb=[1e9,1e9,-1e9,-1e9];
   var x0=Math.max(0,Math.floor(r[0])-2),y0=Math.max(0,Math.floor(r[1])-2),x1=Math.min(W,Math.ceil(r[2])+2),y1=Math.min(H,Math.ceil(r[3])+2),w=x1-x0,h=y1-y0;
   if(w<=0||h<=0)return c;
   var rr=[x0,y0,x1,y1];
-  x.clearRect(x0,y0,w,h);x.drawImage(L.cv,x0,y0,w,h,x0,y0,w,h);
-  /* radiera, estomparea și degetul scriu direct pe strat: copiez doar zona schimbată și o convertesc */
-  if(st.direct){drModeApply(x,L.mode,L.thr,rr);return c;}
+  x.clearRect(x0,y0,w,h);
+  if(exact){
+    /* la final: exact ca la conversia normală */
+    x.drawImage(L.cv,x0,y0,w,h,x0,y0,w,h);
+    if(!st.direct){
+      var s0=drStrokeSrc(st,rr);
+      x.globalAlpha=st.alpha;if(st.erase)x.globalCompositeOperation=L.alock?'destination-over':'destination-out';else if(L.alock)x.globalCompositeOperation='source-atop';
+      if(!(st.erase&&L.alock))x.drawImage(s0,x0,y0,w,h,x0,y0,w,h);
+      x.globalAlpha=1;x.globalCompositeOperation='source-over';
+    }
+    drModeApply(x,L.mode,L.thr,rr);
+    return c;
+  }
+  x.drawImage(base,x0,y0,w,h,x0,y0,w,h);
+  if(st.direct){
+    /* radieră / estompare: stratul convertit de dinainte, cu transparența de acum */
+    x.save();x.beginPath();x.rect(x0,y0,w,h);x.clip();x.globalCompositeOperation='destination-in';x.drawImage(L.cv,x0,y0,w,h,x0,y0,w,h);x.restore();
+    return c;
+  }
   var src=drStrokeSrc(st,rr);
-  x.globalAlpha=st.alpha;if(st.erase)x.globalCompositeOperation=L.alock?'destination-over':'destination-out';else if(L.alock)x.globalCompositeOperation='source-atop';
-  if(!(st.erase&&L.alock))x.drawImage(src,x0,y0,w,h,x0,y0,w,h);
+  if(st.erase){
+    x.globalAlpha=st.alpha;x.globalCompositeOperation=L.alock?'destination-over':'destination-out';
+    if(!L.alock)x.drawImage(src,x0,y0,w,h,x0,y0,w,h);
+  }else{
+    var T=DR.mtint;if(!T||T.width<w||T.height<h)T=DR.mtint=drMk(Math.max(w,T?T.width:0),Math.max(h,T?T.height:0));
+    var tx=T.getContext('2d');tx.setTransform(1,0,0,1,0,0);tx.globalAlpha=1;tx.globalCompositeOperation='source-over';
+    tx.clearRect(0,0,w,h);tx.drawImage(src,x0,y0,w,h,0,0,w,h);
+    tx.globalCompositeOperation='source-in';tx.fillStyle=drModeTint(L,st);tx.fillRect(0,0,w,h);tx.globalCompositeOperation='source-over';
+    x.globalAlpha=st.alpha;if(L.alock)x.globalCompositeOperation='source-atop';
+    x.drawImage(T,0,0,w,h,x0,y0,w,h);
+  }
   x.globalAlpha=1;x.globalCompositeOperation='source-over';
-  drModeApply(x,L.mode,L.thr,rr);
   return c;
 }
 function drModeAny(){return DR.layers.some(function(L){return L.vis&&!L.draft&&drModeOf(L)!=='color';});}
@@ -5422,7 +5455,7 @@ function drEndStroke(){
   var L=DR.layers[st.layer],rc=drStrokeRect(st);
   /* strat Gri / Monocrom: termin copia vie (ultima bucată de linie) și o păstrez ca imagine convertită a stratului */
   var mlv=L&&rc&&!(st.direct&&DR.sel)&&st._mlL===L&&DR.mlive&&drModeOf(L)!=='color';
-  if(mlv)drModeLive(L,st,rc);
+  if(mlv)drModeLive(L,st,rc,true);
   if(!st.direct&&L&&rc){
     var src=drStrokeSrc(st,rc),w=rc[2]-rc[0],h=rc[3]-rc[1];
     L.ctx.save();L.ctx.globalAlpha=st.alpha;if(st.erase)L.ctx.globalCompositeOperation='destination-out';else if(L.alock)L.ctx.globalCompositeOperation='source-atop';
