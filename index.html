@@ -20773,6 +20773,7 @@ function trEpRenderAll(ep,W,say){
 var TRR={raf:0,auto:false,speed:1,last:0,ui:true};
 function trEpPreview(){
   var ep=trEpOf(DR.id);if(!ep)return;
+  if(TRR.job&&!TRR.job.done){drMsg(trL('O clipă, termin de închis citirea anterioară.','One moment, finishing the previous reading.'));return;}
   var startId=DR.id,ov=$('#trEpRd');
   if(!ov){
     ov=el('div','trrd');ov.id='trEpRd';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Mod de citire');
@@ -20806,18 +20807,53 @@ function trEpPreview(){
   var w0='phone';try{w0=localStorage.getItem('trasso-rdw')||'phone';}catch(e){}
   trRdWidth(w0);trRdPaint();
   m2.hidden=false;m2.textContent=trL('Se pregătește episodul…','Preparing the episode…');
-  var ids=[];
-  trEpSegs(ep).then(function(x){ids=x;return trEpRenderAll(ep,960,function(t){m2.textContent=t.replace('pagina','bucata');});}).then(function(cvs){
-    return Promise.all(cvs.map(function(c){return new Promise(function(res){c.toBlob(res,'image/jpeg',.88);});}));
-  }).then(function(bl){
-    var at=null;
-    bl.forEach(function(b,i){var im=el('img');im.alt=trL('Bucata ','Part ')+(i+1);im.draggable=false;im.src=URL.createObjectURL(b);sc2.appendChild(im);if(ids[i]===startId)at=im;});
-    sc2.appendChild(el('div','trrdend',trL('Sfârșitul episodului','End of the episode')));
-    m2.hidden=true;
-    /* pornește de la bucata la care lucrai */
-    if(at&&at!==sc2.firstChild){var go=function(){sc2.scrollTop=at.offsetTop;trRdProg();};if(at.complete)go();else at.addEventListener('load',go,{once:true});}
-    trRdProg();
-  },function(){m2.textContent=trL('Nu am putut pregăti episodul.','Could not prepare the episode.');});
+  trRdLoad(ep,startId,sc2,m2);
+}
+/* bucățile se pregătesc pe rând și apar imediat (nu se așteaptă tot episodul). Fiecare bucată devine un JPEG
+   de 960 px, ținut și în IndexedDB (rdc:<id>), refolosit cât timp bucata nu s-a schimbat (același „t” la salvare).
+   Imaginile se încarcă leneș (loading=lazy), deci și 200 de bucăți încap în memorie. */
+function trRdLoad(ep,startId,sc,msg){
+  var job=TRR.job={stop:false},orig=DR.ready?DR.id:'',swapped=false,ids=[],ix={},done=0;
+  function say(t){if(!job.stop){msg.hidden=false;msg.textContent=t;}}
+  function addImg(i,blob){
+    var im=el('img');im.alt=trL('Bucata ','Part ')+(i+1);im.draggable=false;im.loading='lazy';im.decoding='async';im.src=URL.createObjectURL(blob);
+    im.style.aspectRatio=TRS_W+' / '+TRS_H;im.setAttribute('data-rdi',i);
+    var slot=sc.querySelector('[data-rdi="'+i+'"]');if(slot)slot.replaceWith(im);else sc.appendChild(im);
+  }
+  function one(i){
+    if(job.stop)return Promise.resolve();
+    var id=ids[i],e=ix[id]||{},key='rdc:'+id;
+    return idbGet(key).then(function(c){
+      if(c&&c.blob&&c.t===e.t&&id!==orig)return c.blob;
+      return (DR.id===id?Promise.resolve(true):(swapped=true,drLoadSaved(id))).then(function(ok){
+        if(!ok)return null;
+        if(DR.float)drFloatCommit();
+        var f=drFlat(true),r=drResample(f,960,Math.round(f.height*960/f.width));
+        return new Promise(function(res){r.toBlob(res,'image/jpeg',.86);}).then(function(b){
+          if(b&&id!==orig)idbPut(key,{t:e.t,blob:b}).catch(function(){});
+          return b;
+        });
+      });
+    }).then(function(b){
+      if(job.stop||!b)return;
+      addImg(i,b);done++;
+      say(trL('Pregătesc bucățile: ','Preparing parts: ')+done+' / '+ids.length+'…');
+      if(ids[i]===startId&&i>0){var im=sc.querySelector('[data-rdi="'+i+'"]');if(im)sc.scrollTop=im.offsetTop;}
+      trRdProg();
+    });
+  }
+  (DR.ready?(DR.float&&drFloatCommit(),drSaveNow()):Promise.resolve()).then(function(){return Promise.all([trEpSegs(ep),drIdx()]);}).then(function(r){
+    ids=r[0];r[1].forEach(function(e){ix[e.id]=e;});
+    ids.forEach(function(id,i){var ph=el('div','trrdph');ph.setAttribute('data-rdi',i);ph.style.aspectRatio=TRS_W+' / '+TRS_H;sc.appendChild(ph);});
+    sc.appendChild(el('div','trrdend',trL('Sfârșitul episodului','End of the episode')));
+    /* întâi bucata curentă și vecinele ei, apoi restul */
+    var k=Math.max(0,ids.indexOf(startId)),order=[k];for(var d=1;d<ids.length;d++){if(k+d<ids.length)order.push(k+d);if(k-d>=0)order.push(k-d);}
+    return order.reduce(function(p,i){return p.then(function(){return one(i);});},Promise.resolve());
+  }).then(function(){
+    if(!job.stop)msg.hidden=true;
+  },function(){say(trL('Nu am putut pregăti episodul.','Could not prepare the episode.'));}).then(function(){
+    if(swapped&&orig&&DR.id!==orig)return drLoadSaved(orig).then(function(){drSync();drDirty();});
+  }).then(function(){job.done=true;},function(){job.done=true;});
 }
 function trRdWidth(w){
   var ov=$('#trEpRd');if(!ov)return;
@@ -20848,18 +20884,34 @@ function trRdProg(){
 }
 function trRdClose(){
   var ov=$('#trEpRd');if(!ov)return;
+  if(TRR.job)TRR.job.stop=true;
   trRdAuto(false);ov.hidden=true;
   var sc=ov.querySelector('.trrdsc');[].forEach.call(sc.querySelectorAll('img'),function(i){URL.revokeObjectURL(i.src);});sc.innerHTML='';
 }
 function trEpExport(){
   var ep=trEpOf(DR.id);if(!ep)return;
+  if(TRR.job&&!TRR.job.done){drMsg(trL('O clipă, se pregătește încă citirea.','One moment, the reading is still being prepared.'));return;}
+  /* bucată cu bucată: fiecare are 2560 px la 800 lățime, adică exact 2 felii de 1280, deci nu trebuie ținută toată banda în memorie */
+  var job=TRR.job={stop:false},orig=DR.ready?DR.id:'',files=[],n=0;
   drMsg(trL('Pregătesc exportul…','Preparing the export…'));
-  trEpSegs(ep).then(function(ids){
-    return cbExport({pages:ids},{kind:'webtoon',ww:800,gap:0,seg:1280},function(t){drMsg(t.replace('pagina','bucata').replace('paginile','bucățile'));});
-  }).then(function(zip){
+  (DR.ready?(DR.float&&drFloatCommit(),drSaveNow()):Promise.resolve()).then(function(){return trEpSegs(ep);}).then(function(ids){
+    return ids.reduce(function(p,id,i){return p.then(function(){
+      return (DR.id===id?Promise.resolve(true):drLoadSaved(id)).then(function(ok){
+        if(!ok)return;
+        drMsg(trL('Export: bucata ','Export: part ')+(i+1)+' / '+ids.length+'…');
+        if(DR.float)drFloatCommit();
+        var f=drFlat(true),H=Math.round(f.height*800/f.width),r=drResample(f,800,H),y=0,parts=[];
+        while(y<H){var h=Math.min(1280,H-y),c=drMk(800,h),x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,800,h);x.drawImage(r,0,-y);parts.push(c);y+=h;}
+        return parts.reduce(function(q,c){return q.then(function(){return new Promise(function(res){c.toBlob(function(b){b.arrayBuffer().then(function(ab){n++;files.push({name:'webtoon-'+('000'+n).slice(-3)+'.jpg',data:new Uint8Array(ab)});res();});},'image/jpeg',.92);});});},Promise.resolve());
+      });
+    });},Promise.resolve());
+  }).then(function(){
+    return orig&&DR.id!==orig?drLoadSaved(orig).then(function(){drSync();drDirty();}):null;
+  }).then(function(){
     var nm=drSafe(String(ep.name).normalize('NFD').replace(/[̀-ͯ]/g,''))+'-webtoon.zip';
-    return saveBlob(zip,nm);
-  }).then(function(m){drMsg((m||'')+' '+trL('Felii de 800×1280 px, ca pentru Webtoon Canvas / Tapas.','800×1280 px slices, as for Webtoon Canvas / Tapas.'));},function(){drMsg(trL('Exportul n-a mers.','The export failed.'));});
+    return saveBlob(makeZip(files),nm);
+  }).then(function(m){job.done=true;drMsg((m||'')+' '+files.length+' '+trL('felii de 800×1280 px, ca pentru Webtoon Canvas / Tapas.','slices of 800×1280 px, as for Webtoon Canvas / Tapas.'));},
+  function(){job.done=true;if(orig&&DR.id!==orig)drLoadSaved(orig).then(function(){drSync();drDirty();});drMsg(trL('Exportul n-a mers.','The export failed.'));});
 }
 function trEpRename(){
   var ep=trEpOf(DR.id);if(!ep)return;
@@ -20873,7 +20925,7 @@ function trEpInit(){
     '.trep{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:max-content;z-index:5;display:flex;gap:4px;align-items:center;padding:4px;border-radius:14px;background:var(--float,var(--paper));color:var(--ink);border:1px solid var(--rule);box-shadow:0 4px 16px rgba(0,0,0,.22);max-width:calc(100% - 20px);flex-wrap:wrap;justify-content:center}'+
     '.trep[hidden]{display:none!important}.trep button{min-height:40px;min-width:40px;padding:0 10px;border-radius:10px;border:0;background:transparent;color:inherit;font-family:inherit;font-weight:600;font-size:13px;line-height:1;cursor:pointer}'+
     '.trep button:disabled{opacity:.35}.trep .trepi{font-variant-numeric:tabular-nums;font-weight:500}.trep .trepsep{width:1px;align-self:stretch;background:var(--rule);margin:4px 2px}'+
-'.trrd{position:fixed;inset:0;z-index:80;background:#101318;color:#e8ebf0;display:flex;flex-direction:column}.trrd[hidden]{display:none}'+'.trrdt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:rgba(20,24,31,.96);border-bottom:1px solid #2c3441;transition:opacity .2s}'+'.trrd.trrdhide .trrdt,.trrd.trrdhide .trrdp{opacity:0;pointer-events:none}'+'.trrdn{flex:1;min-width:120px;font-size:15px}.trrdseg{display:flex;gap:2px;background:#1d232c;border-radius:10px;padding:2px}'+'.trrdb{min-height:40px;padding:0 12px;border-radius:9px;border:0;background:transparent;color:#e8ebf0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}'+'.trrdb[aria-pressed="true"]{background:#CBBBA0;color:#2B2418}'+'.trrdstage{flex:1;min-height:0;display:flex;justify-content:center;padding:12px 0}'+'.trrdfr{width:min(360px,94vw);height:100%;border:10px solid #2c3441;border-radius:34px;overflow:hidden;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.5)}'+'.trrd.trrdtab .trrdstage{padding:0}.trrd.trrdtab .trrdfr{width:min(800px,100vw);border:0;border-radius:0;box-shadow:none}'+'.trrdsc{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}.trrdsc img{display:block;width:100%;height:auto;user-select:none}'+'.trrdend{padding:40px 16px 60px;text-align:center;color:#566170;background:#fff;font-size:14px}'+'.trrdm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;padding:10px 16px;border-radius:12px;background:rgba(29,35,44,.95)}.trrdm[hidden]{display:none}'+'.trrdp{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.08);transition:opacity .2s}.trrdp span{display:block;height:100%;width:0;background:#CBBBA0}'+
+'.trrd{position:fixed;inset:0;z-index:80;background:#101318;color:#e8ebf0;display:flex;flex-direction:column}.trrd[hidden]{display:none}'+'.trrdt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:rgba(20,24,31,.96);border-bottom:1px solid #2c3441;transition:opacity .2s}'+'.trrd.trrdhide .trrdt,.trrd.trrdhide .trrdp{opacity:0;pointer-events:none}'+'.trrdn{flex:1;min-width:120px;font-size:15px}.trrdseg{display:flex;gap:2px;background:#1d232c;border-radius:10px;padding:2px}'+'.trrdb{min-height:40px;padding:0 12px;border-radius:9px;border:0;background:transparent;color:#e8ebf0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}'+'.trrdb[aria-pressed="true"]{background:#CBBBA0;color:#2B2418}'+'.trrdstage{flex:1;min-height:0;display:flex;justify-content:center;padding:12px 0}'+'.trrdfr{width:min(360px,94vw);height:100%;border:10px solid #2c3441;border-radius:34px;overflow:hidden;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.5)}'+'.trrd.trrdtab .trrdstage{padding:0}.trrd.trrdtab .trrdfr{width:min(800px,100vw);border:0;border-radius:0;box-shadow:none}'+'.trrdsc{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}.trrdsc img{display:block;width:100%;height:auto;user-select:none}'+'.trrdph{background:#fff;width:100%}.trrdsc img{background:#fff}.trrdend{padding:40px 16px 60px;text-align:center;color:#566170;background:#fff;font-size:14px}'+'.trrdm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;padding:10px 16px;border-radius:12px;background:rgba(29,35,44,.95)}.trrdm[hidden]{display:none}'+'.trrdp{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.08);transition:opacity .2s}.trrdp span{display:block;height:100%;width:0;background:#CBBBA0}'+
     '.trpv{position:fixed;inset:0;z-index:80;background:rgba(10,12,16,.72);display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;box-sizing:border-box}.trpv[hidden]{display:none}'+
     '.trpvh{display:flex;align-items:center;gap:12px;color:#fff;width:min(420px,100%);justify-content:space-between}'+
     '.trpvph{width:min(360px,92vw);flex:1;min-height:0;border:10px solid #1d232c;border-radius:34px;background:#fff;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.5)}'+
