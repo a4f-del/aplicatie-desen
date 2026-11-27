@@ -108,6 +108,12 @@ input[type=number] { width: 7.5em; text-align: right; font-variant-numeric: tabu
 .hero .money2 b { display: block; font: 700 22px/1.2 var(--display); font-variant-numeric: tabular-nums; }
 .c2 { grid-column: span 2; } .c3 { grid-column: span 3; } .c6 { grid-column: span 6; }
 .pos { color: var(--good) !important; } .neg { color: var(--bad) !important; }
+.sgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0 18px; margin-top: 6px; }
+.sgroup { display: grid; align-content: start; padding: 8px 0; }
+.sgroup h4 { margin: 0 0 4px; font: 700 13.5px/1.3 var(--body); color: var(--beige); }
+.srow { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(59,54,49,.6); font-size: 14.5px; }
+.srow b { font: 700 16px/1.3 var(--display); font-variant-numeric: tabular-nums; }
+.srow.warn b { color: var(--bad); }
 .chart { width: 100%; height: 150px; display: block; color: var(--ink-2); }
 @media (max-width: 720px) {
   .page { grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -214,6 +220,10 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; min-hei
         <div class="cell c2"><span class="lab">Activi în 7 zile</span><span class="num" id="kAct7">–</span><span class="sub" id="kAct30"></span></div>
         <div class="cell c3"><span class="lab">PRO+ din invitații sau dat de tine</span><span class="num" id="kBonus">–</span><span class="sub" id="kBonusDays"></span></div>
         <div class="cell c3"><span class="lab">Invitații folosite</span><span class="num" id="kRefs">–</span><span class="sub" id="kRefs30"></span></div>
+        <div class="cell c6 subs">
+          <h3>Abonamente</h3>
+          <div class="sgrid" id="subsGrid"></div>
+        </div>
         <div class="cell c6">
           <div class="row"><h3>Conturi noi pe zi</h3><span class="sub">ultimele 30 de zile</span></div>
           <svg id="chart" class="chart" role="img" aria-label="Conturi noi pe zi, ultimele 30 de zile"></svg>
@@ -432,6 +442,7 @@ function classify(d) {
     id: d.__id, email: d.email || '', name: d.displayName || '', plan, source, until, pid,
     playState: (d.play && d.play.state) || '', created: ms(d.createdAt), seen: ms(d.lastSeen),
     invited: d.referralCount || 0, bonusDays: d.bonusDays || 0,
+    paidLast: Math.max(ms(p.proplus), ms(p.pro)),
   };
 }
 async function load() {
@@ -490,9 +501,51 @@ function renderAll() {
   $('kBonusDays').textContent = bonusDays ? `${bonusDays} zile strânse, încă necurse` : '';
   $('kRefs').textContent = REFS.length;
   $('kRefs30').textContent = `${REFS.filter((r) => now - r.created < 30 * DAY).length} în ultimele 30 de zile`;
+  renderSubs(m);
   renderChart();
   renderTable();
   renderMoney(m);
+}
+function renderSubs(m) {
+  const now = Date.now();
+  const has = (t) => USERS.filter((u) => u.plan === t).length;
+  const paid = m.paid;
+  const cnt = (pid) => paid.filter((u) => u.pid === pid).length;
+  const st = (re) => paid.filter((u) => re.test(u.playState)).length;
+  const expired30 = USERS.filter((u) => u.source !== 'paid' && u.paidLast && u.paidLast < now && now - u.paidLast < 30 * DAY).length;
+  const monthly = cnt('trasso_pro_monthly') + cnt('trasso_proplus_monthly');
+  const yearly = cnt('trasso_pro_yearly') + cnt('trasso_proplus_yearly');
+  const conv = USERS.length ? (paid.length / USERS.length * 100) : 0;
+  const arpu = paid.length ? m.net / paid.length : 0;
+  const groups = [
+    ['Cine are acces', [
+      ['Au PRO+', has('proplus')],
+      ['Au doar PRO', has('pro')],
+      ['Fără abonament', USERS.filter((u) => !u.plan).length],
+    ]],
+    ['Plătesc prin Google Play', [
+      ['PRO lunar', cnt('trasso_pro_monthly')],
+      ['PRO anual', cnt('trasso_pro_yearly')],
+      ['PRO+ lunar', cnt('trasso_proplus_monthly')],
+      ['PRO+ anual', cnt('trasso_proplus_yearly')],
+      ['Total lunar / anual', `${monthly} / ${yearly}`],
+    ]],
+    ['De urmărit', [
+      ['Au anulat, încă activi', st(/CANCELED/), 'warn'],
+      ['Probleme la plată', st(/GRACE|ON_HOLD|PAUSED/), 'warn'],
+      ['Expirate în 30 de zile', expired30, 'warn'],
+    ]],
+    ['Gratuit de la tine', [
+      ['Din invitații', USERS.filter((u) => u.source === 'invite').length],
+      ['Dat de tine', USERS.filter((u) => u.source === 'manual').length],
+      ['Zile strânse, necurse', USERS.reduce((a, u) => a + u.bonusDays, 0)],
+    ]],
+    ['Raport', [
+      ['Conturi care plătesc', conv.toLocaleString('ro-RO', { maximumFractionDigits: 1 }) + '%'],
+      ['Venit net per plătitor', leiR(arpu)],
+    ]],
+  ];
+  $('subsGrid').innerHTML = groups.map(([h, rows]) => `<div class="sgroup"><h4>${h}</h4>${rows.map(([t, v, k]) => `<div class="srow ${k && v ? k : ''}"><span>${t}</span><b>${v}</b></div>`).join('')}</div>`).join('');
 }
 function renderBilling() {
   const on = cfg.billingEnabled === true;
