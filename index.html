@@ -30,6 +30,7 @@ t=setTimeout(window.__tbootEnd,4000);/* plasă de siguranță: dacă ceva crapă
   Object.assign(D,{"Baloane": "Balloons", "Când ții creionul nemișcat pe ecran": "When you hold the pen still on the screen", "La începutul liniei, înainte să miști: ia culoarea (pipetă)": "At the start of a line, before you move: pick the colour (eyedropper)", "La finalul liniei: îndreaptă forma (cerc, elipsă, linie, dreptunghi, triunghi, arc)": "At the end of a line: clean up the shape (circle, ellipse, line, rectangle, triangle, arc)", "Sunt două momente diferite: pipeta pornește doar dacă nu ai mișcat deloc creionul, forma doar după ce ai desenat o linie.": "These are two different moments: the eyedropper only starts if you haven't moved the pen at all, the shape only after you've drawn a line.", "Mai multe opțiuni de strat ›": "More layer options ›", "Mai puține opțiuni de strat ‹": "Fewer layer options ‹"}); /* 2026.11.26 UX */
   Object.assign(D,{"Versiune nouă a aplicației. Repornește ca s-o folosești.": "New version of the app. Restart to use it.", "Repornește": "Restart"});
   Object.assign(D,{"Închide la culoare": "Darken", "Ardere culoare": "Color burn", "Subexpunere culoare": "Color dodge", "Lumină slabă": "Soft light", "Lumină puternică": "Hard light", "Excludere": "Exclusion", "Întunecare": "Darken", "Luminare": "Lighten", "Mod de amestecare": "Blend mode", "Ardere liniară": "Linear burn", "Scădere": "Subtract", "Culoare mai închisă": "Darker color", "Subexpunere cu strălucire": "Glow dodge", "Adaugă (strălucire)": "Add (Glow)", "Culoare mai deschisă": "Lighter color", "Lumină vie": "Vivid light", "Lumină liniară": "Linear light", "Lumină punctuală": "Pin light", "Amestec dur": "Hard mix", "Împarte": "Divide"});
+  Object.assign(D,{"🎞 Animație: straturi noi („+ Strat”, Animat sau Fix, peste sau sub personaj) și referință sub cadre: o poză, un GIF sau un video care merge cadru cu cadru cu animația (rotoscopie), plus o fereastră de referință plutitoare. Referința nu se exportă.":"🎞 Animation: new layers (“+ Layer”, Animated or Fixed, above or below the character) and a reference under the frames: a picture, a GIF or a video that steps frame by frame with the animation (rotoscoping), plus a floating reference window. The reference is never exported."});
   Object.assign(D,{/*UX2611*/"🧭 Meniul din dreapta: harta panourilor e sus, cu ‹ › pentru panoul anterior și următor; ții degetul pe un panou ca să desenezi doar în el. Îmbinarea și ștergerea straturilor se pot anula. În Simplu, butoanele sunt mai mari și au nume.":"🧭 Right-hand menu: the panel map is at the top, with ‹ › for the previous and next panel; hold your finger on a panel to draw only inside it. Merging and deleting layers can be undone. In Simple, buttons are bigger and have names.","🎞 Animație: atingi cadrul ales pentru meniul lui, tragi mânerul ca să schimbi cât ține, alegi mai multe cadre deodată, Flip și masă de lumină, onion skin înainte/după până la 8 cadre, zoom cu două degete și „Animează panoul” din pagina de manga.":"🎞 Animation: tap the selected frame for its menu, drag the handle to change how long it lasts, select several frames at once, Flip and light table, onion skin before/after up to 8 frames, two-finger zoom and “Animate this panel” from the manga page.","⌨ Tur rapid cu toate funcțiile, gesturile și scurtăturile: Setări → Ajutor, butonul „?” sau ⌨ în Animație.":"⌨ Quick tour of every feature, gesture and shortcut: Settings → Help, the “?” button or ⌨ in Animation.","Interfață oglindită: meniul în stânga, uneltele în dreapta":"Mirrored layout: menu on the left, tools on the right","Interfața e oglindită: meniul în stânga, uneltele în dreapta.":"The layout is mirrored: menu on the left, tools on the right.","Interfața e din nou cu uneltele în stânga.":"Tools are back on the left.","Meniul rămâne deschis cât desenezi. Atinge iar pioneza ca să se închidă singur.":"The menu stays open while you draw. Tap the pin again to let it close by itself.","Meniul se închide singur când atingi desenul.":"The menu closes by itself when you touch the drawing.","Meniul rămâne deschis (atinge ca să se închidă singur)":"The menu stays open (tap to let it close by itself)","Ține meniul deschis cât desenez":"Keep the menu open while I draw","Urcă":"Up","Coboară":"Down","Nou":"New","Copie":"Copy","Îmbină":"Merge","Golește":"Clear","Straturile sunt îmbinate. „Anulează” le desparte din nou.":"Layers merged. “Undo” splits them again.","Stratul e șters. „Anulează” îl aduce înapoi.":"Layer deleted. “Undo” brings it back.",});
   function norm(s){return s.replace(/\s+/g,' ').trim();}
   var EX=Object.create(null),FK=[];
@@ -10960,7 +10961,7 @@ function drExportPSD(){
 }
 /* ---------- Anunț de versiune nouă ---------- */
 var APP_VER='2026.11.27-ux';
-var APP_NEWS=["🧭 Meniul din dreapta: harta panourilor e sus, cu ‹ › pentru panoul anterior și următor; ții degetul pe un panou ca să desenezi doar în el. Îmbinarea și ștergerea straturilor se pot anula. În Simplu, butoanele sunt mai mari și au nume.","🎞 Animație: atingi cadrul ales pentru meniul lui, tragi mânerul ca să schimbi cât ține, alegi mai multe cadre deodată, Flip și masă de lumină, onion skin înainte/după până la 8 cadre, zoom cu două degete și „Animează panoul” din pagina de manga.","⌨ Tur rapid cu toate funcțiile, gesturile și scurtăturile: Setări → Ajutor, butonul „?” sau ⌨ în Animație.","🧭 Acasă e mai ușor de citit: în bara din stânga, „Lucrările tale” și „Instrumente” sunt grupuri separate, iar fiecare instrument spune ce face. Scena 3D și „Imagine sau PSD” au acum și carduri mari pe Acasă.","🖍 Plăcile de pe Acasă au desene noi, făcute de mână: creionul Trasso trage „+”-ul de la Desen nou, împarte pagina goală în panouri și răsfiră paginile capitolului, iar la Animation un mic vrăjitor aruncă o vrajă, cadru cu cadru. Se desenează o dată când deschizi Acasă și din nou când atingi placa.","🏠 Acasă încape acum pe un singur ecran: „Trimite unui prieten” e sus, lângă ⚙, iar în stânga ai o bară cu Capitolele mele, Animații, Desene libere, Fișierele mele, Șterse recent, Copie de siguranță, Scena 3D și Turul aplicației. Plăcile Pagină goală, Capitol nou și Animation au desene animate.","🎞 Animation (PRO+, gratuit la lansare): de pe Acasă faci animații cadru cu cadru (onion skin, „Ține cadrul”, fundal comun), din desenele tale sau din imagini. „⚡ Animație rapidă”: atingi capul, bărbia, ochii și gura, iar personajul tău clipește, se uită, cască sau vorbește singur. Plus marionetă din bucăți, efecte (fum, praf, scântei, impact), Film cu mai multe scene și export GIF sau video.","🗑 Șterse recent: ce ștergi (desene, pagini, capitole întregi) stă 30 de zile la Acasă → Șterse recent. De acolo îl recuperezi cu o atingere, inclusiv la locul lui din capitol.","📚 Biblioteca se deschide peste desen: folderele în stânga, tot ce ai în dreapta, cu „PRO” în colț la elementele Pro. O atingere pune elementul în desen.","✅ Desen nou: alegi o opțiune (pagina de manga goală e aleasă implicit), apoi apeși „Începe desenul” jos.","📄 Pagini goale: „Pagină goală” de pe ecranul de start și „Pagină de manga” din Desen nou pornesc fără panouri și fără capitol. Panourile le faci tu din „Editează panourile”: tai pagina cu o linie sau adaugi câte vrei. La pagină nouă în capitol ai și opțiunea „Goală”.","✏️ Iconiță nouă: un T tras cu tuș negru, o tușă portocalie și un creion, pe hârtie crem. Pe telefon apare după ce pui din nou aplicația pe ecranul principal.","🎨 Aspect nou: accentul e acum bej, tema întunecată are tonuri calde de grafit, iar ecranul de start are placa mare „Desen nou” și „Creează un proiect nou”. Meniul din dreapta are iconițe pe file, butoane rotunde pentru panouri și Salvează/Export lângă rotiță. Pe tableta culcată, bara de sus are Pagină nouă, Panouri, Miniaturi, Ultima pagină și Citește capitolul.","🧭 Spațiu de lucru mai aerisit: o singură pereche Anulează/Refă, glisoarele se pot ascunde, panoul ales se vede pe pagină, iar din bara capitolului sari direct la orice pagină. În Ajutoare, ghidajele (grilă, simetrie, perspectivă) sunt separate de schița automată. Acasă, fiecare card are meniul ⋮: Redenumește, Duplică, Exportă, Șterge.","⚙ Setările au acum fereastra lor: rotița de lângă filele meniului sau de pe ecranul Acasă. Meniul desenului rămâne doar cu Straturi, Pagină și Ajutoare. Stabilizatorul „netezire” ține acum linia mult mai dreaptă.","🌐 Trasso pornește acum în engleză. Schimbi limba oricând din globul din bara de sus (sau din ⚙ Setări → Aspect → Limba); alegerea se ține minte.","🪞 Bara de simetrie apare doar când o vrei: o arăți sau o ascunzi din butonul de simetrie de lângă pânză. Mărimea și opacitatea stau acum numai în panoul de pensule din stânga.","🙂 Fețe de bază din 8 unghiuri (față, 3/4, profil, din spate, de jos, de sus), pentru fete și pentru băieți, plus 7 tipuri de față pentru fiecare (ovală, rotundă, pătrată, inimă, diamant…). Le găsești în bibliotecă, în folderele „Fețe – Fete” și „Fețe – Băieți”. Schimbi unghiul din variante, iar capul rămâne pe loc.","🗯 Cadre noi pentru panouri: Zimțat are vârfuri curate și colțuri ascuțite pe diagonală, Nor are arcuri rotunde și colțuri rotunjite. Ambele stau în interiorul panoului, deci nu se mai ating cu vecinii. Alegi o variantă (Subtil, Pronunțat, Fin, Amplu) sau reglezi intensitatea, densitatea și grosimea liniei.","✒️ Peniță ascuțită: linii fine ca acul, subțiri la ambele capete. Butonul Transparent de lângă culori face ca orice pensulă să șteargă cu forma ei, de exemplu pentru hașuri albe pe negru.","⭐ Funcțiile marcate PRO (Lira cu 15 emoții, coafurile din 8 unghiuri, ochii Pro, NPC-urile și Fundalul 3D) sunt gratuite la lansare. Mai târziu vor face parte din abonamentul Trasso Pro.","🖌 Panou de pensule: apeși pe o unealtă din stânga și se deschide panoul cu grupuri, pensule cu tușă de probă și setări. Fiecare pensulă își ține minte setările.","✨ Aspect nou: selecția e turcoaz, meniurile au iconițe și secțiuni, iar bara de sus folosește aceleași iconițe.",'💾 Desenele se pot salva ca fișiere: alegi o dată un folder (ecranul Acasă → „Fișierele mele”), iar Fișier → „Salvează în fișier” scrie desenul acolo ca fișier .trasso, cu straturi și panouri. Ctrl+S salvează din nou în același fișier.','🌍 Trasso vorbește acum și engleză. Limba se alege singură după telefon sau tabletă și o schimbi din ⚙ Setări → Aspect → Limba.','🎨 Aplicația se numește acum Trasso. Pe ecranul principal al tabletei numele se schimbă după ce o redeschizi (sau o adaugi din nou pe ecran).','✨ Aspect nou: bare de unelte plutitoare, animații fluide, comutatoare și slidere noi și un selector de culoare cu nuanță, pipetă și paleta ta. Zoomul se vede acum în dreapta sus; apasă pe el ca să potrivești pânza. Toate uneltele au rămas la locul lor.','🧑‍🌾 Personaje de fundal (NPC) gata decupate în bibliotecă: 11 grupuri de mulțime (taraba, coada, piața cu obelisc, siluete…), 9 copii și 9 săteni la treabă. Le găsești în folderele „NPC – Mulțime”, „NPC – Copii” și „NPC – Săteni”.','👧 Lira are 15 emoții gata decupate în bibliotecă, folderul „Lira” (neutră, fericită, tristă, furioasă, confuză, obosită…). O pui pe pagină și schimbi emoția din variante; fața rămâne pe loc.','Cu tableta culcată, uneltele stau în stânga și bara de sus e subțire: pagina are cu o treime mai mult loc. Se schimbă din ⚙ Setări → Aspect.','La început alegi: desenezi cu creionul sau cu degetul. Cu degetul: un deget desenează, două mută; linia se netezește mai mult și grosimea vine din viteză. Se schimbă din ⚙ Setări.','📲 Trimite aplicația unui prieten: link și cod QR (ecranul Acasă sau Fișier).','🏙 Fundal 3D: tragi clădiri pe plan (stradă cu case, blocuri, magazine, stâlpi și cabluri) sau alegi o cameră (clasă, dormitor, coridor, bucătărie); pui camera unde vrei și se desenează în panou, cu rigla de perspectivă potrivită.','🧑 Creator de personaj: alegi cap, ochi, gură, păr din bibliotecă și salvezi personajul cu expresii.','🧍 Manechin: tragi de brațe și picioare, apoi îl pui pe pagină.','Pentru ce pui din bibliotecă: 🎯 Potrivește pe cap, linie mai groasă/subțire, culoarea liniei, interior alb/ton/negru.','Import foaie de desene: opțiunea „Decupare: grilă” — scrii câte coloane și rânduri are foaia (ex. 4x5) și o taie exact, chiar dacă desenele se ating.','Decuparea foilor cu desene merge și pe capturi de ecran: taie rama, butoanele, cifrele și separă desenele care se ating prin linii de gât.','Bibliotecă → „✨ Ochi, guri, nasuri, poziții”: preseturi gata desenate, cu expresii. Și „📦 Importă pachet”: pachete Procreate (.brushset) sau Photoshop (.abr) cu ochi, păr, poziții devin elemente în bibliotecă.','Biblioteca are foldere: câte unul pentru fiecare personaj. Poți grupa automat după nume, muta și șterge mai multe deodată (☑ Selectează mai multe).','Copii de siguranță: îți amintesc după 3 zile în care ai lucrat; pe ecranul Acasă vezi când ai făcut ultima copie. Unde browserul permite, aplicația face singură o copie pe zi într-un folder.','Meniuri mai curate: fără butoane dublate; Fișier are acum „Inserează în desen”.','Ghidul de la început și noutățile sunt scurte și au ✕ ca să le închizi.','Ce desenezi pe foaia separată a unui panou apare singur în pagină când o deschizi (nu mai trebuie „Pune în pagină”).','Miniaturile de pe ecranul Acasă sunt acum clare (nu se mai „sparg” tonurile). Foaia separată a panoului pornește „Ca pe pagină”, la calitate maximă.','Inserezi desene PNG sau PSD: Fișier → „Imagine sau PSD…” sau direct în bibliotecă.','Pe foaia separată a panoului: butonul „📚 Din bibliotecă” sus și „📚 Pune din bibliotecă în panou” în Meniu.','„📚 Pune din bibliotecă în panou” e și lângă „Desenează panoul pe foaie separată”.','Pe foaia separată a panoului ai butonul 📚 sus: pui fața sau corpul din bibliotecă direct pe foaie.','Ce pui din bibliotecă într-un panou apare acum și pe foaia separată a panoului.','„Pune din bibliotecă” e acum în Fișier și în Meniu → Pagină: pui fața sau corpul salvat direct în panou.','Salvează în bibliotecă, la vedere: Fișier → „Salvează în bibliotecă…”, Meniu → Pagină → „💾 Salvează panoul în bibliotecă”, sau „💾 În bibliotecă” când ai o selecție. Pe o pagină se salvează doar ce e în panoul ales.',
+var APP_NEWS=["🎞 Animație: straturi noi („+ Strat”, Animat sau Fix, peste sau sub personaj) și referință sub cadre: o poză, un GIF sau un video care merge cadru cu cadru cu animația (rotoscopie), plus o fereastră de referință plutitoare. Referința nu se exportă.","🧭 Meniul din dreapta: harta panourilor e sus, cu ‹ › pentru panoul anterior și următor; ții degetul pe un panou ca să desenezi doar în el. Îmbinarea și ștergerea straturilor se pot anula. În Simplu, butoanele sunt mai mari și au nume.","🎞 Animație: atingi cadrul ales pentru meniul lui, tragi mânerul ca să schimbi cât ține, alegi mai multe cadre deodată, Flip și masă de lumină, onion skin înainte/după până la 8 cadre, zoom cu două degete și „Animează panoul” din pagina de manga.","⌨ Tur rapid cu toate funcțiile, gesturile și scurtăturile: Setări → Ajutor, butonul „?” sau ⌨ în Animație.","🧭 Acasă e mai ușor de citit: în bara din stânga, „Lucrările tale” și „Instrumente” sunt grupuri separate, iar fiecare instrument spune ce face. Scena 3D și „Imagine sau PSD” au acum și carduri mari pe Acasă.","🖍 Plăcile de pe Acasă au desene noi, făcute de mână: creionul Trasso trage „+”-ul de la Desen nou, împarte pagina goală în panouri și răsfiră paginile capitolului, iar la Animation un mic vrăjitor aruncă o vrajă, cadru cu cadru. Se desenează o dată când deschizi Acasă și din nou când atingi placa.","🏠 Acasă încape acum pe un singur ecran: „Trimite unui prieten” e sus, lângă ⚙, iar în stânga ai o bară cu Capitolele mele, Animații, Desene libere, Fișierele mele, Șterse recent, Copie de siguranță, Scena 3D și Turul aplicației. Plăcile Pagină goală, Capitol nou și Animation au desene animate.","🎞 Animation (PRO+, gratuit la lansare): de pe Acasă faci animații cadru cu cadru (onion skin, „Ține cadrul”, fundal comun), din desenele tale sau din imagini. „⚡ Animație rapidă”: atingi capul, bărbia, ochii și gura, iar personajul tău clipește, se uită, cască sau vorbește singur. Plus marionetă din bucăți, efecte (fum, praf, scântei, impact), Film cu mai multe scene și export GIF sau video.","🗑 Șterse recent: ce ștergi (desene, pagini, capitole întregi) stă 30 de zile la Acasă → Șterse recent. De acolo îl recuperezi cu o atingere, inclusiv la locul lui din capitol.","📚 Biblioteca se deschide peste desen: folderele în stânga, tot ce ai în dreapta, cu „PRO” în colț la elementele Pro. O atingere pune elementul în desen.","✅ Desen nou: alegi o opțiune (pagina de manga goală e aleasă implicit), apoi apeși „Începe desenul” jos.","📄 Pagini goale: „Pagină goală” de pe ecranul de start și „Pagină de manga” din Desen nou pornesc fără panouri și fără capitol. Panourile le faci tu din „Editează panourile”: tai pagina cu o linie sau adaugi câte vrei. La pagină nouă în capitol ai și opțiunea „Goală”.","✏️ Iconiță nouă: un T tras cu tuș negru, o tușă portocalie și un creion, pe hârtie crem. Pe telefon apare după ce pui din nou aplicația pe ecranul principal.","🎨 Aspect nou: accentul e acum bej, tema întunecată are tonuri calde de grafit, iar ecranul de start are placa mare „Desen nou” și „Creează un proiect nou”. Meniul din dreapta are iconițe pe file, butoane rotunde pentru panouri și Salvează/Export lângă rotiță. Pe tableta culcată, bara de sus are Pagină nouă, Panouri, Miniaturi, Ultima pagină și Citește capitolul.","🧭 Spațiu de lucru mai aerisit: o singură pereche Anulează/Refă, glisoarele se pot ascunde, panoul ales se vede pe pagină, iar din bara capitolului sari direct la orice pagină. În Ajutoare, ghidajele (grilă, simetrie, perspectivă) sunt separate de schița automată. Acasă, fiecare card are meniul ⋮: Redenumește, Duplică, Exportă, Șterge.","⚙ Setările au acum fereastra lor: rotița de lângă filele meniului sau de pe ecranul Acasă. Meniul desenului rămâne doar cu Straturi, Pagină și Ajutoare. Stabilizatorul „netezire” ține acum linia mult mai dreaptă.","🌐 Trasso pornește acum în engleză. Schimbi limba oricând din globul din bara de sus (sau din ⚙ Setări → Aspect → Limba); alegerea se ține minte.","🪞 Bara de simetrie apare doar când o vrei: o arăți sau o ascunzi din butonul de simetrie de lângă pânză. Mărimea și opacitatea stau acum numai în panoul de pensule din stânga.","🙂 Fețe de bază din 8 unghiuri (față, 3/4, profil, din spate, de jos, de sus), pentru fete și pentru băieți, plus 7 tipuri de față pentru fiecare (ovală, rotundă, pătrată, inimă, diamant…). Le găsești în bibliotecă, în folderele „Fețe – Fete” și „Fețe – Băieți”. Schimbi unghiul din variante, iar capul rămâne pe loc.","🗯 Cadre noi pentru panouri: Zimțat are vârfuri curate și colțuri ascuțite pe diagonală, Nor are arcuri rotunde și colțuri rotunjite. Ambele stau în interiorul panoului, deci nu se mai ating cu vecinii. Alegi o variantă (Subtil, Pronunțat, Fin, Amplu) sau reglezi intensitatea, densitatea și grosimea liniei.","✒️ Peniță ascuțită: linii fine ca acul, subțiri la ambele capete. Butonul Transparent de lângă culori face ca orice pensulă să șteargă cu forma ei, de exemplu pentru hașuri albe pe negru.","⭐ Funcțiile marcate PRO (Lira cu 15 emoții, coafurile din 8 unghiuri, ochii Pro, NPC-urile și Fundalul 3D) sunt gratuite la lansare. Mai târziu vor face parte din abonamentul Trasso Pro.","🖌 Panou de pensule: apeși pe o unealtă din stânga și se deschide panoul cu grupuri, pensule cu tușă de probă și setări. Fiecare pensulă își ține minte setările.","✨ Aspect nou: selecția e turcoaz, meniurile au iconițe și secțiuni, iar bara de sus folosește aceleași iconițe.",'💾 Desenele se pot salva ca fișiere: alegi o dată un folder (ecranul Acasă → „Fișierele mele”), iar Fișier → „Salvează în fișier” scrie desenul acolo ca fișier .trasso, cu straturi și panouri. Ctrl+S salvează din nou în același fișier.','🌍 Trasso vorbește acum și engleză. Limba se alege singură după telefon sau tabletă și o schimbi din ⚙ Setări → Aspect → Limba.','🎨 Aplicația se numește acum Trasso. Pe ecranul principal al tabletei numele se schimbă după ce o redeschizi (sau o adaugi din nou pe ecran).','✨ Aspect nou: bare de unelte plutitoare, animații fluide, comutatoare și slidere noi și un selector de culoare cu nuanță, pipetă și paleta ta. Zoomul se vede acum în dreapta sus; apasă pe el ca să potrivești pânza. Toate uneltele au rămas la locul lor.','🧑‍🌾 Personaje de fundal (NPC) gata decupate în bibliotecă: 11 grupuri de mulțime (taraba, coada, piața cu obelisc, siluete…), 9 copii și 9 săteni la treabă. Le găsești în folderele „NPC – Mulțime”, „NPC – Copii” și „NPC – Săteni”.','👧 Lira are 15 emoții gata decupate în bibliotecă, folderul „Lira” (neutră, fericită, tristă, furioasă, confuză, obosită…). O pui pe pagină și schimbi emoția din variante; fața rămâne pe loc.','Cu tableta culcată, uneltele stau în stânga și bara de sus e subțire: pagina are cu o treime mai mult loc. Se schimbă din ⚙ Setări → Aspect.','La început alegi: desenezi cu creionul sau cu degetul. Cu degetul: un deget desenează, două mută; linia se netezește mai mult și grosimea vine din viteză. Se schimbă din ⚙ Setări.','📲 Trimite aplicația unui prieten: link și cod QR (ecranul Acasă sau Fișier).','🏙 Fundal 3D: tragi clădiri pe plan (stradă cu case, blocuri, magazine, stâlpi și cabluri) sau alegi o cameră (clasă, dormitor, coridor, bucătărie); pui camera unde vrei și se desenează în panou, cu rigla de perspectivă potrivită.','🧑 Creator de personaj: alegi cap, ochi, gură, păr din bibliotecă și salvezi personajul cu expresii.','🧍 Manechin: tragi de brațe și picioare, apoi îl pui pe pagină.','Pentru ce pui din bibliotecă: 🎯 Potrivește pe cap, linie mai groasă/subțire, culoarea liniei, interior alb/ton/negru.','Import foaie de desene: opțiunea „Decupare: grilă” — scrii câte coloane și rânduri are foaia (ex. 4x5) și o taie exact, chiar dacă desenele se ating.','Decuparea foilor cu desene merge și pe capturi de ecran: taie rama, butoanele, cifrele și separă desenele care se ating prin linii de gât.','Bibliotecă → „✨ Ochi, guri, nasuri, poziții”: preseturi gata desenate, cu expresii. Și „📦 Importă pachet”: pachete Procreate (.brushset) sau Photoshop (.abr) cu ochi, păr, poziții devin elemente în bibliotecă.','Biblioteca are foldere: câte unul pentru fiecare personaj. Poți grupa automat după nume, muta și șterge mai multe deodată (☑ Selectează mai multe).','Copii de siguranță: îți amintesc după 3 zile în care ai lucrat; pe ecranul Acasă vezi când ai făcut ultima copie. Unde browserul permite, aplicația face singură o copie pe zi într-un folder.','Meniuri mai curate: fără butoane dublate; Fișier are acum „Inserează în desen”.','Ghidul de la început și noutățile sunt scurte și au ✕ ca să le închizi.','Ce desenezi pe foaia separată a unui panou apare singur în pagină când o deschizi (nu mai trebuie „Pune în pagină”).','Miniaturile de pe ecranul Acasă sunt acum clare (nu se mai „sparg” tonurile). Foaia separată a panoului pornește „Ca pe pagină”, la calitate maximă.','Inserezi desene PNG sau PSD: Fișier → „Imagine sau PSD…” sau direct în bibliotecă.','Pe foaia separată a panoului: butonul „📚 Din bibliotecă” sus și „📚 Pune din bibliotecă în panou” în Meniu.','„📚 Pune din bibliotecă în panou” e și lângă „Desenează panoul pe foaie separată”.','Pe foaia separată a panoului ai butonul 📚 sus: pui fața sau corpul din bibliotecă direct pe foaie.','Ce pui din bibliotecă într-un panou apare acum și pe foaia separată a panoului.','„Pune din bibliotecă” e acum în Fișier și în Meniu → Pagină: pui fața sau corpul salvat direct în panou.','Salvează în bibliotecă, la vedere: Fișier → „Salvează în bibliotecă…”, Meniu → Pagină → „💾 Salvează panoul în bibliotecă”, sau „💾 În bibliotecă” când ai o selecție. Pe o pagină se salvează doar ce e în panoul ales.',
   'Imagine pentru telefon / internet (Fișier, sau în fereastra de salvare): JPG de 2048 px micșorat corect, ca tonurile cu puncte să arate ca pe ecran și în WhatsApp, Instagram sau galerie. PNG-ul rămâne pentru tipar, la rezoluția întreagă.',
   'Umplere cu orice pensulă din Pensule+: Găleată → Textură → „O pensulă din Pensule+”. Pensulele cu textură umplu cu textura lor; cele cu forme (frunziș, iarbă, flori, sclipiri, mulțime) umplu zona cu forme, cu mărimea și distanța alese, și în perspectivă.',
   'Moduri active, mereu la vedere sus: selecție, mutare, simetrie, riglă, puncte de fugă, plan în perspectivă, „doar în panou”, strat ascuns/blocat, opacitate mică. Fiecare are buton clar de oprire; când sunt mai multe, „✕ Oprește tot”.',
@@ -19146,11 +19147,23 @@ var AN=(function(){
   /* ---------- starea ---------- */
   var A=null,UI=null,play=false,raf=0,last=0,sub=0,undo=[],redo=[],saveT=0,tool='pen',col='#141414',size=6,penSeen=false,stroke=null,sel=null,drag=null;
   /* 2026.11.26g: fiecare cadru are trei straturi — Schiță (sk, nu se exportă), Linie (c) și Culoare (cl, sub linie). sk și cl se fac la prima folosire. */
-  function newFrame(w,h){return {c:MK(w,h),cl:null,sk:null,hold:1,dirty:true,b:null,clB:null,skB:null};}
+  function newFrame(w,h){return {c:MK(w,h),cl:null,sk:null,x:null,xB:null,hold:1,dirty:true,b:null,clB:null,skB:null};}
   function lay(f,k){if(!f[k])f[k]=MK(A.w,A.h);return f[k];}
-  function cpFrame(f){return {c:CP(f.c),cl:f.cl?CP(f.cl):null,sk:f.sk?CP(f.sk):null,hold:f.hold||1,dirty:true,b:null,clB:null,skB:null};}
+  function cpX(m){if(!m)return null;var o={};for(var k in m)if(m[k])o[k]=CP(m[k]);return o;}
+  function cpFrame(f){return {c:CP(f.c),cl:f.cl?CP(f.cl):null,sk:f.sk?CP(f.sk):null,x:cpX(f.x),xB:null,hold:f.hold||1,dirty:true,b:null,clB:null,skB:null};}
+  /* 2026.11.27: straturi în plus (A.xl). Animat = un desen în fiecare cadru (f.x[id]); Fix = unul singur pentru toată animația (L.cv).
+     pos 'over' = peste personaj (Linie), 'under' = între Fundal și Culoare. Se fac la prima folosire, ca să nu ocupe memorie degeaba. */
+  var XMAX=4;
+  function xlOf(D){return (D&&D.xl)||[];}
+  function xL(id){var L=xlOf(A);for(var i=0;i<L.length;i++)if(L[i].id===id)return L[i];return null;}
+  function xCv(L,f){return L.type==='fix'?L.cv:(f&&f.x?f.x[L.id]:null);}
+  function xTgt(){return A&&A.tgt&&A.tgt.slice(0,2)==='x:'?xL(A.tgt.slice(2)):null;}
+  function drawX(x,D,f,pos,live){xlOf(D).forEach(function(L){if(L.pos!==pos)return;var on=L.vis!==false||(live&&A&&A.tgt==='x:'+L.id);if(!on)return;var c=xCv(L,f);
+    if(c){x.globalAlpha=L.op==null?1:L.op;x.drawImage(c,0,0);x.globalAlpha=1;}if(live&&c)liveOn(x,c);});}
+  function shared(c){if(!c)return false;if(c===A.bg)return true;return xlOf(A).some(function(L){return L.type==='fix'&&L.cv===c;});}
+  function xHas(f,c){if(!f.x)return false;for(var k in f.x)if(f.x[k]===c)return true;return false;}
   function newDoc(o){var w=o.w,h=o.h;return {id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:o.name||T('Animație','Animation'),kind:o.kind||'cel',w:w,h:h,fps:o.fps||12,loop:true,
-    frames:[newFrame(w,h)],bg:MK(w,h),bgDirty:true,bgB:null,cur:0,tgt:'frame',onion:{on:true,n:1,a:.35},range:{on:false,a:1,b:2},fx:[],t:Date.now()};}
+    frames:[newFrame(w,h)],bg:MK(w,h),bgDirty:true,bgB:null,xl:[],ref:null,cur:0,tgt:'frame',onion:{on:true,n:1,a:.35},range:{on:false,a:1,b:2},fx:[],t:Date.now()};}
   function curF(){return A.frames[A.cur];}
   function ticks(){var n=0;A.frames.forEach(function(f){n+=f.hold||1;});return n;}
   /* ---------- salvare ---------- */
@@ -19158,12 +19171,16 @@ var AN=(function(){
   var saving=null;
   function save(){if(!A)return Promise.resolve();clearTimeout(saveT);var D=A;
     var run=function(){
-      var jobs=D.frames.map(function(f){return f.dirty||!f.b?Promise.all([toBlob(f.c),f.cl?toBlob(f.cl):null,f.sk?toBlob(f.sk):null]).then(function(r){f.b=r[0];f.clB=r[1];f.skB=r[2];f.dirty=false;}):null;});
+      var jobs=D.frames.map(function(f){if(!(f.dirty||!f.b))return null;var xs=f.x?Object.keys(f.x).filter(function(k){return f.x[k];}):[];
+        return Promise.all([toBlob(f.c),f.cl?toBlob(f.cl):null,f.sk?toBlob(f.sk):null,Promise.all(xs.map(function(k){return toBlob(f.x[k]);}))]).then(function(r){f.b=r[0];f.clB=r[1];f.skB=r[2];
+          var xb=null;xs.forEach(function(k,i){if(!xb)xb={};xb[k]=r[3][i];});f.xB=xb;f.dirty=false;});});
+      xlOf(D).forEach(function(L){if(L.type==='fix'&&L.cv&&(L.dirty||!L.b))jobs.push(toBlob(L.cv).then(function(b){L.b=b;L.dirty=false;}));});
       if(D.bgDirty||!D.bgB)jobs.push(toBlob(D.bg).then(function(b){D.bgB=b;D.bgDirty=false;}));
       if(D.pp&&D.ppSave)jobs.push(D.ppSave());
       return Promise.all(jobs).then(function(){
         var rec={id:D.id,name:D.name,kind:D.kind,w:D.w,h:D.h,fps:D.fps,loop:D.loop,onion:D.onion,range:D.range,fx:D.fx,t:D.t,cur:D.cur,
-          frames:D.frames.map(function(f){return {b:f.b,hold:f.hold||1,cl:f.clB||null,sk:f.skB||null};}),bg:D.bgB,pp:D.ppRec||null,film:D.film||null,filmDur:D.filmDur||0};
+          frames:D.frames.map(function(f){return {b:f.b,hold:f.hold||1,cl:f.clB||null,sk:f.skB||null,x:f.xB||null};}),bg:D.bgB,
+          xl:xlOf(D).map(function(L){return {id:L.id,name:L.name,type:L.type,pos:L.pos,vis:L.vis!==false,op:L.op==null?1:L.op,b:L.type==='fix'?(L.b||null):null};}),ref:D.ref||null,pp:D.ppRec||null,film:D.film||null,filmDur:D.filmDur||0};
         var th=MK(240,Math.round(240*D.h/D.w));if(th.height>300){th.width=Math.round(300*D.w/D.h);th.height=300;}
         composeTo(th.getContext('2d'),Math.min(D.cur,D.frames.length-1),th.width/D.w,D);
         return Promise.all([dput('a:'+D.id,rec),toBlob(th,'image/jpeg',.85)]).then(function(r){
@@ -19176,14 +19193,17 @@ var AN=(function(){
     return saving;}
   function durOf(D){if(D.kind==='film')return D.filmDur||0;if(D.kind==='puppet'&&D.pp)return D.pp.n/D.fps;var n=0;D.frames.forEach(function(f){n+=f.hold||1;});return n/D.fps;}
   function load(id){return dget('a:'+id).then(function(r){if(!r)return null;
-    var D={id:r.id,name:r.name,kind:r.kind||'cel',w:r.w,h:r.h,fps:r.fps||12,loop:r.loop!==false,onion:r.onion||{on:true,n:1,a:.35},range:r.range||{on:false,a:1,b:2},fx:r.fx||[],t:r.t,cur:r.cur||0,tgt:'frame',bgB:r.bg,bgDirty:false,ppRec:r.pp||null,film:r.film||null,filmDur:r.filmDur||0};
-    return Promise.all([blobCv(r.bg,r.w,r.h)].concat(r.frames.map(function(f){return Promise.all([blobCv(f.b,r.w,r.h),f.cl?blobCv(f.cl,r.w,r.h):null,f.sk?blobCv(f.sk,r.w,r.h):null]);}))).then(function(cs){
-      D.bg=cs[0];D.frames=r.frames.map(function(f,i){var q=cs[i+1];return {c:q[0],cl:q[1],sk:q[2],hold:f.hold||1,dirty:false,b:f.b,clB:f.cl||null,skB:f.sk||null};});
+    var D={xl:(r.xl||[]).map(function(L){return Object.assign({},L);}),ref:r.ref||null,id:r.id,name:r.name,kind:r.kind||'cel',w:r.w,h:r.h,fps:r.fps||12,loop:r.loop!==false,onion:r.onion||{on:true,n:1,a:.35},range:r.range||{on:false,a:1,b:2},fx:r.fx||[],t:r.t,cur:r.cur||0,tgt:'frame',bgB:r.bg,bgDirty:false,ppRec:r.pp||null,film:r.film||null,filmDur:r.filmDur||0};
+    var xids={};D.xl.forEach(function(L){xids[L.id]=1;});
+    var fixJ=Promise.all(D.xl.map(function(L){L.dirty=false;return L.type==='fix'&&L.b?blobCv(L.b,r.w,r.h).then(function(c){L.cv=c;}):null;}));
+    var xJ=function(f){var ks=f.x?Object.keys(f.x).filter(function(k){return xids[k]&&f.x[k];}):[];return Promise.all(ks.map(function(k){return blobCv(f.x[k],r.w,r.h);})).then(function(cs){if(!ks.length)return [null,null];var m={},mb={};ks.forEach(function(k,i){m[k]=cs[i];mb[k]=f.x[k];});return [m,mb];});};
+    return Promise.all([blobCv(r.bg,r.w,r.h)].concat(r.frames.map(function(f){return Promise.all([blobCv(f.b,r.w,r.h),f.cl?blobCv(f.cl,r.w,r.h):null,f.sk?blobCv(f.sk,r.w,r.h):null,xJ(f)]);})).concat([fixJ])).then(function(cs){
+      D.bg=cs[0];D.frames=r.frames.map(function(f,i){var q=cs[i+1];return {c:q[0],cl:q[1],sk:q[2],x:q[3][0],xB:q[3][1],hold:f.hold||1,dirty:false,b:f.b,clB:f.cl||null,skB:f.sk||null};});
       if(!D.frames.length)D.frames=[newFrame(D.w,D.h)];D.cur=Math.min(D.cur,D.frames.length-1);
       return (AN.ppLoad&&D.ppRec?AN.ppLoad(D):Promise.resolve()).then(function(){return D;});});});}
   /* ---------- compunere ---------- */
   function composeTo(x,i,k,D){D=D||A;if(D.kind==='film'&&AN.filmThumb){AN.filmThumb(x,k,D);return;}x.save();x.setTransform(k,0,0,k,0,0);if(AN.transp){x.clearRect(0,0,D.w,D.h);}else{x.fillStyle='#fff';x.fillRect(0,0,D.w,D.h);x.drawImage(D.bg,0,0);}
-    if(D.kind==='puppet'&&AN.ppDraw)AN.ppDraw(x,i,D);else if(D.frames[i]){if(D.frames[i].cl)x.drawImage(D.frames[i].cl,0,0);x.drawImage(D.frames[i].c,0,0);}
+    if(D.kind==='puppet'&&AN.ppDraw)AN.ppDraw(x,i,D);else if(D.frames[i]){var Fi=D.frames[i];drawX(x,D,Fi,'under');if(Fi.cl)x.drawImage(Fi.cl,0,0);x.drawImage(Fi.c,0,0);drawX(x,D,Fi,'over');}
     if(AN.fxDraw)AN.fxDraw(x,i,D);x.restore();}
   var TMP=null;
   function tint(x,src,color,a){if(!TMP||TMP.width!==A.w||TMP.height!==A.h)TMP=MK(A.w,A.h);var t=TMP.getContext('2d');t.globalCompositeOperation='source-over';t.clearRect(0,0,A.w,A.h);t.drawImage(src,0,0);
@@ -19193,20 +19213,24 @@ var AN=(function(){
     if(A.kind==='film'&&AN.filmRender){AN.filmRender(x);return;}
     if(A.kind==='puppet'&&AN.ppRender){AN.ppRender(x);status();return;}
     x.fillStyle='#fff';x.fillRect(0,0,A.w,A.h);x.drawImage(A.bg,0,0);
-    var o=A.onion,n=A.frames.length;
+    if(!play&&AN.refDraw)AN.refDraw(x,false);
+    var o=A.onion,n=A.frames.length,oL=xTgt(),oS=function(f){if(!f)return null;if(oL)return oL.type==='fix'?null:(f.x?f.x[oL.id]:null);return f.c;},tn=function(f,c,a){var q=oS(f);if(q)tint(x,q,c,a);};
     /* 2026.11.27: onion skin pe direcții (înainte / după), până la 8 cadre pe fiecare parte, culori alese */
     var ltOn=AN.lt&&AN.lt.on&&!play;if(ltOn){x.save();x.translate(AN.lt.dx,AN.lt.dy);}
     if(o.on&&!play){var nb=o.pv===false?0:Math.min(n-1,o.nb||o.n||1),na=o.nx===false?0:Math.min(n-1,o.na||o.n||1),cb=o.cb||'#d0553f',ca=o.ca||'#2f8f6a';
       for(var k=Math.max(nb,na);k>=1;k--){var p=A.cur-k,q=A.cur+k;
-      if(k<=nb){var a=o.a*(1-(k-1)/(nb+.5));if(p>=0)tint(x,A.frames[p].c,cb,a);else if(A.loop&&n>2)tint(x,A.frames[(p%n+n)%n].c,cb,a*.6);}
-      if(k<=na){var a2=o.a*(1-(k-1)/(na+.5));if(q<n)tint(x,A.frames[q].c,ca,a2);else if(A.loop&&n>2)tint(x,A.frames[q%n].c,ca,a2*.6);}}}
+      if(k<=nb){var a=o.a*(1-(k-1)/(nb+.5));if(p>=0)tn(A.frames[p],cb,a);else if(A.loop&&n>2)tn(A.frames[(p%n+n)%n],cb,a*.6);}
+      if(k<=na){var a2=o.a*(1-(k-1)/(na+.5));if(q<n)tn(A.frames[q],ca,a2);else if(A.loop&&n>2)tn(A.frames[q%n],ca,a2*.6);}}}
     if(ltOn)x.restore();
     var F=curF();
     if(A.tgt==='bg')liveOn(x,A.bg);
+    drawX(x,A,F,'under',!play);
     if(F.cl){x.drawImage(F.cl,0,0);}liveOn(x,F.cl);
     x.drawImage(F.c,0,0);liveOn(x,F.c);
+    drawX(x,A,F,'over',!play);
     if(!play&&A.skShow!==false&&F.sk){tint(x,F.sk,'#3b82f6',A.skA||.55);}if(F.sk)liveOn(x,F.sk);
     if(AN.fxDraw)AN.fxDraw(x,A.cur,A);
+    if(!play&&AN.refDraw)AN.refDraw(x,true);
     if(sel&&!play){x.drawImage(sel.img,sel.x,sel.y);x.save();x.setLineDash([8,6]);x.lineWidth=2*A.w/900;x.strokeStyle='#F2A93B';x.strokeRect(sel.x,sel.y,sel.img.width,sel.img.height);x.restore();}
     if(stroke&&stroke.lasso){x.save();x.setLineDash([8,6]);x.strokeStyle='#F2A93B';x.lineWidth=2*A.w/900;x.beginPath();stroke.lasso.forEach(function(p,i){i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]);});x.stroke();x.restore();}
     if(A.tgt==='bg'&&!play){x.fillStyle='rgba(203,187,160,.14)';x.fillRect(0,0,A.w,A.h);}
@@ -19217,7 +19241,7 @@ var AN=(function(){
   var LAYN={frame:T('Linie','Line'),color:T('Culoare','Colour'),rough:T('Schiță','Rough'),bg:T('Fundal','Background')};
   function status(){if(!UI)return;var b=UI.badge,c=UI.cnt;
     if(A.kind==='puppet'&&AN.ppStatus){AN.ppStatus(b,c);return;}
-    b.textContent=A.tgt==='bg'&&!play?T('Desenezi pe fundal','Drawing on the background'):T('Cadrul ','Frame ')+(A.cur+1)+' / '+A.frames.length+(play?'':' · '+(LAYN[A.tgt]||LAYN.frame));
+    b.textContent=A.tgt==='bg'&&!play?T('Desenezi pe fundal','Drawing on the background'):T('Cadrul ','Frame ')+(A.cur+1)+' / '+A.frames.length+(play?'':' · '+(xTgt()?xTgt().name:(LAYN[A.tgt]||LAYN.frame)));
     c.textContent=(A.cur+1)+' / '+A.frames.length;}
   /* ---------- miniaturi și bandă ---------- */
   function thumb(i){var f=A.frames[i];if(!f)return;var tw=120,th=Math.round(120*A.h/A.w);if(th>150){th=150;tw=Math.round(150*A.w/A.h);}
@@ -19236,7 +19260,9 @@ var AN=(function(){
     render();}
   function mem(){if(!UI)return;var m=maxFrames(A.w,A.h),left=m-A.frames.length;
     UI.mem.textContent=left>0?T('Mai ai loc pentru ~','Room for about ')+left+T(' cadre.',' more frames.'):T('Ai atins limita de cadre pentru tabletă. Șterge din cadre sau fă o scenă nouă în Film.','You reached the frame limit for this device. Delete frames or start a new scene in Film.');
-    UI.mem.classList.toggle('anwarn',left<10);}
+    var nx=0;xlOf(A).forEach(function(L){if(L.type==='fix'&&L.cv)nx++;});A.frames.forEach(function(f){if(f.x)for(var k in f.x)if(f.x[k])nx++;});
+    var heavy=nx*A.w*A.h*4>MEM*.6;if(heavy)UI.mem.textContent+=T(' Straturile în plus ocupă mult: dacă tableta merge greu, șterge din ele sau golește-le unde nu le folosești.',' The extra layers take a lot of memory: if the tablet slows down, delete some or clear them where they are not used.');
+    UI.mem.classList.toggle('anwarn',left<10||heavy);}
   /* ---------- operații pe cadre (cu anulare) ---------- */
   function pushFr(){undo.push({k:'fr',frames:A.frames.slice(),cur:A.cur});redo=[];trimUndo();}
   function trimUndo(){var px=0;for(var i=undo.length-1;i>=0;i--){if(undo[i].k==='px'){px++;if(px>20){undo.splice(i,1);}}}if(undo.length>60)undo.shift();}
@@ -19251,17 +19277,18 @@ var AN=(function(){
   function reverse(){pushFr();A.frames=A.frames.slice().reverse();A.cur=A.frames.length-1-A.cur;strip();selFrame();dirty();toast(T('Ordinea cadrelor e inversată.','Frame order reversed.'));}
   function pingpong(){var add=A.frames.slice(1,-1).reverse();if(A.frames.length+add.length>maxFrames(A.w,A.h))return toast(T('Nu e loc pentru toate cadrele.','Not enough room for all frames.'));
     pushFr();A.frames=A.frames.concat(add.map(function(f){return cpFrame(f);}));strip();selFrame();dirty();AN.durNote&&AN.durNote();toast(T('Am adăugat drumul înapoi: animația merge dus-întors.','Added the way back: the animation now plays back and forth.'));}
-  function clearFrame(){commitSel();var c=target();pushPx(c);c.getContext('2d').clearRect(0,0,A.w,A.h);markDirty(c);thumbAll(c===A.bg);render();}
+  function clearFrame(){commitSel();var c=target();pushPx(c);c.getContext('2d').clearRect(0,0,A.w,A.h);markDirty(c);thumbAll(shared(c));render();}
   function pushPx(c){undo.push({k:'px',c:c,d:c.getContext('2d').getImageData(0,0,c.width,c.height)});redo=[];trimUndo();}
-  function markDirty(c){if(c===A.bg){A.bgDirty=true;}else A.frames.forEach(function(f){if(f.c===c||f.cl===c||f.sk===c)f.dirty=true;});dirty();}
+  function markDirty(c){if(c===A.bg){A.bgDirty=true;}else{var fx=false;xlOf(A).forEach(function(L){if(L.cv&&L.cv===c){L.dirty=true;fx=true;}});
+    if(!fx)A.frames.forEach(function(f){if(f.c===c||f.cl===c||f.sk===c||xHas(f,c))f.dirty=true;});}dirty();}
   function thumbAll(all){if(A.kind==='puppet')return;if(all){A.frames.forEach(function(f,i){thumb(i);});}else thumb(A.cur);}
   function doUndo(){if(A.kind==='puppet'&&AN.ppUndo)return AN.ppUndo();commitSel();var u=undo.pop();if(!u)return toast(T('Nimic de anulat.','Nothing to undo.'));
-    if(u.k==='px'){var x=u.c.getContext('2d');redo.push({k:'px',c:u.c,d:x.getImageData(0,0,u.c.width,u.c.height)});x.putImageData(u.d,0,0);markDirty(u.c);thumbAll(u.c===A.bg);}
+    if(u.k==='px'){var x=u.c.getContext('2d');redo.push({k:'px',c:u.c,d:x.getImageData(0,0,u.c.width,u.c.height)});x.putImageData(u.d,0,0);markDirty(u.c);thumbAll(shared(u.c));}
     else if(u.k==='fr'){redo.push({k:'fr',frames:A.frames,cur:A.cur});A.frames=u.frames;A.cur=Math.min(u.cur,A.frames.length-1);A.frames.forEach(function(f){f.dirty=true;});strip();AN.durNote&&AN.durNote();dirty();}
     else if(u.k==='fn'){redo.push(u.redo());u.undo();}
     selFrame();}
   function doRedo(){if(A.kind==='puppet'&&AN.ppRedo)return AN.ppRedo();var u=redo.pop();if(!u)return;
-    if(u.k==='px'){var x=u.c.getContext('2d');undo.push({k:'px',c:u.c,d:x.getImageData(0,0,u.c.width,u.c.height)});x.putImageData(u.d,0,0);markDirty(u.c);thumbAll(u.c===A.bg);}
+    if(u.k==='px'){var x=u.c.getContext('2d');undo.push({k:'px',c:u.c,d:x.getImageData(0,0,u.c.width,u.c.height)});x.putImageData(u.d,0,0);markDirty(u.c);thumbAll(shared(u.c));}
     else if(u.k==='fr'){undo.push({k:'fr',frames:A.frames,cur:A.cur});A.frames=u.frames;A.cur=Math.min(u.cur,A.frames.length-1);strip();AN.durNote&&AN.durNote();dirty();}
     else if(u.k==='fn'){undo.push(u.redo());u.undo();}
     selFrame();}
@@ -19278,10 +19305,11 @@ var AN=(function(){
     if(ts-last>step*6)last=ts;if(m)selFrame();raf=requestAnimationFrame(tick);}
   /* ---------- desen ---------- */
   function pt(e){var r=UI.cv.getBoundingClientRect();return [(e.clientX-r.left)*A.w/r.width,(e.clientY-r.top)*A.h/r.height];}
-  function target(){if(A.tgt==='bg')return A.bg;var f=curF();if(A.tgt==='color')return lay(f,'cl');if(A.tgt==='rough')return lay(f,'sk');return f.c;}
+  function target(){if(A.tgt==='bg')return A.bg;var f=curF();
+    if(A.tgt&&A.tgt.slice(0,2)==='x:'){var L=xTgt();if(L){if(L.type==='fix'){if(!L.cv)L.cv=MK(A.w,A.h);return L.cv;}if(!f.x)f.x={};if(!f.x[L.id])f.x[L.id]=MK(A.w,A.h);return f.x[L.id];}A.tgt='frame';}if(A.tgt==='color')return lay(f,'cl');if(A.tgt==='rough')return lay(f,'sk');return f.c;}
   function inSel(p){return sel&&p[0]>=sel.x&&p[1]>=sel.y&&p[0]<=sel.x+sel.img.width&&p[1]<=sel.y+sel.img.height;}
-  function commitSel(){if(!sel)return;var c=sel.c,x=c.getContext('2d');x.drawImage(sel.img,sel.x,sel.y);sel=null;markDirty(c);thumbAll(c===A.bg);selBar();render();}
-  function dropSel(){if(!sel)return;sel=null;markDirty(target());thumbAll(A.tgt==='bg');selBar();render();}
+  function commitSel(){if(!sel)return;var c=sel.c,x=c.getContext('2d');x.drawImage(sel.img,sel.x,sel.y);sel=null;markDirty(c);thumbAll(shared(c));selBar();render();}
+  function dropSel(){if(!sel)return;sel=null;markDirty(target());thumbAll(shared(target()));selBar();render();}
   function cancelSel(){if(!sel)return;var c=sel.c;c.getContext('2d').drawImage(sel.img,sel.ox,sel.oy);sel=null;selBar();render();}
   function selBar(){if(UI)UI.selbar.hidden=!sel;}
   function makeSel(path){var c=target(),bx=1e9,by=1e9,ex=-1e9,ey=-1e9;path.forEach(function(p){bx=Math.min(bx,p[0]);by=Math.min(by,p[1]);ex=Math.max(ex,p[0]);ey=Math.max(ey,p[1]);});
@@ -19322,11 +19350,12 @@ var AN=(function(){
   function hexA(h,a){var n=parseInt(String(h).slice(1),16);if(String(h).length===4){var r0=String(h);n=parseInt(r0[1]+r0[1]+r0[2]+r0[2]+r0[3]+r0[3],16);}return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
   /* pipeta: culoarea din cadrul ales (fundal + culoare + linie) */
   function pick(p){var t=MK(1,1),g=t.getContext('2d'),X=Math.floor(p[0]),Y=Math.floor(p[1]),f=curF();g.fillStyle='#fff';g.fillRect(0,0,1,1);
-    [A.bg,f.cl,f.c].forEach(function(c){if(c)g.drawImage(c,-X,-Y);});var d=g.getImageData(0,0,1,1).data;
+    var Lu=xlOf(A).filter(function(L){return L.pos==='under'&&L.vis!==false;}).map(function(L){return xCv(L,f);}),Lo=xlOf(A).filter(function(L){return L.pos!=='under'&&L.vis!==false;}).map(function(L){return xCv(L,f);});
+    [A.bg].concat(Lu,[f.cl,f.c],Lo).forEach(function(c){if(c)g.drawImage(c,-X,-Y);});var d=g.getImageData(0,0,1,1).data;
     col='#'+[d[0],d[1],d[2]].map(function(v){return ('0'+v.toString(16)).slice(-2);}).join('');tool=AN.prevTool||'pen';if(AN.syncTools)AN.syncTools();toast(T('Culoarea e luată.','Colour picked.'));}
   /* găleata: liniile cadrului sunt pereții; umple pe stratul Culoare (sub linie) și intră puțin sub contur */
   function fill(p){var f=curF(),W=A.w,H=A.h,X=Math.floor(p[0]),Y=Math.floor(p[1]);if(X<0||Y<0||X>=W||Y>=H)return;
-    var dest=(A.tgt==='frame'&&AN.fillTo!=='same')?lay(f,'cl'):target(),src=A.tgt==='bg'?A.bg:f.c;
+    var dest=(A.tgt==='frame'&&AN.fillTo!=='same')?lay(f,'cl'):target(),src=A.tgt==='bg'?A.bg:xTgt()?dest:f.c;
     var ld=src.getContext('2d').getImageData(0,0,W,H).data,N=W*H,wall=new Uint8Array(N),i;
     for(i=0;i<N;i++)wall[i]=ld[i*4+3]>90?1:0;
     var gap=AN.gap==null?2:AN.gap;for(var it=0;it<gap;it++)wall=grow(wall,W,H);
@@ -19338,7 +19367,7 @@ var AN=(function(){
     if(n>N*.97&&!AN.fillAllOk){toast(T('Forma nu e închisă: s-ar umple tot cadrul. Mărește „Închide goluri” sau închide linia.','The shape is not closed: the whole frame would fill. Raise “Close gaps” or close the line.'));return;}
     for(it=0;it<gap+2;it++)m=grow(m,W,H);
     pushPx(dest);var dx=dest.getContext('2d'),im=dx.getImageData(0,0,W,H),dd=im.data,c0=parseInt(col.slice(1),16),r0=(c0>>16)&255,g0=(c0>>8)&255,b0=c0&255;
-    for(i=0;i<N;i++)if(m[i]){var o=i*4;dd[o]=r0;dd[o+1]=g0;dd[o+2]=b0;dd[o+3]=255;}
+    var same=dest===src;for(i=0;i<N;i++)if(m[i]){var o=i*4;if(same&&dd[o+3]>90)continue;dd[o]=r0;dd[o+1]=g0;dd[o+2]=b0;dd[o+3]=255;}
     dx.putImageData(im,0,0);markDirty(dest);thumb(A.cur);render();}
   function grow(a,W,H){var b=new Uint8Array(a.length),N=a.length;for(var i=0;i<N;i++){if(a[i]){b[i]=1;continue;}var x=i%W;
     if((x>0&&a[i-1])||(x<W-1&&a[i+1])||(i>=W&&a[i-W])||(i<N-W&&a[i+W]))b[i]=1;}return b;}
@@ -19360,7 +19389,7 @@ var AN=(function(){
     var x=s.x,l=s.l;if(!s.B.stamp){x.lineCap='round';x.lineWidth=bwid(s.B,s.pr||.5);x.globalCompositeOperation=s.er?'destination-out':'source-over';x.strokeStyle=col;x.beginPath();x.moveTo(s.m[0],s.m[1]);x.lineTo(l[0],l[1]);x.stroke();x.globalCompositeOperation='source-over';}
     else stampSeg(s,s.m,l,s.pr||.5);
     if(s.sb){var tx=s.c.getContext('2d');tx.globalAlpha=s.op;tx.drawImage(s.sb,0,0);tx.globalAlpha=1;}
-    markDirty(s.c);thumbAll(s.c===A.bg);render();}
+    markDirty(s.c);thumbAll(shared(s.c));render();}
   /* ---------- mesaje și ferestre ---------- */
   function toast(t){if(!UI)return;var e=UI.toast;e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(function(){e.classList.remove('on');},2600);}
   function dlg(title,build,opts){opts=opts||{};var ov=E('div','andlg'),cd=E('div','andlgc'+(opts.wide?' wide':''));ov.appendChild(cd);
@@ -19378,7 +19407,7 @@ var AN=(function(){
   /* ---------- export public ---------- */
   return {T:T,E:E,cancelStroke:cancelStroke,get penSeen(){return penSeen;},MK:MK,CP:CP,dget:dget,dput:dput,ddel:ddel,idx:idx,toBlob:toBlob,blobCv:blobCv,FMT:FMT,isOn:isOn,LSs:LSs,LSg:LSg,proPlus:proPlus,maxFrames:maxFrames,
     get A(){return A;},set A(v){A=v;},get UI(){return UI;},set UI(v){UI=v;},get play(){return play;},get tool(){return tool;},set tool(v){tool=v;},get col(){return col;},set col(v){col=v;},get size(){return size;},set size(v){size=v;},
-    newDoc:newDoc,newFrame:newFrame,save:save,load:load,dirty:dirty,render:render,strip:strip,selFrame:selFrame,thumb:thumb,thumbAll:thumbAll,composeTo:composeTo,tint:tint,
+    newDoc:newDoc,newFrame:newFrame,cpFrame:cpFrame,XMAX:XMAX,xlOf:xlOf,xTgt:xTgt,shared:shared,target:function(){return target();},save:save,load:load,dirty:dirty,render:render,strip:strip,selFrame:selFrame,thumb:thumb,thumbAll:thumbAll,composeTo:composeTo,tint:tint,
     addFrame:addFrame,delFrame:delFrame,moveFrame:moveFrame,setHold:setHold,reverse:reverse,pingpong:pingpong,clearFrame:clearFrame,pushPx:pushPx,markDirty:markDirty,
     undo:doUndo,redo:doRedo,startPlay:startPlay,stopPlay:stopPlay,tick:tick,down:down,move:move,up:up,commitSel:commitSel,dropSel:dropSel,cancelSel:cancelSel,
     toast:toast,dlg:dlg,ask:ask,durOf:durOf,curF:curF,ticks:ticks,mem:mem,pt:pt,get undoS(){return undo;},resetUndo:function(){undo=[];redo=[];},
@@ -19507,7 +19536,7 @@ var AN=(function(){
     /* 2026.11.26e: onion skin la o atingere, lângă cadre */
     var onb=E('button','anbtn anon',T('Onion','Onion'));onb.type='button';onb.title=T('Arată / ascunde cadrele vecine (onion skin)','Show / hide neighbouring frames (onion skin)');onb.setAttribute('aria-label',onb.title);
     onb.addEventListener('click',function(){var A=AN.A;if(!A)return;A.onion.on=!A.onion.on;onb.setAttribute('aria-pressed',String(A.onion.on));AN.render();AN.dirty();if(A.kind==='cel'&&AN.sideCel)AN.sideCel();});
-    ops.appendChild(onb);AN.onionBtn=onb;
+    ops.appendChild(onb);AN.onionBtn=onb;if(AN.refBtn)ops.appendChild(AN.refBtn());
     ops.appendChild(E('span','ancnt',T('Ține cadrul','Hold frame')));
     var hold=E('span','anseg');hold.setAttribute('role','group');hold.setAttribute('aria-label',T('Câte cadre ține desenul ales','How many frames the selected drawing is held'));ops.appendChild(hold);
     [1,2,3,4].forEach(function(h){var b=E('button',null,String(h));b.type='button';b.dataset.h=h;b.addEventListener('click',function(){AN.setHold(h);});hold.appendChild(b);});
@@ -19599,12 +19628,14 @@ var AN=(function(){
     var ly=E('div','anbl');ly.setAttribute('role','group');ly.setAttribute('aria-label',T('Stratul pe care desenezi','The layer you draw on'));S.appendChild(ly);
     function pLY(){[].forEach.call(ly.children,function(b){b.setAttribute('aria-pressed',String(b.dataset.t===A.tgt));});}
     LY.forEach(function(q){var b=E('button','anbli anly');b.type='button';b.dataset.t=q[0];var tx=E('span');tx.appendChild(E('b',null,q[1]));tx.appendChild(E('small',null,q[2]));b.appendChild(tx);
-      b.addEventListener('click',function(){AN.commitSel();A.tgt=q[0];pLY();AN.render();});ly.appendChild(b);});pLY();
+      b.addEventListener('click',function(){AN.commitSel();A.tgt=q[0];pLY();if(AN.xlPaint)AN.xlPaint();AN.render();});ly.appendChild(b);});pLY();
+    if(AN.xlSide)AN.xlSide(S,pLY);
     S.appendChild(E('p','annote',T('Lucrezi ca în animația clasică: schițezi mișcarea pe Schiță, o curăți pe Linie, apoi colorezi pe Culoare.','Work like classic animation: rough the motion on Rough, clean it up on Line, then colour it on Colour.')));
     h(T('Schița','Rough'));
     tg(T('Arată schița','Show the rough'),function(){return A.skShow!==false;},function(v){A.skShow=v;AN.render();});
     rng(T('Cât de vizibilă','How visible'),10,100,1,function(){return Math.round((A.skA||.55)*100);},function(v){A.skA=v/100;AN.render();},function(v){return v+'%';});
     var cb=E('div','anrow');S.appendChild(cb);
+    if(AN.refSide)setTimeout(function(){AN.refSide(P.lay);},0);
     var c1=E('button','anbtn',T('Șterge schița din cadru','Clear the rough in this frame'));c1.type='button';c1.addEventListener('click',function(){var f=AN.curF();if(!f.sk)return;AN.pushPx(f.sk);f.sk.getContext('2d').clearRect(0,0,A.w,A.h);AN.markDirty(f.sk);AN.render();});cb.appendChild(c1);
     var c2=E('button','anbtn',T('Din toate cadrele…','From all frames…'));c2.type='button';c2.addEventListener('click',function(){AN.ask(T('Ștergi schița din toate cadrele?','Clear the rough from every frame?'),T('Liniile și culoarea rămân. ↶ Anulează le aduce înapoi.','Lines and colour stay. ↶ Undo brings them back.'),[{t:T('Șterge schițele','Clear roughs'),danger:1,fn:function(){AN.pushSwap(function(){return A.frames.map(function(f){return [f,f.sk,f.skB];});},function(v){v.forEach(function(q){q[0].sk=q[1];q[0].skB=q[2];q[0].dirty=true;});AN.dirty();AN.render();});A.frames.forEach(function(f){if(f.sk){f.sk=null;f.skB=null;f.dirty=true;}});AN.dirty();AN.render();}},{t:T('Renunță','Cancel')}]);});cb.appendChild(c2);
     S=P.onion;h('Onion skin');
@@ -19764,7 +19795,7 @@ var AN=(function(){
         ok.addEventListener('click',function(){var v=i.value.trim().slice(0,60);if(!v)return;AN.dget('a:'+e.id).then(function(r){if(!r)return;r.name=v;return AN.dput('a:'+e.id,r);}).then(AN.idx).then(function(L){L.forEach(function(q){if(q.id===e.id)q.name=v;});return AN.dput('index',L);}).then(function(){close();refreshHome();});});});}},
     {t:T('Duplică','Duplicate'),fn:function(){AN.dget('a:'+e.id).then(function(r){if(!r)return;var n=Object.assign({},r,{id:'a'+Date.now().toString(36),name:(r.name+T(' copie',' copy')).slice(0,60),t:Date.now()});
         return AN.dput('a:'+n.id,n).then(AN.idx).then(function(L){L.unshift(Object.assign({},e,{id:n.id,name:n.name,t:n.t}));return AN.dput('index',L);});}).then(refreshHome);}},
-    {t:T('Șterge…','Delete…'),danger:true,confirm:true,s:T('Nu se poate recupera','This cannot be undone'),fn:function(){AN.ddel('a:'+e.id).then(AN.idx).then(function(L){return AN.dput('index',L.filter(function(q){return q.id!==e.id;}));}).then(refreshHome);}}]);}
+    {t:T('Șterge…','Delete…'),danger:true,confirm:true,s:T('Nu se poate recupera','This cannot be undone'),fn:function(){AN.ddel('r:'+e.id);AN.ddel('rw:'+e.id);AN.ddel('a:'+e.id).then(AN.idx).then(function(L){return AN.dput('index',L.filter(function(q){return q.id!==e.id;}));}).then(refreshHome);}}]);}
   /* ---------- Setări: comutator; Desen nou: buton ---------- */
   function settingsHook(){var so=document.getElementById('setOv');if(!so)return false;if(so.querySelector('.anset'))return true;
     var hs=[].filter.call(so.querySelectorAll('.h'),function(x){return x.textContent==='Aspect';})[0];if(!hs)return false;
@@ -22330,7 +22361,7 @@ function trExpModes(d){
     if(bar){var n=S.length;bar.querySelector('b').textContent=n+T(n===1?' cadru ales':' cadre alese',n===1?' frame selected':' frames selected');[].forEach.call(bar.querySelectorAll('button[data-need]'),function(x){x.disabled=!n;});}}
   function snap(){var A=AN.A;AN.pushSwap(function(){return {f:A.frames.slice(),c:A.cur,s:S.slice()};},function(v){A.frames=v.f;A.cur=Math.min(v.c,A.frames.length-1);S=v.s.slice();A.frames.forEach(function(f){f.dirty=true;});AN.strip();AN.selFrame();AN.dirty();AN.durNote&&AN.durNote();paint();});}
   function done(msg){AN.strip();AN.selFrame();AN.dirty();AN.durNote&&AN.durNote();paint();if(msg)AN.toast(msg);}
-  function cp(f){return {c:AN.CP(f.c),cl:f.cl?AN.CP(f.cl):null,sk:f.sk?AN.CP(f.sk):null,hold:f.hold||1,dirty:true,b:null,clB:null,skB:null};}
+  function cp(f){return AN.cpFrame(f);}
   var ops={
     dup:function(){var A=AN.A,I=idx();if(!I.length)return;if(A.frames.length+I.length>AN.maxFrames(A.w,A.h))return AN.toast(T('Nu e loc pentru atâtea cadre.','Not enough room.'));
       snap();var last=I[I.length-1],copies=I.map(function(i){return cp(A.frames[i]);});A.frames=A.frames.slice(0,last+1).concat(copies,A.frames.slice(last+1));S=copies.map(function(c,k){return last+1+k;});A.cur=last+1;done(T('Am copiat '+I.length+' cadre după selecție.','Copied '+I.length+' frames after the selection.'));},
@@ -22366,6 +22397,198 @@ function trExpModes(d){
     var r=E('div','anfrmr');var b=E('button',null,T('Alege mai multe cadre…','Select several frames…'));b.type='button';b.style.flex='1';b.addEventListener('click',function(){AN.closeFrameMenu();start();});r.appendChild(b);m.appendChild(r);
     var rc=anchor.getBoundingClientRect(),mh=m.offsetHeight;var y=rc.top-mh-8;if(y<8)y=Math.min(innerHeight-mh-8,rc.bottom+8);m.style.top=y+'px';};
 })();
+/* ---------- Animation: straturi în plus și referință (2026.11.27) ----------
+   Straturile tale: „+ Strat” face un strat Animat (alt desen în fiecare cadru: al doilea personaj, efecte)
+   sau Fix (același în toată animația: prim-plan, ramă, text), peste sau sub personaj. Maxim AN.XMAX.
+   Referința: o poză, un GIF sau un video sub cadre (sau peste ele), care merge cadru cu cadru cu animația
+   (rotoscopie). Nu se exportă și nu apare la redare. Fișierul stă în baza de date sub „r:<id>”.
+   Fereastra de referință: o poză plutitoare (model sheet, expresii), salvată sub „rw:<id>”. */
+(function(){
+  var T=AN.T,E=AN.E,MK=AN.MK;
+  var st=document.createElement('style');st.textContent=[
+    '.anxl{display:flex;flex-direction:column;gap:4px;margin:0 0 8px}',
+    '.anxr{display:flex;align-items:stretch;gap:4px}.anxr .anbli{flex:1 1 auto;min-width:0}.anxr .anbli b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.anxr .anxe{flex:none;width:44px;min-height:44px;border-radius:11px;border:1px solid var(--sk-line,#e3e2e7);background:var(--card,#fff);color:inherit;display:grid;place-items:center;cursor:pointer;padding:0}',
+    '.anxr .anxe[aria-pressed="false"]{opacity:.45}',
+    '.anxadd{width:100%;min-height:44px;margin:2px 0 4px}',
+    '.anxtype{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 10px}.anxtype .anbtn{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-height:64px;gap:2px}.anxtype .anbtn small{opacity:.75;font-size:12px;line-height:1.3}',
+    '.anxtype .anbtn[aria-pressed="true"],.anxseg button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #F2A93B;background:rgba(242,169,59,.12)}',
+    '.anxseg{display:flex;gap:6px;margin:4px 0 10px}.anxseg button{flex:1;min-height:40px;border-radius:10px;border:1px solid var(--sk-line,#e3e2e7);background:var(--card,#fff);color:inherit;cursor:pointer}',
+    '.anxin{width:100%;box-sizing:border-box;margin:4px 0 10px}',
+    '.anxdlg label{display:block;font-size:13px;opacity:.8;margin-top:4px}.anxdlg input[type=range]{width:100%}',
+    '.anrefn{font-size:13px;margin:0 0 6px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '#anOv .anrw{position:fixed;z-index:9640;top:72px;right:330px;width:280px;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--card,#26272b);border:1px solid var(--sk-line,#3a3b40);box-shadow:0 12px 32px rgba(0,0,0,.35);touch-action:none}',
+    '#anOv .anrw[hidden]{display:none}',
+    '#anOv .anrwh{display:flex;align-items:center;gap:2px;padding:4px 4px 4px 10px;cursor:move;user-select:none;background:color-mix(in srgb,var(--card,#26272b) 85%,#F2A93B)}',
+    '#anOv .anrwh b{flex:1;font-size:13px}#anOv .anrwh button{min-width:36px;height:36px;border:0;border-radius:9px;background:transparent;color:inherit;cursor:pointer;font-size:15px}',
+    '#anOv .anrwb{position:relative;background:#fff;min-height:90px;display:grid;place-items:center}#anOv .anrwb img{display:block;width:100%;height:auto;pointer-events:none}',
+    '#anOv .anrwb p{color:#333;font-size:13px;text-align:center;padding:14px;margin:0}',
+    '#anOv .anrw.min .anrwb{display:none}'
+  ].join('\n');document.head.appendChild(st);
+
+  /* ======================= straturile tale ======================= */
+  var ICE='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  function typeLab(L){return (L.type==='fix'?T('Fix','Fixed'):T('Animat','Animated'))+' · '+(L.pos==='under'?T('sub personaj','below the character'):T('peste personaj','above the character'));}
+  function snap(){var A=AN.A;return {xl:A.xl.map(function(L){return Object.assign({},L);}),fr:A.frames.map(function(f){return [f,f.x?Object.assign({},f.x):null,f.xB?Object.assign({},f.xB):null];}),tgt:A.tgt};}
+  function unsnap(v){var A=AN.A;A.xl=v.xl.map(function(L){return Object.assign({},L);});v.fr.forEach(function(q){q[0].x=q[1];q[0].xB=q[2];});A.tgt=v.tgt;after();}
+  function after(){var A=AN.A;if(!A)return;AN.thumbAll(true);if(AN.mem)AN.mem();AN.dirty();if(AN.sideCel&&A.kind==='cel')AN.sideCel();AN.render();}
+  function addLayer(o){var A=AN.A;if(!A.xl)A.xl=[];if(A.xl.length>=AN.XMAX)return AN.toast(T('Ai deja '+AN.XMAX+' straturi în plus.','You already have '+AN.XMAX+' extra layers.'));
+    AN.commitSel();AN.pushSwap(snap,unsnap);
+    var id='x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    A.xl.push({id:id,name:o.name,type:o.type,pos:o.pos,vis:true,op:1,cv:null,b:null,dirty:false});A.tgt='x:'+id;after();
+    AN.toast(o.type==='fix'?T('Strat fix nou: ce desenezi pe el se vede în toate cadrele.','New fixed layer: what you draw on it shows in every frame.'):T('Strat animat nou: desenezi altceva în fiecare cadru. Onion skin arată stratul ăsta.','New animated layer: draw something different in each frame. Onion skin shows this layer.'));}
+  function delLayer(L){var A=AN.A;AN.commitSel();AN.pushSwap(snap,unsnap);
+    A.xl=A.xl.filter(function(q){return q.id!==L.id;});
+    A.frames.forEach(function(f){if(f.x&&f.x[L.id]){f.x=Object.assign({},f.x);delete f.x[L.id];}if(f.xB&&f.xB[L.id]){f.xB=Object.assign({},f.xB);delete f.xB[L.id];}});
+    if(A.tgt==='x:'+L.id)A.tgt='frame';after();AN.toast(T('Stratul e șters (↶ îl aduce înapoi).','Layer deleted (↶ brings it back).'));}
+  function moveLayer(L,d){var A=AN.A,i=A.xl.indexOf(L),j=i+d;if(i<0||j<0||j>=A.xl.length)return;AN.pushSwap(snap,unsnap);var t=A.xl[j];A.xl[j]=L;A.xl[i]=t;after();}
+  function seg(p,opts,get,set){var s=E('div','anxseg');s.setAttribute('role','group');
+    opts.forEach(function(o){var b=E('button',null,o[1]);b.type='button';b.addEventListener('click',function(){set(o[0]);paint();});s.appendChild(b);});
+    function paint(){[].forEach.call(s.children,function(b,i){b.setAttribute('aria-pressed',String(opts[i][0]===get()));});}paint();p.appendChild(s);return s;}
+  function newDlg(){var A=AN.A,o={name:T('Strat ','Layer ')+((A.xl||[]).length+1),type:'anim',pos:'over'};
+    AN.dlg(T('Strat nou','New layer'),function(b,close){b.classList.add('anxdlg');
+      b.appendChild(E('label',null,T('Nume','Name')));var nm=E('input','anbtn anxin');nm.value=o.name;nm.maxLength=30;b.appendChild(nm);
+      b.appendChild(E('label',null,T('Fel','Kind')));var ty=E('div','anxtype');b.appendChild(ty);
+      [['anim',T('Animat','Animated'),T('Alt desen în fiecare cadru: al doilea personaj, efecte, umbre.','A new drawing in each frame: a second character, effects, shadows.')],
+       ['fix',T('Fix','Fixed'),T('Același în toată animația: prim-plan, ramă, text.','The same through the whole animation: foreground, frame, text.')]].forEach(function(q){
+        var x=E('button','anbtn');x.type='button';x.dataset.k=q[0];x.appendChild(E('b',null,q[1]));x.appendChild(E('small',null,q[2]));
+        x.addEventListener('click',function(){o.type=q[0];pt();});ty.appendChild(x);});
+      function pt(){[].forEach.call(ty.children,function(x){x.setAttribute('aria-pressed',String(x.dataset.k===o.type));});}pt();
+      b.appendChild(E('label',null,T('Unde stă','Where it sits')));
+      seg(b,[['over',T('Peste personaj','Above the character')],['under',T('Sub personaj','Below the character')]],function(){return o.pos;},function(v){o.pos=v;});
+      var f=E('div','anfoot');b.appendChild(f);var ok=E('button','anbtn pri',T('Fă stratul','Create layer'));ok.type='button';f.appendChild(ok);
+      ok.addEventListener('click',function(){o.name=(nm.value.trim()||o.name).slice(0,30);close();addLayer(o);});});}
+  function editDlg(L){var A=AN.A;
+    AN.dlg(L.name,function(b,close){b.classList.add('anxdlg');
+      b.appendChild(E('p','annote',typeLab(L)));
+      b.appendChild(E('label',null,T('Nume','Name')));var nm=E('input','anbtn anxin');nm.value=L.name;nm.maxLength=30;b.appendChild(nm);
+      nm.addEventListener('change',function(){var v=nm.value.trim().slice(0,30);if(v){L.name=v;AN.dirty();}});
+      b.appendChild(E('label',null,T('Unde stă','Where it sits')));
+      seg(b,[['over',T('Peste personaj','Above the character')],['under',T('Sub personaj','Below the character')]],function(){return L.pos;},function(v){if(L.pos===v)return;AN.pushSwap(snap,unsnap);L.pos=v;AN.thumbAll(true);AN.dirty();AN.render();});
+      var lb=E('label',null,T('Opacitate: ','Opacity: ')+Math.round((L.op==null?1:L.op)*100)+'%');b.appendChild(lb);
+      var r=E('input');r.type='range';r.min=5;r.max=100;r.value=Math.round((L.op==null?1:L.op)*100);r.setAttribute('aria-label',T('Opacitate','Opacity'));b.appendChild(r);
+      r.addEventListener('input',function(){L.op=r.value/100;lb.textContent=T('Opacitate: ','Opacity: ')+r.value+'%';AN.render();});
+      r.addEventListener('change',function(){AN.thumbAll(true);AN.dirty();});
+      var row=E('div','anrow');b.appendChild(row);
+      var i=A.xl.indexOf(L);
+      [[T('↑ Mai sus','↑ Up'),function(){close();moveLayer(L,1);},i<A.xl.length-1],[T('↓ Mai jos','↓ Down'),function(){close();moveLayer(L,-1);},i>0]].forEach(function(q){var x=E('button','anbtn',q[0]);x.type='button';x.disabled=!q[2];x.addEventListener('click',q[1]);row.appendChild(x);});
+      if(L.type!=='fix'){var cl=E('button','anbtn',T('Golește în cadrul ales','Clear in this frame'));cl.type='button';row.appendChild(cl);
+        cl.addEventListener('click',function(){var f=AN.curF();var c=f.x&&f.x[L.id];if(!c)return close();AN.pushPx(c);c.getContext('2d').clearRect(0,0,c.width,c.height);AN.markDirty(c);AN.thumb(A.cur);AN.render();close();});}
+      else{var cf=E('button','anbtn',T('Golește stratul','Clear the layer'));cf.type='button';row.appendChild(cf);
+        cf.addEventListener('click',function(){var c=L.cv;if(!c)return close();AN.pushPx(c);c.getContext('2d').clearRect(0,0,c.width,c.height);AN.markDirty(c);AN.thumbAll(true);AN.render();close();});}
+      var f=E('div','anfoot');b.appendChild(f);
+      var del=E('button','anbtn danger',T('Șterge stratul','Delete layer'));del.type='button';f.appendChild(del);
+      del.addEventListener('click',function(){if(!del.dataset.armed){del.dataset.armed='1';del.textContent=T('Sigur? Atinge încă o dată','Sure? Tap again');return;}close();delLayer(L);});
+      var ok=E('button','anbtn pri',T('Gata','Done'));ok.type='button';f.appendChild(ok);
+      ok.addEventListener('click',function(){var v=nm.value.trim().slice(0,30);if(v)L.name=v;close();after();});});}
+  AN.xlSide=function(S,pLY){var A=AN.A;if(!A.xl)A.xl=[];
+    S.appendChild(E('h3',null,T('Straturile tale','Your layers')));
+    var box=E('div','anxl');box.setAttribute('role','group');box.setAttribute('aria-label',T('Straturile tale','Your layers'));S.appendChild(box);
+    /* cel de sus primul, ca într-o listă de straturi */
+    A.xl.slice().reverse().forEach(function(L){var r=E('div','anxr');box.appendChild(r);
+      var b=E('button','anbli anly');b.type='button';b.dataset.t='x:'+L.id;var tx=E('span');tx.appendChild(E('b',null,L.name));tx.appendChild(E('small',null,typeLab(L)));b.appendChild(tx);r.appendChild(b);
+      b.addEventListener('click',function(){AN.commitSel();A.tgt='x:'+L.id;pLY();paint();AN.render();});
+      var ey=E('button','anxe');ey.type='button';ey.innerHTML=ICE;ey.setAttribute('aria-pressed',String(L.vis!==false));ey.title=T('Arată / ascunde (ascuns nu se exportă)','Show / hide (hidden is not exported)');ey.setAttribute('aria-label',T('Arată sau ascunde ','Show or hide ')+L.name);
+      ey.addEventListener('click',function(){L.vis=L.vis===false;ey.setAttribute('aria-pressed',String(L.vis!==false));AN.thumbAll(true);AN.dirty();AN.render();});r.appendChild(ey);
+      var mo=E('button','anxe','⋯');mo.type='button';mo.setAttribute('aria-label',T('Opțiuni pentru ','Options for ')+L.name);mo.addEventListener('click',function(){editDlg(L);});r.appendChild(mo);});
+    function paint(){[].forEach.call(box.querySelectorAll('.anly'),function(b){b.setAttribute('aria-pressed',String(b.dataset.t===A.tgt));});}paint();AN.xlPaint=paint;
+    var ad=E('button','anbtn anxadd',T('+ Strat nou','+ New layer'));ad.type='button';S.appendChild(ad);
+    if(A.xl.length>=AN.XMAX){ad.disabled=true;S.appendChild(E('p','annote',T('Ai '+AN.XMAX+' straturi în plus, cât încape bine pe tabletă.','You have '+AN.XMAX+' extra layers, as many as fit well on a tablet.')));}
+    else if(!A.xl.length)S.appendChild(E('p','annote',T('Un strat Animat ține al doilea personaj sau un efect separat; unul Fix ține ce nu se mișcă, peste sau sub personaj.','An Animated layer holds a second character or an effect on its own; a Fixed one holds what does not move, above or below the character.')));
+    ad.addEventListener('click',newDlg);};
+
+  /* ======================= referința sub cadre ======================= */
+  var R={id:null};
+  function reset(){if(R.vid){try{R.vid.pause();R.vid.removeAttribute('src');R.vid.load();}catch(e){}}if(R.url)URL.revokeObjectURL(R.url);R={id:null};}
+  function capCv(src,w,h,max){var k=Math.min(1,max/Math.max(w,h)),c=MK(Math.round(w*k),Math.round(h*k));c.getContext('2d').drawImage(src,0,0,c.width,c.height);return c;}
+  function prepImg(b){return new Promise(function(res,rej){var u=URL.createObjectURL(b),i=new Image();i.onload=function(){R.img=capCv(i,i.naturalWidth,i.naturalHeight,2048);URL.revokeObjectURL(u);res();};i.onerror=function(){URL.revokeObjectURL(u);rej();};i.src=u;});}
+  function prepGif(b){if(!window.ImageDecoder)return prepImg(b);
+    return b.arrayBuffer().then(function(buf){var d=new ImageDecoder({data:buf,type:b.type||'image/gif'});
+      return d.tracks.ready.then(function(){var n=Math.min(400,d.tracks.selectedTrack.frameCount||1),out=[],t=0;
+        var one=function(i){if(i>=n)return Promise.resolve();return d.decode({frameIndex:i}).then(function(r){var im=r.image,c=capCv(im,im.displayWidth,im.displayHeight,1280);
+          out.push({c:c,t:t});t+=Math.max(.02,(im.duration||100000)/1e6);im.close();return one(i+1);});};
+        return one(0).then(function(){d.close();R.gif=out;R.dur=t;});});}).catch(function(){return prepImg(b);});}
+  function prepVid(b){return new Promise(function(res,rej){var v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';R.url=URL.createObjectURL(b);
+    var to=setTimeout(function(){rej();},20000);
+    v.addEventListener('loadeddata',function(){clearTimeout(to);R.vid=v;R.dur=v.duration||0;var k=Math.min(1,1280/Math.max(v.videoWidth,v.videoHeight));R.vc=MK(Math.round(v.videoWidth*k),Math.round(v.videoHeight*k));R.vt=-1;R.seeking=false;res();},{once:true});
+    v.addEventListener('error',function(){clearTimeout(to);rej();},{once:true});
+    v.addEventListener('seeked',function(){if(R.vid!==v)return;R.vc.getContext('2d').drawImage(v,0,0,R.vc.width,R.vc.height);R.vt=R.pend;R.seeking=false;
+      if(Math.abs(R.want-R.vt)>1e-3)seekGo();else AN.render();});
+    v.src=R.url;});}
+  function prep(b,kind){R.kind=kind;return kind==='video'?prepVid(b):kind==='gif'?prepGif(b):prepImg(b);}
+  function ensure(A){if(R.id===A.id||R.loading===A.id)return;reset();R.loading=A.id;var id=A.id;
+    AN.dget('r:'+id).then(function(b){if(!AN.A||AN.A.id!==id)return;if(!b){R.id=id;R.loading=null;return;}
+      return prep(b,A.ref.kind).then(function(){R.id=id;R.loading=null;AN.render();});}).catch(function(){R.id=id;R.loading=null;AN.toast(T('Nu am putut deschide referința.','Could not open the reference.'));});}
+  function tNow(A){return (AN.ticksBefore?AN.ticksBefore():0)/A.fps+(A.ref.off||0);}
+  function seekGo(){R.seeking=true;R.pend=R.want;try{R.vid.currentTime=R.pend;}catch(e){R.seeking=false;}}
+  function srcNow(A){if(R.kind==='img')return R.img;
+    if(R.kind==='gif'){if(!R.gif)return R.img;var t=tNow(A);if(R.dur>0)t=t%R.dur;var g=R.gif[0];for(var i=0;i<R.gif.length;i++){if(R.gif[i].t<=t)g=R.gif[i];else break;}return g.c;}
+    if(R.kind==='video'&&R.vid){var tv=Math.max(0,Math.min(tNow(A),(R.dur||0)-.001));if(Math.abs(tv-R.vt)>1e-3||R.vt<0){R.want=tv;if(!R.seeking)seekGo();}return R.vt>=0?R.vc:null;}
+    return null;}
+  AN.refDraw=function(x,top){var A=AN.A;if(!A||A.kind!=='cel'||!A.ref||A.ref.on===false||!!A.ref.top!==top)return;ensure(A);if(R.id!==A.id)return;var c=srcNow(A);if(!c)return;
+    var k=Math.min(A.w/c.width,A.h/c.height),w=c.width*k,h=c.height*k;x.save();x.globalAlpha=A.ref.a==null?.4:A.ref.a;x.drawImage(c,(A.w-w)/2,(A.h-h)/2,w,h);x.restore();};
+  function pickFile(acc,fn){var i=document.createElement('input');i.type='file';i.accept=acc;i.style.display='none';document.body.appendChild(i);
+    i.addEventListener('change',function(){var f=i.files&&i.files[0];i.remove();if(f)fn(f);});i.click();}
+  function importRef(){var A=AN.A;if(!A)return;pickFile('image/*,video/*',function(f){
+    if(f.size>250e6)return AN.toast(T('Fișierul e prea mare (peste 250 MB). Taie clipul mai scurt.','The file is too big (over 250 MB). Trim the clip.'));
+    var kind=/^video\//.test(f.type)?'video':f.type==='image/gif'?'gif':'img';AN.toast(T('Pregătesc referința…','Preparing the reference…'));
+    var id=A.id;reset();R.loading=id;
+    prep(f,kind).then(function(){return AN.dput('r:'+id,f);}).then(function(){R.id=id;R.loading=null;if(!AN.A||AN.A.id!==id)return;
+      var old=A.ref||{};A.ref={kind:kind,name:f.name||'',a:old.a==null?.4:old.a,on:true,top:!!old.top,off:0,dur:R.dur||0};
+      AN.dirty();if(AN.sideCel)AN.sideCel();AN.render();paintBtn();
+      AN.toast(kind==='img'?T('Poza e sub cadre. Nu se exportă.','The picture is under the frames. It is never exported.'):T('Clipul e sub cadre: fiecare cadru arată momentul lui din clip. Nu se exportă.','The clip is under the frames: each frame shows its moment of the clip. It is never exported.'));})
+    .catch(function(){reset();R.id=id;AN.toast(T('Nu pot deschide fișierul ăsta ca referință.','I cannot open this file as a reference.'));});});}
+  function removeRef(){var A=AN.A;if(!A||!A.ref)return;AN.ddel('r:'+A.id);A.ref=null;reset();R.id=A.id;AN.dirty();if(AN.sideCel)AN.sideCel();AN.render();paintBtn();}
+  /* butonul „Ref” de lângă Onion */
+  var btn=null;
+  function paintBtn(){if(!btn)return;var A=AN.A;btn.setAttribute('aria-pressed',String(!!(A&&A.ref&&A.ref.on!==false)));}
+  AN.refBtn=function(){btn=E('button','anbtn anon','Ref');btn.type='button';btn.title=T('Referința sub cadre: arată / ascunde (fără referință, alegi una)','The reference under the frames: show / hide (with none, pick one)');btn.setAttribute('aria-label',btn.title);
+    btn.addEventListener('click',function(){var A=AN.A;if(!A)return;if(!A.ref)return importRef();A.ref.on=A.ref.on===false;paintBtn();AN.render();AN.dirty();if(AN.sideCel)AN.sideCel();});return btn;};
+  AN.refSide=function(S){var A=AN.A;if(!A||A.kind!=='cel')return;paintBtn();if(W&&!W.el.hidden&&W.id!==A.id)W.el.hidden=true;
+    S.appendChild(E('h3',null,T('Referință sub cadre','Reference under the frames')));
+    var tg=function(lab,get,set){var l=E('label','antg');l.appendChild(E('span',null,lab));var i=E('input');i.type='checkbox';i.checked=!!get();i.addEventListener('change',function(){set(i.checked);});l.appendChild(i);S.appendChild(l);};
+    var rng=function(lab,min,max,stepv,get,set,fmt){var d=E('div','anlab');var a=E('span',null,lab),v=E('span');d.appendChild(a);d.appendChild(v);S.appendChild(d);
+      var r=E('input');r.type='range';r.min=min;r.max=max;r.step=stepv;r.value=get();r.setAttribute('aria-label',lab);v.textContent=fmt(get());
+      r.addEventListener('input',function(){set(+r.value);v.textContent=fmt(+r.value);});r.addEventListener('change',function(){AN.dirty();});S.appendChild(r);};
+    var row=E('div','anrow');
+    if(!A.ref){S.appendChild(E('p','annote',T('Pune o poză, un GIF sau un video sub cadre și desenează peste el (rotoscopie). La video și GIF, fiecare cadru arată momentul lui din clip. Nu se exportă.','Put a picture, a GIF or a video under the frames and draw over it (rotoscoping). With video and GIF, each frame shows its moment of the clip. It is never exported.')));
+      var ch=E('button','anbtn pri',T('Alege poză, GIF sau video','Pick a picture, GIF or video'));ch.type='button';ch.addEventListener('click',importRef);row.appendChild(ch);S.appendChild(row);}
+    else{var nmv={img:T('Poză','Picture'),gif:'GIF',video:T('Video','Video')}[A.ref.kind]||'';S.appendChild(E('p','anrefn',nmv+(A.ref.name?' · '+A.ref.name:'')));
+      tg(T('Arată referința','Show the reference'),function(){return A.ref.on!==false;},function(v){A.ref.on=v;paintBtn();AN.render();AN.dirty();});
+      rng(T('Cât de vizibilă','How visible'),5,90,1,function(){return Math.round((A.ref.a==null?.4:A.ref.a)*100);},function(v){A.ref.a=v/100;AN.render();},function(v){return v+'%';});
+      tg(T('Peste desen (nu sub el)','Above the drawing (not below)'),function(){return !!A.ref.top;},function(v){A.ref.top=v;AN.render();AN.dirty();});
+      var dur=R.id===A.id&&R.dur?R.dur:(A.ref.dur||0);
+      if(A.ref.kind!=='img'&&dur>0){var sp=1/A.fps;rng(T('Clipul pornește de la','The clip starts at'),0,Math.max(sp,+(dur-sp).toFixed(3)),sp,function(){return A.ref.off||0;},function(v){A.ref.off=v;AN.render();},function(v){return v.toFixed(2).replace('.',T(',','.'))+' s';});
+        S.appendChild(E('p','annote',T('Clipul merge după cadre/s și „Ține cadrul”: un desen ținut 2 sare 2 momente din clip. La redare referința se ascunde.','The clip follows fps and “Hold frame”: a drawing held 2 skips 2 moments of the clip. During playback the reference hides.')));}
+      var c1=E('button','anbtn',T('Schimbă…','Change…'));c1.type='button';c1.addEventListener('click',importRef);row.appendChild(c1);
+      var c2=E('button','anbtn',T('Scoate referința','Remove the reference'));c2.type='button';c2.addEventListener('click',removeRef);row.appendChild(c2);S.appendChild(row);}
+    S.appendChild(E('h3',null,T('Fereastră de referință','Reference window')));
+    S.appendChild(E('p','annote',T('O poză plutitoare lângă foaie: model sheet, expresii, o poză după care desenezi. O muți trăgând de bara de sus.','A floating picture next to the sheet: a model sheet, expressions, a photo you draw from. Move it by dragging its top bar.')));
+    var r2=E('div','anrow');var ow=E('button','anbtn',T('Deschide fereastra','Open the window'));ow.type='button';ow.addEventListener('click',function(){openWin();});r2.appendChild(ow);S.appendChild(r2);};
+
+  /* ======================= fereastra de referință ======================= */
+  var W=null;
+  function openWin(){var A=AN.A;if(!A||!AN.UI)return;if(!W)buildWin();W.el.hidden=false;if(W.id!==A.id){W.id=A.id;setImg(null);AN.dget('rw:'+A.id).then(function(b){if(W.id===A.id)setImg(b||null);});}}
+  function setImg(b){if(W.url){URL.revokeObjectURL(W.url);W.url=null;}W.body.innerHTML='';
+    if(!b){var p=E('p',null,T('Nicio imagine. Atinge 🖼 ca să alegi una.','No picture. Tap 🖼 to pick one.'));W.body.appendChild(p);return;}
+    W.url=URL.createObjectURL(b);var i=E('img');i.alt=T('Imaginea de referință','The reference picture');i.src=W.url;W.body.appendChild(i);}
+  function buildWin(){var el=E('div','anrw');el.setAttribute('role','group');el.setAttribute('aria-label',T('Fereastră de referință','Reference window'));
+    var hd=E('div','anrwh');hd.appendChild(E('b',null,T('Referință','Reference')));el.appendChild(hd);
+    var body=E('div','anrwb');el.appendChild(body);W={el:el,body:body,id:null,url:null,w:280};
+    var mk=function(t,lab,fn){var b=E('button',null,t);b.type='button';b.title=lab;b.setAttribute('aria-label',lab);b.addEventListener('click',function(e){e.stopPropagation();fn();});b.addEventListener('pointerdown',function(e){e.stopPropagation();});hd.appendChild(b);};
+    mk('🖼',T('Alege imaginea','Pick the picture'),function(){pickFile('image/*',function(f){var id=W.id;AN.dput('rw:'+id,f).then(function(){if(W.id===id)setImg(f);});});});
+    mk('−',T('Mai mică','Smaller'),function(){W.w=Math.max(160,W.w-80);el.style.width=W.w+'px';});
+    mk('+',T('Mai mare','Larger'),function(){W.w=Math.min(Math.round(innerWidth*.8),W.w+80);el.style.width=W.w+'px';});
+    mk('▁',T('Strânge / desfă','Collapse / expand'),function(){el.classList.toggle('min');});
+    mk('✕',T('Închide fereastra de referință','Close the reference window'),function(){el.hidden=true;});
+    var dg=null;
+    hd.addEventListener('pointerdown',function(e){var r=el.getBoundingClientRect();dg={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};hd.setPointerCapture(e.pointerId);});
+    hd.addEventListener('pointermove',function(e){if(!dg||e.pointerId!==dg.id)return;var x=Math.max(0,Math.min(innerWidth-60,e.clientX-dg.dx)),y=Math.max(0,Math.min(innerHeight-40,e.clientY-dg.dy));el.style.left=x+'px';el.style.top=y+'px';el.style.right='auto';});
+    var end=function(){dg=null;};hd.addEventListener('pointerup',end);hd.addEventListener('pointercancel',end);
+    if(innerWidth<760){el.style.right='12px';el.style.width='200px';W.w=200;}
+    AN.UI.ov.appendChild(el);}
+})();
+
 /* ---------- B7: Flip (ții apăsat și tragi ca să răsfoiești cadrele vecine) și masa de lumină (muți cadrele-fantomă ca să copiezi) ---------- */
 (function(){
   var T=AN.T,E=AN.E,box=null,fl=null,lt=null;AN.lt={on:false,dx:0,dy:0};
