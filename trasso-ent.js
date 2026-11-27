@@ -28,7 +28,10 @@
      Pe un singur dispozitiv le poți porni pentru test: din consola admin („pe acest dispozitiv”) sau cu ?beta=color2,manhwa (?beta=off le oprește). */
   window.trFeat = function (name) {
     try { var b = localStorage.getItem('trasso-beta') || ''; if (b === 'all' || (',' + b + ',').indexOf(',' + name + ',') >= 0) return true; } catch (e) {}
-    var cfg = load().cfg || {};
+    var s = load(), cfg = s.cfg || {};
+    /* testeri aleși din consola admin: config/app.beta = { uid: ['manhwa', 'color2'] } */
+    var mine = s.uid && cfg.beta ? cfg.beta[s.uid] : null;
+    if (Array.isArray(mine) && mine.indexOf(name) >= 0) return true;
     return cfg['feat' + name.charAt(0).toUpperCase() + name.slice(1)] === true;
   };
   try {

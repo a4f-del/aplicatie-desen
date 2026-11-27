@@ -62,6 +62,7 @@ F.onSnapshot(F.doc(db, 'config/app'), (s) => {
     cloudMaxMB: d.cloudMaxMB ?? 50,
     featColor2: d.featColor2 === true,
     featManhwa: d.featManhwa === true,
+    beta: d.beta && typeof d.beta === 'object' ? d.beta : {},
   };
   save();
 }, () => {});
