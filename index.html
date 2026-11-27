@@ -21457,6 +21457,77 @@ function trExpModes(d){
       {t:T('Înapoi','Back'),pri:1}]);
   };
 })();
+/* ---------- A3: alegerea panoului, sus în meniu, mare, cu ‹ › ---------- */
+(function(){
+  var NS='http://www.w3.org/2000/svg',K='trasso-uxpan-c';
+  var st=document.createElement('style');st.textContent=
+  '#uxPan{margin:6px 0 4px;padding:8px;border:1px solid var(--sk-line,#e3e2e7);border-radius:12px;background:var(--card,#fff)}#uxPan[hidden]{display:none}'+
+  '#uxPan .uxph{display:flex;align-items:center;gap:6px}#uxPan .uxph b{font:600 13.5px/1.2 var(--ui,system-ui);flex:1;min-width:0}'+
+  '#uxPan button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--sk-line,#e3e2e7);background:var(--card,#fff);color:var(--ink,#1d1d24);font:500 13px var(--ui,system-ui);cursor:pointer;display:inline-grid;place-items:center;padding:0 8px}'+
+  '#uxPan button:disabled{opacity:.35;cursor:default}#uxPan button[aria-pressed=true]{background:var(--acc-2,#f3eadb);border-color:color-mix(in srgb,var(--acc,#cbbba0) 55%,transparent)}'+
+  '#uxPan .uxpb{display:flex;gap:10px;margin-top:8px;align-items:flex-start}'+
+  '#uxPan svg.uxpsv{flex:none;width:150px;height:auto;max-height:220px;background:#fff;border:1px solid var(--sk-line,#e3e2e7);border-radius:4px;touch-action:manipulation}'+
+  '#uxPan .uxpq{fill:#efedf2;stroke:#bdbac6;stroke-width:6;cursor:pointer}#uxPan .uxpq.on{fill:var(--acc,#f2a93b);stroke:var(--acc,#f2a93b)}#uxPan .uxpq.dim{fill:#f6f5f8}'+
+  '#uxPan text{font:700 64px system-ui,sans-serif;fill:#6b6878;pointer-events:none}#uxPan text.on{fill:#2a1a00}'+
+  '#uxPan .uxpc{display:grid;gap:6px;flex:1;min-width:0}#uxPan .uxpc small{color:var(--ink-2,#5e5e6a);font:400 12px/1.35 var(--ui,system-ui)}'+
+  '#uxPan.uxc .uxpb{display:none}'+
+  'body.uxpan #drSide .btns.uxpchips{display:none!important}';
+  document.head.appendChild(st);
+  function coll(){try{return localStorage.getItem(K)==='1';}catch(e){return false;}}
+  function go(i){var n=pageQuads(S.page.layout).length;if(i<0){DR.clip=false;}else{DR.panel=Math.max(0,Math.min(n-1,i));DR.clip=true;}drSync();drDirty();}
+  function sync(){
+    var hd=document.querySelector('#drSide .sdhead');if(!hd)return;
+    var box=document.getElementById('uxPan');
+    var n=(DR.ready&&DR.kind==='page'&&typeof S!=='undefined'&&S.page)?pageQuads(S.page.layout).length:0;
+    if(!box){box=document.createElement('div');box.id='uxPan';hd.parentNode.insertBefore(box,hd.nextSibling);}
+    var show=n>1;box.hidden=!show;document.body.classList.toggle('uxpan',show);if(!show)return;
+    var sel=Math.max(0,Math.min(n-1,DR.panel|0)),all=!DR.clip,key=[n,sel,all,coll(),S.page.layout,(window.__i18n&&__i18n.lang)].join('|');
+    if(box.getAttribute('data-k')===key)return;box.setAttribute('data-k',key);
+    box.classList.toggle('uxc',coll());box.innerHTML='';
+    var h=document.createElement('div');h.className='uxph';box.appendChild(h);
+    var pv=document.createElement('button');pv.type='button';pv.textContent='‹';pv.setAttribute('aria-label',trL('Panoul anterior','Previous panel'));pv.disabled=all||sel===0;
+    pv.addEventListener('click',function(){go(sel-1);});h.appendChild(pv);
+    var t=document.createElement('b');t.textContent=all?trL('Toată pagina','Whole page'):trL('Panoul ','Panel ')+(sel+1)+trL(' din ',' of ')+n;h.appendChild(t);
+    var nx=document.createElement('button');nx.type='button';nx.textContent='›';nx.setAttribute('aria-label',trL('Panoul următor','Next panel'));nx.disabled=!all&&sel>=n-1;
+    nx.addEventListener('click',function(){go(all?0:sel+1);});h.appendChild(nx);
+    var cb=document.createElement('button');cb.type='button';cb.textContent=coll()?'▾':'▴';cb.setAttribute('aria-label',coll()?trL('Arată harta paginii','Show the page map'):trL('Ascunde harta paginii','Hide the page map'));
+    cb.addEventListener('click',function(){try{localStorage.setItem(K,coll()?'0':'1');}catch(e){}box.removeAttribute('data-k');sync();});h.appendChild(cb);
+    var b=document.createElement('div');b.className='uxpb';box.appendChild(b);
+    var sv=document.createElementNS(NS,'svg');sv.setAttribute('class','uxpsv');sv.setAttribute('viewBox','0 0 '+PW+' '+PH);sv.setAttribute('role','group');sv.setAttribute('aria-label',trL('Alege panoul în care desenezi','Choose the panel you draw in'));
+    pageQuads(S.page.layout).forEach(function(q,i){
+      var p=document.createElementNS(NS,'polygon');p.setAttribute('points',q.p.map(function(a){return a[0]+','+a[1];}).join(' '));
+      p.setAttribute('class','uxpq'+(i===sel&&!all?' on':'')+(all?' dim':''));p.setAttribute('tabindex','0');p.setAttribute('role','button');
+      p.setAttribute('aria-label',trL('Panoul ','Panel ')+(i+1));p.setAttribute('aria-pressed',String(i===sel&&!all));
+      p.addEventListener('click',function(){go(i);});p.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(i);}});sv.appendChild(p);
+      var tx=document.createElementNS(NS,'text');tx.setAttribute('x',q.x+q.w/2);tx.setAttribute('y',q.y+q.h/2+22);tx.setAttribute('text-anchor','middle');if(i===sel&&!all)tx.setAttribute('class','on');tx.textContent=String(i+1);sv.appendChild(tx);
+    });
+    b.appendChild(sv);
+    var c=document.createElement('div');c.className='uxpc';b.appendChild(c);
+    var ab=document.createElement('button');ab.type='button';ab.textContent=trL('Toată pagina','Whole page');ab.setAttribute('aria-pressed',String(all));ab.addEventListener('click',function(){go(-1);});c.appendChild(ab);
+    var sm=document.createElement('small');sm.textContent=all?trL('Desenezi oriunde pe pagină. Atinge un panou pe hartă ca să desenezi doar în el.','You draw anywhere on the page. Tap a panel on the map to draw only inside it.'):trL('Desenezi doar în acest panou. Schimbi cu ‹ › sau atingând alt panou.','You draw only inside this panel. Switch with ‹ › or by tapping another panel.');c.appendChild(sm);
+  }
+  DR.sync.push(sync);
+})();
+/* ---------- Etichetele de sus („Toată pagina ▾”, „Desenezi doar în panoul N”) nu mai acoperă bara rapidă Peniță/Radieră ---------- */
+(function(){
+  function vis(n){return n&&!n.hidden&&n.offsetParent!==null&&getComputedStyle(n).display!=='none';}
+  function stack(){
+    var qs=document.getElementById('drQs'),L=[document.getElementById('mdBar'),document.getElementById('trPChip')];
+    var y=null;
+    if(vis(qs)){var r=qs.getBoundingClientRect();y=r.bottom+6;}
+    L.forEach(function(n){
+      if(!n)return;
+      if(y==null||!vis(n)){if(n.style.top)n.style.top='';return;}
+      var pr=(n.offsetParent||document.body).getBoundingClientRect();
+      var t=Math.round(y-pr.top)+'px';if(n.style.top!==t)n.style.top=t;
+      y=n.getBoundingClientRect().bottom+6;
+    });
+  }
+  window.__uxStack=stack;
+  DR.sync.push(function(){requestAnimationFrame(stack);});
+  window.addEventListener('resize',function(){requestAnimationFrame(stack);});
+  if(window.ResizeObserver){var ro=new ResizeObserver(function(){stack();}),t=0;(function w(){var q=document.getElementById('drQs');if(q){ro.observe(q);}else if(t++<120)setTimeout(w,500);})();}
+})();
 /*UX2611-MOD-END*/
 })();
 </script>
