@@ -1,90 +1,189 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ro">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trasso – Privacy Policy / Politica de confidențialitate</title>
+<title>Trasso – Politica de confidențialitate / Privacy Policy</title>
 <style>
-  body{font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:720px;margin:0 auto;padding:32px 20px 64px;color:#1f2023;background:#f7f4ef}
-  h1{font-size:26px;margin:0 0 4px}
-  h2{font-size:19px;margin:32px 0 8px}
-  .muted{color:#6d665b;font-size:14px}
-  hr{border:0;border-top:1px solid #e4ddd1;margin:40px 0}
-  nav a{margin-right:16px}
-  a{color:#8a5a12}
-  footer{margin-top:48px;text-align:center}
-  @media (prefers-color-scheme:dark){body{background:#1f2023;color:#eceae6}.muted{color:#a8a196}hr{border-color:#3a3328}a{color:#F2A93B}}
+  [hidden] { display: none !important; }
+  body { margin: 0; font: 16px/1.6 system-ui, sans-serif; background: #f6f4ef; color: #1d232b; }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 28px 0 8px; }
+  .meta { color: #5b6573; font-size: 14px; margin: 0 0 20px; }
+  .lang { display: flex; gap: 8px; margin-bottom: 24px; }
+  .lang button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid #c9ccd1; background: #fff; cursor: pointer; }
+  .lang button[aria-pressed="true"] { background: #1d232b; color: #fff; border-color: #1d232b; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px; border-bottom: 1px solid #ddd; }
+  code { background: #ebe8e0; padding: 1px 5px; border-radius: 4px; }
 </style>
 </head>
 <body>
-<nav><a href="#en">English</a><a href="#ro">Română</a></nav>
+<main>
+<div class="lang">
+  <button type="button" data-l="ro">Română</button>
+  <button type="button" data-l="en">English</button>
+</div>
 
-<section id="en">
-<h1>Trasso – Privacy Policy</h1>
-<p class="muted">Last updated: 23 November 2026</p>
+<!-- ============================ ROMÂNĂ ============================ -->
+<article lang="ro" data-lang="ro">
+<h1>Politica de confidențialitate Trasso</h1>
+<p class="meta">Ultima actualizare: 27 noiembrie 2026</p>
 
-<p>Trasso is a drawing app for manga pages, perspective and stylus drawing. This policy explains what happens to your data when you use the app on the web or as the Android app from Google Play.</p>
+<h2>1. Cine suntem</h2>
+<p>Trasso este o aplicație de desen pentru benzi desenate și manga, dezvoltată de dezvoltatorul independent <b>WhiteArhitect</b>, persoană fizică din România („noi”), care este și operatorul datelor tale. Pentru orice întrebare despre datele tale ne scrii la <a href="mailto:asahixu02@gmail.com">asahixu02@gmail.com</a>.</p>
 
-<h2>Short version</h2>
-<p>Trasso does not collect, sell or share personal data. It has no accounts, no ads, no analytics and no tracking. Your drawings stay on your device.</p>
+<h2>2. Pe scurt</h2>
+<ul>
+  <li>Poți folosi Trasso <b>fără cont</b>. În acest caz, desenele tale rămân doar pe dispozitivul tău și nu le vedem.</li>
+  <li>Dacă îți faci un cont, păstrăm doar ce e nevoie pentru cont, invitații, abonament și desenele pe care alegi să le salvezi în cloud.</li>
+  <li>Nu afișăm reclame, nu vindem date și nu folosim instrumente de urmărire sau analiză.</li>
+  <li>Datele contului stau pe serverele Google Firebase din Uniunea Europeană. Desenele pe care le salvezi în cloud stau pe serverele Google din SUA.</li>
+  <li>Îți poți șterge contul oricând, direct din aplicație.</li>
+</ul>
 
-<h2>What is stored and where</h2>
-<p>Your drawings, chapters, library items, brushes, scenes and settings are saved only in your device's local browser storage (IndexedDB and localStorage) inside the app. They are not uploaded to any server run by the developer.</p>
-<p>If you choose to make a backup, export an image or a project, or turn on automatic copies to a folder, the app writes a file to the place you choose (for example Downloads, Google Drive or a folder on your device). Those files are under your control.</p>
-
-<h2>Network connections</h2>
-<p>The app loads its own files from the address it was installed from (GitHub Pages) so it can update. It also loads fonts from Google Fonts (fonts.googleapis.com and fonts.gstatic.com). When fonts are downloaded, Google receives your device's IP address and standard browser information, as with any website. See Google's privacy policy: <a href="https://policies.google.com/privacy">policies.google.com/privacy</a>.</p>
-
-<h2>Permissions</h2>
-<p>The app only reads files (images, PSD files, brushes, backups) that you pick yourself, and only writes files when you save or export. Sharing the app's link uses your device's share menu and only happens when you tap it.</p>
-
-<h2>Trasso Pro</h2>
-<p>Features marked PRO are free during the launch period and need no account or payment. If a paid subscription is added later, this policy will be updated before it starts, to explain what is needed for it.</p>
-
-<h2>Children</h2>
-<p>Trasso is not directed at children under 13 and does not knowingly collect any information from anyone, including children.</p>
-
-<h2>Deleting your data</h2>
-<p>Because everything is stored on your device, you can delete it at any time by deleting drawings in the app, clearing the app's storage, or uninstalling the app.</p>
-
-<h2>Changes and contact</h2>
-<p>If this policy changes, the new version will be published on this page with a new date. Questions: <a href="https://github.com/a4f-del/aplicatie-desen/issues">github.com/a4f-del/aplicatie-desen/issues</a>.</p>
-</section>
-
-<hr>
-
-<section id="ro" lang="ro">
-<h1>Trasso – Politica de confidențialitate</h1>
-<p class="muted">Ultima actualizare: 23 noiembrie 2026</p>
-
-<p>Trasso este o aplicație de desen pentru pagini de manga, perspectivă și desen cu stylus. Aici afli ce se întâmplă cu datele tale când folosești aplicația pe web sau ca aplicație Android din Google Play.</p>
-
-<h2>Pe scurt</h2>
-<p>Trasso nu colectează, nu vinde și nu trimite nimănui date personale. Nu are conturi, reclame, statistici sau urmărire. Desenele tale rămân pe dispozitivul tău.</p>
-
-<h2>Ce se salvează și unde</h2>
-<p>Desenele, capitolele, biblioteca, pensulele, scenele și setările se salvează doar în memoria locală a dispozitivului (IndexedDB și localStorage), în aplicație. Nu se trimit pe niciun server al dezvoltatorului.</p>
+<h2>3. Ce date prelucrăm și de ce</h2>
+<table>
+  <tr><th>Date</th><th>De ce</th><th>Temei legal (GDPR)</th></tr>
+  <tr><td>Datele de la contul Google cu care te conectezi: nume, adresă de email, poză de profil, un identificator intern al contului</td><td>Ca să-ți creăm și să-ți păstrăm contul</td><td>Executarea contractului (art. 6 alin. 1 lit. b)</td></tr>
+  <tr><td>Data creării contului, data ultimei folosiri, limba aplicației</td><td>Funcționarea contului, condițiile campaniei de invitații</td><td>Executarea contractului</td></tr>
+  <tr><td>Codul tău de invitație, cine te-a invitat și pe cine ai invitat, zilele PRO+ câștigate</td><td>Campania „Adu un prieten” și prevenirea abuzurilor (de ex. conturi create doar pentru recompense)</td><td>Executarea contractului și interesul nostru legitim de a preveni abuzurile (lit. f)</td></tr>
+  <tr><td>Starea abonamentului PRO / PRO+: produsul, data expirării, un identificator al achiziției primit de la Google Play</td><td>Ca să-ți activăm abonamentul plătit. <b>Nu primim niciodată datele cardului tău</b>: plata se face doar prin Google Play.</td><td>Executarea contractului; obligații legale contabile (lit. c)</td></tr>
+  <tr><td>Desenele pe care alegi să le salvezi în cloud (fișiere ZIP cu straturile) și detaliile lor: nume, dimensiuni, mărime, data salvării</td><td>Ca să le poți păstra și deschide pe alt dispozitiv</td><td>Executarea contractului</td></tr>
+</table>
+<p>Desenele, capitolele, biblioteca, pensulele, scenele și setările se salvează <b>pe dispozitivul tău</b>, în memoria locală a aplicației (IndexedDB și localStorage). Ajung pe servere doar dacă le salvezi tu în cloud.</p>
 <p>Dacă faci o copie de siguranță, exporți o imagine sau un proiect, sau pornești copiile automate într-un folder, aplicația scrie un fișier unde alegi tu (de exemplu Descărcări, Google Drive sau un folder de pe dispozitiv). Fișierele acelea sunt ale tale.</p>
 
-<h2>Conexiuni la internet</h2>
-<p>Aplicația își încarcă propriile fișiere de la adresa de unde a fost instalată (GitHub Pages), ca să se poată actualiza. Încarcă și fonturi de la Google Fonts (fonts.googleapis.com și fonts.gstatic.com). Când se descarcă fonturile, Google primește adresa IP a dispozitivului și informațiile obișnuite ale browserului, ca la orice site. Vezi politica Google: <a href="https://policies.google.com/privacy?hl=ro">policies.google.com/privacy</a>.</p>
+<h2>3a. Permisiuni și conexiuni</h2>
+<p>Aplicația citește doar fișierele pe care le alegi tu (imagini, PSD, pensule, copii de siguranță) și scrie fișiere doar când salvezi sau exporți. Trimiterea linkului aplicației sau a unei invitații folosește meniul de partajare al dispozitivului și se face doar când apeși tu.</p>
+<p>Aplicația își încarcă propriile fișiere de pe GitHub Pages (adresa de unde a fost instalată), ca să se poată actualiza. Funcțiile de cont încarcă biblioteca Firebase de pe serverele Google (www.gstatic.com).</p>
 
-<h2>Permisiuni</h2>
-<p>Aplicația citește doar fișierele pe care le alegi tu (imagini, PSD, pensule, copii de siguranță) și scrie fișiere doar când salvezi sau exporți. Trimiterea linkului aplicației folosește meniul de partajare al dispozitivului și se face doar când apeși tu.</p>
+<h2>4. Cine are acces la date</h2>
+<ul>
+  <li><b>Google Ireland Ltd. / Google LLC</b>: furnizorul serviciilor Firebase (autentificare, bază de date Cloud Firestore, Cloud Functions, Cloud Storage). Google acționează ca persoană împuternicită de noi, conform <a href="https://firebase.google.com/terms/data-processing-terms">termenilor de prelucrare a datelor Firebase</a>.</li>
+  <li><b>Google Play</b>: dacă îți faci abonament, plata și datele de facturare sunt gestionate de Google, conform <a href="https://policies.google.com/privacy">politicii de confidențialitate Google</a>.</li>
+  <li><b>Google Fonts</b>: aplicația încarcă fonturi de la Google, care primește adresa IP a dispozitivului atunci când se descarcă fonturile.</li>
+</ul>
+<p>Nu vindem și nu închiriem datele nimănui. Le putem dezvălui autorităților doar dacă legea ne obligă.</p>
 
-<h2>Trasso Pro</h2>
-<p>Funcțiile marcate PRO sunt gratuite în perioada de lansare și nu cer cont sau plată. Dacă mai târziu apare un abonament, politica va fi actualizată înainte de pornirea lui, cu ce e nevoie pentru el.</p>
+<h2>5. Unde sunt stocate datele</h2>
+<p>Datele contului (profil, invitații, abonament) stau în baza de date Cloud Firestore, în regiunea multiplă <code>eur3</code> (Uniunea Europeană). Funcțiile de pe server rulează în regiunea <code>europe-west1</code> (Belgia).</p>
+<p><b>Desenele pe care alegi să le salvezi în cloud</b> stau în Cloud Storage, în regiunea <code>us-east1</code> (Carolina de Sud, SUA). Acest transfer în afara Uniunii Europene se face pe baza deciziei de adecvare a Comisiei Europene pentru <b>Cadrul UE–SUA privind protecția datelor</b>, la care Google LLC este certificat, și a Clauzelor contractuale standard incluse în termenii de prelucrare a datelor Firebase. Salvarea în cloud e opțională: dacă nu o folosești, desenele tale nu ajung în SUA.</p>
+<p>Google poate accesa și alte date din afara UE, de exemplu pentru asistență tehnică, în aceleași condiții.</p>
 
-<h2>Copii</h2>
-<p>Trasso nu se adresează copiilor sub 13 ani și nu colectează cu bună știință informații de la nimeni, inclusiv de la copii.</p>
+<h2>6. Cât timp păstrăm datele</h2>
+<ul>
+  <li>Datele contului și desenele din cloud: cât timp ai contul. La ștergerea contului le ștergem imediat.</li>
+  <li>Invitațiile pe care le-ai făcut rămân în evidența campaniei, dar fără identificatorul tău, ca să nu se poată folosi același cod de două ori.</li>
+  <li>Datele despre abonamente necesare contabilității: cât cere legea.</li>
+</ul>
 
-<h2>Ștergerea datelor</h2>
-<p>Pentru că totul stă pe dispozitivul tău, poți șterge oricând datele: ștergi desenele din aplicație, golești memoria aplicației sau o dezinstalezi.</p>
+<h2>7. Cum îți ștergi contul</h2>
+<p>În aplicație: <b>Acasă → iconița Cont → Șterge contul</b>. Se șterg imediat contul, profilul, codul de invitație și toate desenele din cloud. Desenele de pe dispozitiv rămân acolo până le ștergi tu.</p>
+<p>Dacă nu mai ai acces la aplicație, scrie-ne de pe adresa contului la <a href="mailto:asahixu02@gmail.com?subject=Stergere%20cont%20Trasso">asahixu02@gmail.com</a>, cu subiectul „Ștergere cont Trasso”. Ștergem contul în cel mult 30 de zile.</p>
+<p>Datele de pe dispozitiv (fără cont) le ștergi oricând: ștergi desenele din aplicație, golești memoria aplicației sau o dezinstalezi.</p>
+<p>Ștergerea contului nu anulează un abonament Google Play. Abonamentul îl anulezi din Google Play → Plăți și abonamente.</p>
 
-<h2>Schimbări și contact</h2>
-<p>Dacă politica se schimbă, versiunea nouă apare pe această pagină, cu o dată nouă. Întrebări: <a href="https://github.com/a4f-del/aplicatie-desen/issues">github.com/a4f-del/aplicatie-desen/issues</a>.</p>
-</section>
+<h2>8. Drepturile tale</h2>
+<p>Ai dreptul să ceri acces la date, corectarea sau ștergerea lor, restricționarea prelucrării, portabilitatea (desenele le poți exporta oricând ca ZIP din aplicație) și să te opui prelucrării bazate pe interes legitim. Ne scrii la adresa de mai sus și îți răspundem în cel mult o lună. Poți face și plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (<a href="https://www.dataprotection.ro">www.dataprotection.ro</a>).</p>
 
-<footer class="muted">© 2026 a4f-del · Trasso. All rights reserved. / Toate drepturile rezervate.</footer>
+<h2>9. Copii</h2>
+<p>Trasso poate fi folosit fără cont la orice vârstă. Pentru a-ți face un cont trebuie să ai cel puțin 16 ani sau să ai acordul unui părinte ori al tutorelui. Dacă afli că un copil sub 16 ani și-a făcut cont fără acord, scrie-ne și îl ștergem.</p>
+
+<h2>10. Securitate</h2>
+<p>Conexiunile sunt criptate (HTTPS). Fiecare utilizator are acces doar la propriile date, prin reguli de securitate verificate pe server. Abonamentele și recompensele sunt acordate numai de server, nu de aplicație.</p>
+
+<h2>11. Modificări</h2>
+<p>Dacă schimbăm această politică, actualizăm data de sus. Dacă schimbările sunt importante, te anunțăm și în aplicație. Pentru întrebări generale poți scrie și la <a href="https://github.com/a4f-del/aplicatie-desen/issues">github.com/a4f-del/aplicatie-desen/issues</a> (public; nu pune acolo date personale).</p>
+</article>
+
+<!-- ============================ ENGLISH ============================ -->
+<article lang="en" data-lang="en" hidden>
+<h1>Trasso Privacy Policy</h1>
+<p class="meta">Last updated: 27 November 2026</p>
+
+<h2>1. Who we are</h2>
+<p>Trasso is a drawing app for comics and manga, developed by the independent developer <b>WhiteArhitect</b>, an individual based in Romania (“we”), who is also the controller of your data. For any question about your data, write to <a href="mailto:asahixu02@gmail.com">asahixu02@gmail.com</a>.</p>
+
+<h2>2. In short</h2>
+<ul>
+  <li>You can use Trasso <b>without an account</b>. Your drawings then stay only on your device and we never see them.</li>
+  <li>If you create an account, we keep only what is needed for the account, invites, your subscription and the drawings you choose to save to the cloud.</li>
+  <li>We show no ads, sell no data and use no tracking or analytics tools.</li>
+  <li>Account data is stored on Google Firebase servers in the European Union. Drawings you save to the cloud are stored on Google servers in the United States.</li>
+  <li>You can delete your account at any time, directly in the app.</li>
+</ul>
+
+<h2>3. What data we process and why</h2>
+<table>
+  <tr><th>Data</th><th>Why</th><th>Legal basis (GDPR)</th></tr>
+  <tr><td>Data from the Google account you sign in with: name, email address, profile photo, an internal account identifier</td><td>To create and keep your account</td><td>Performance of a contract (Art. 6(1)(b))</td></tr>
+  <tr><td>Account creation date, last use date, app language</td><td>Running the account; the invite campaign's conditions</td><td>Performance of a contract</td></tr>
+  <tr><td>Your invite code, who invited you and whom you invited, PRO+ days earned</td><td>The “Invite a friend” campaign and abuse prevention (e.g. accounts created only for rewards)</td><td>Performance of a contract and our legitimate interest in preventing abuse (Art. 6(1)(f))</td></tr>
+  <tr><td>PRO / PRO+ subscription status: product, expiry date, a purchase identifier received from Google Play</td><td>To activate your paid subscription. <b>We never receive your card details</b>: payment happens only through Google Play.</td><td>Performance of a contract; legal accounting obligations (Art. 6(1)(c))</td></tr>
+  <tr><td>Drawings you choose to save to the cloud (ZIP files with the layers) and their details: name, dimensions, size, save date</td><td>So you can keep them and open them on another device</td><td>Performance of a contract</td></tr>
+</table>
+<p>Your drawings, chapters, library items, brushes, scenes and settings are saved <b>on your device</b>, in the app's local storage (IndexedDB and localStorage). They reach our servers only if you save them to the cloud.</p>
+<p>If you make a backup, export an image or a project, or turn on automatic copies to a folder, the app writes a file to the place you choose (for example Downloads, Google Drive or a folder on your device). Those files are under your control.</p>
+
+<h2>3a. Permissions and connections</h2>
+<p>The app only reads files you pick yourself (images, PSD files, brushes, backups) and only writes files when you save or export. Sharing the app's link or an invite uses your device's share menu and only happens when you tap it.</p>
+<p>The app loads its own files from GitHub Pages (the address it was installed from) so it can update. Account features load the Firebase library from Google's servers (www.gstatic.com).</p>
+
+<h2>4. Who has access to the data</h2>
+<ul>
+  <li><b>Google Ireland Ltd. / Google LLC</b>: the provider of the Firebase services (authentication, Cloud Firestore database, Cloud Functions, Cloud Storage). Google acts as our processor under the <a href="https://firebase.google.com/terms/data-processing-terms">Firebase data processing terms</a>.</li>
+  <li><b>Google Play</b>: if you subscribe, payment and billing details are handled by Google under the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</li>
+  <li><b>Google Fonts</b>: the app loads fonts from Google, which receives your device's IP address when the fonts are downloaded.</li>
+</ul>
+<p>We don't sell or rent data to anyone. We may disclose it to authorities only when the law requires it.</p>
+
+<h2>5. Where the data is stored</h2>
+<p>Account data (profile, invites, subscription) is stored in the Cloud Firestore database in the <code>eur3</code> multi-region (European Union). Server functions run in <code>europe-west1</code> (Belgium).</p>
+<p><b>Drawings you choose to save to the cloud</b> are stored in Cloud Storage in <code>us-east1</code> (South Carolina, USA). This transfer outside the European Union relies on the European Commission's adequacy decision for the <b>EU–US Data Privacy Framework</b>, under which Google LLC is certified, and on the Standard Contractual Clauses included in the Firebase data processing terms. Cloud saving is optional: if you don't use it, your drawings never reach the US.</p>
+<p>Google may also access other data from outside the EU, for example for technical support, under the same safeguards.</p>
+
+<h2>6. How long we keep data</h2>
+<ul>
+  <li>Account data and cloud drawings: as long as you have the account. When you delete it, we delete them immediately.</li>
+  <li>Invites you made stay in the campaign records, but without your identifier, so the same code can't be used twice.</li>
+  <li>Subscription data needed for accounting: as long as the law requires.</li>
+</ul>
+
+<h2>7. How to delete your account</h2>
+<p>In the app: <b>Home → Account icon → Delete account</b>. This immediately deletes your account, profile, invite code and all cloud drawings. Drawings on your device stay there until you delete them.</p>
+<p>If you no longer have access to the app, email <a href="mailto:asahixu02@gmail.com?subject=Delete%20Trasso%20account">asahixu02@gmail.com</a> from your account's address with the subject “Delete Trasso account”. We delete the account within 30 days.</p>
+<p>Data on your device (without an account) can be deleted at any time: delete drawings in the app, clear the app's storage, or uninstall the app.</p>
+<p>Deleting your account does not cancel a Google Play subscription. Cancel it in Google Play → Payments & subscriptions.</p>
+
+<h2>8. Your rights</h2>
+<p>You have the right to access your data, have it corrected or deleted, restrict processing, data portability (you can export your drawings as ZIP from the app at any time) and to object to processing based on legitimate interest. Write to the address above and we will reply within one month. You can also complain to the Romanian data protection authority, ANSPDCP (<a href="https://www.dataprotection.ro">www.dataprotection.ro</a>), or to the authority in your country.</p>
+
+<h2>9. Children</h2>
+<p>Trasso can be used without an account at any age. To create an account you must be at least 16, or have a parent's or guardian's consent. If you learn that a child under 16 created an account without consent, write to us and we will delete it.</p>
+
+<h2>10. Security</h2>
+<p>Connections are encrypted (HTTPS). Each user can access only their own data, through security rules enforced on the server. Subscriptions and rewards are granted only by the server, not by the app.</p>
+
+<h2>11. Changes</h2>
+<p>If we change this policy, we update the date at the top. If the changes are important, we also tell you in the app. For general questions you can also use <a href="https://github.com/a4f-del/aplicatie-desen/issues">github.com/a4f-del/aplicatie-desen/issues</a> (public; don't post personal data there).</p>
+</article>
+<p class="meta" style="margin-top:40px">© 2026 WhiteArhitect · Trasso. All rights reserved. / Toate drepturile rezervate.</p>
+</main>
+<script>
+(function () {
+  var q = /[?&]lang=(ro|en)\b/.exec(location.search), l = q ? q[1] : '';
+  if (!l) { try { l = localStorage.getItem('trasso-lang') || ''; } catch (e) {} }
+  if (l !== 'ro' && l !== 'en') l = (navigator.language || '').slice(0, 2) === 'ro' ? 'ro' : 'en';
+  function set(v) {
+    document.documentElement.lang = v;
+    document.querySelectorAll('[data-lang]').forEach(function (a) { a.hidden = a.getAttribute('data-lang') !== v; });
+    document.querySelectorAll('[data-l]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-l') === v)); });
+  }
+  document.querySelectorAll('[data-l]').forEach(function (b) { b.addEventListener('click', function () { set(b.getAttribute('data-l')); }); });
+  set(l);
+})();
+</script>
 </body>
 </html>
