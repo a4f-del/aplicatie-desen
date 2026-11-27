@@ -1,4 +1,4 @@
-var C='trasso-ui-68';
+var C='trasso-ui-69';
 var SHELL=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png','trasso-ent.js','trasso-cloud.js'];
 self.addEventListener('install',function(e){e.waitUntil(caches.open(C).then(function(c){return c.addAll(SHELL);}).then(function(){return self.skipWaiting();}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==C;}).map(function(k){return caches.delete(k);}));}).then(function(){return self.clients.claim();}));});
@@ -10,6 +10,8 @@ function tell(){return caches.open(C).then(function(c){return c.put('__trasso_up
 self.addEventListener('fetch',function(e){
   var r=e.request;if(r.method!=='GET')return;
   var u=new URL(r.url);
+  /* panoul de admin și paginile legale vin mereu de pe internet, nu din memorie */
+  if(u.origin===location.origin&&/\/(admin\.html|admin\.webmanifest|privacy\.html|delete-account\.html)$/.test(u.pathname))return;
   if(u.origin===location.origin){
     var nav=/\/(index\.html)?$/.test(u.pathname);
     var key=nav?'index.html':r;
