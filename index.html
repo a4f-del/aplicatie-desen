@@ -21718,6 +21718,30 @@ function trExpModes(d){
     '@media (max-width:899px){html body.uxmirror #dr .drside{right:auto!important;left:8px!important}}';
   document.head.appendChild(st);apply();
 })();
+/* ---------- A7: tableta în portret: o șină îngustă cu filele meniului (Straturi, Pagină, Ajutoare) pe marginea foii ---------- */
+(function(){
+  var rail=null;
+  var st=document.createElement('style');st.textContent=
+    '#uxTabRail{display:none}@media (min-width:600px) and (max-width:899px){#uxTabRail{display:flex}}'+
+    '#uxTabRail{position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:4;flex-direction:column;gap:4px;padding:4px;border-radius:14px;background:var(--float,rgba(244,244,241,.94));border:1px solid var(--sk-line,rgba(0,0,0,.12));box-shadow:var(--sk-sh1,0 2px 8px rgba(0,0,0,.12))}'+
+    '#uxTabRail[hidden]{display:none!important}#uxTabRail button{width:48px;min-height:52px;border:0;border-radius:10px;background:transparent;color:var(--ink,#1d1d24);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:500 10px var(--ui,system-ui);cursor:pointer;padding:2px}'+
+    '#uxTabRail button:hover{background:var(--sk-hover,#f2f1f4)}#uxTabRail svg{width:20px;height:20px}'+
+    'html body.uxmirror #uxTabRail{right:auto;left:8px}';
+  document.head.appendChild(st);
+  function sync(){
+    var wrap=document.getElementById('drWrap');if(!wrap||typeof DRTABS==='undefined'||!DRTABS||!DRTABS.btn)return;
+    if(!rail){rail=document.createElement('nav');rail.id='uxTabRail';rail.setAttribute('aria-label',trL('Filele meniului','Menu tabs'));wrap.appendChild(rail);
+      [['lay','Straturi','Layers','layers2'],['pg','Pagină','Page','page2'],['gd','Ajutoare','Helpers','helpers']].forEach(function(q){var src=DRTABS.btn[q[0]];if(!src)return;
+        var b=document.createElement('button');b.type='button';b.innerHTML=(typeof uxIc==='function'?uxIc(q[3]):'')+'<span>'+trL(q[1],q[2])+'</span>';
+        b.setAttribute('aria-label',trL(q[1],q[2]));b.addEventListener('pointerdown',function(e){e.stopPropagation();});
+        b.addEventListener('click',function(e){e.stopPropagation();var sd=document.getElementById('drSide');sd.hidden=false;DRTABS.btn[q[0]].click();if(typeof drSize==='function')drSize();drSync();});rail.appendChild(b);});
+    }
+    var sd=document.getElementById('drSide');rail.hidden=!DR.ready||!sd||!sd.hidden;
+  }
+  DR.sync.push(sync);
+  /* când meniul se deschide sau se închide, șina se ascunde / apare */
+  var t=0;(function w(){var sd=document.getElementById('drSide');if(sd){new MutationObserver(sync).observe(sd,{attributes:true,attributeFilter:['hidden']});}else if(t++<200)setTimeout(w,300);})();
+})();
 /*UX2611-MOD-END*/
 })();
 </script>
