@@ -29,7 +29,7 @@ t=setTimeout(window.__tbootEnd,4000);/* plasă de siguranță: dacă ceva crapă
   Object.assign(D,{"Baloane": "Balloons", "Când ții creionul nemișcat pe ecran": "When you hold the pen still on the screen", "La începutul liniei, înainte să miști: ia culoarea (pipetă)": "At the start of a line, before you move: pick the colour (eyedropper)", "La finalul liniei: îndreaptă forma (cerc, elipsă, linie, dreptunghi, triunghi, arc)": "At the end of a line: clean up the shape (circle, ellipse, line, rectangle, triangle, arc)", "Sunt două momente diferite: pipeta pornește doar dacă nu ai mișcat deloc creionul, forma doar după ce ai desenat o linie.": "These are two different moments: the eyedropper only starts if you haven't moved the pen at all, the shape only after you've drawn a line.", "Mai multe opțiuni de strat ›": "More layer options ›", "Mai puține opțiuni de strat ‹": "Fewer layer options ‹"}); /* 2026.11.26 UX */
   Object.assign(D,{"Versiune nouă a aplicației. Repornește ca s-o folosești.": "New version of the app. Restart to use it.", "Repornește": "Restart"});
   Object.assign(D,{"Închide la culoare": "Darken", "Ardere culoare": "Color burn", "Subexpunere culoare": "Color dodge", "Lumină slabă": "Soft light", "Lumină puternică": "Hard light", "Excludere": "Exclusion", "Întunecare": "Darken", "Luminare": "Lighten", "Mod de amestecare": "Blend mode", "Ardere liniară": "Linear burn", "Scădere": "Subtract", "Culoare mai închisă": "Darker color", "Subexpunere cu strălucire": "Glow dodge", "Adaugă (strălucire)": "Add (Glow)", "Culoare mai deschisă": "Lighter color", "Lumină vie": "Vivid light", "Lumină liniară": "Linear light", "Lumină punctuală": "Pin light", "Amestec dur": "Hard mix", "Împarte": "Divide"});
-  Object.assign(D,{/*UX2611*/"Urcă":"Up","Coboară":"Down","Nou":"New","Copie":"Copy","Îmbină":"Merge","Golește":"Clear","Straturile sunt îmbinate. „Anulează” le desparte din nou.":"Layers merged. “Undo” splits them again.","Stratul e șters. „Anulează” îl aduce înapoi.":"Layer deleted. “Undo” brings it back.",});
+  Object.assign(D,{/*UX2611*/"Meniul rămâne deschis cât desenezi. Atinge iar pioneza ca să se închidă singur.":"The menu stays open while you draw. Tap the pin again to let it close by itself.","Meniul se închide singur când atingi desenul.":"The menu closes by itself when you touch the drawing.","Meniul rămâne deschis (atinge ca să se închidă singur)":"The menu stays open (tap to let it close by itself)","Ține meniul deschis cât desenez":"Keep the menu open while I draw","Urcă":"Up","Coboară":"Down","Nou":"New","Copie":"Copy","Îmbină":"Merge","Golește":"Clear","Straturile sunt îmbinate. „Anulează” le desparte din nou.":"Layers merged. “Undo” splits them again.","Stratul e șters. „Anulează” îl aduce înapoi.":"Layer deleted. “Undo” brings it back.",});
   function norm(s){return s.replace(/\s+/g,' ').trim();}
   var EX=Object.create(null),FK=[];
   Object.keys(D).forEach(function(k){var n=norm(k);if(n&&!(n in EX))EX[n]=D[k];if(k.length>=4&&(/[\s.,:;!?„”“()…—–·→←]/.test(k)||k.length>=8))FK.push(k);});
@@ -5755,7 +5755,7 @@ function drGestMove(){
 function drDown(e){
   e.preventDefault();
   if(!DR.ready)return;
-  if(window.innerWidth<900&&!$('#drSide').hidden)$('#drSide').hidden=true;
+  if(window.innerWidth<900&&!$('#drSide').hidden&&!(window.__uxPin&&window.__uxPin()))$('#drSide').hidden=true;
   var isTouch=e.pointerType==='touch',isPen=e.pointerType==='pen';
   if(isPen){DR.penT=Date.now();DR.gest=null;Object.keys(DR.ptr).forEach(function(id){if(DR.ptr[id].t==='touch')delete DR.ptr[id];});}
   if(isTouch&&(Date.now()-DR.penT<700||Object.keys(DR.ptr).some(function(id){return DR.ptr[id].t==='pen';})))return;
@@ -21374,6 +21374,31 @@ function trExpModes(d){
     bs.slice(0,7).forEach(function(x,i){var v=T(LAYL[i]);if(x.getAttribute('data-uxl')!==v)x.setAttribute('data-uxl',v);});
   }
   DR.sync.push(uxLayLabels);
+})();
+/* A5: pe tableta în portret (600–899 px) meniul din dreapta se poate „fixa”: nu se mai închide când atingi desenul */
+(function(){
+  var K='trasso-sidepin';
+  function on(){try{return localStorage.getItem(K)==='1';}catch(e){return false;}}
+  window.__uxPin=function(){return on()&&window.innerWidth>=600;};
+  var st=document.createElement('style');
+  st.textContent='#uxQPin{display:none}@media (min-width:600px) and (max-width:899px){#uxQPin{display:grid}}#uxQPin[aria-pressed="true"]{background:var(--acc-2,#eee);color:var(--acc-t,inherit);border-color:color-mix(in srgb,var(--acc,#888) 45%,transparent)}';
+  document.head.appendChild(st);
+  var PIN='<svg class="ic" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 5 3 3v2H7v-2l3-3z"/><path d="M12 14v6"/></svg>';
+  function ensure(){
+    var hd=document.querySelector('#drSide .sdhead'),gear=hd&&hd.querySelector('.setgear');
+    if(!hd||!gear)return;
+    var b=document.getElementById('uxQPin');
+    if(!b){
+      b=document.createElement('button');b.className='uxqb';b.id='uxQPin';b.type='button';b.innerHTML=PIN;
+      b.addEventListener('click',function(){var v=!on();try{localStorage.setItem(K,v?'1':'0');}catch(e){}ensure();
+        drMsg(v?'Meniul rămâne deschis cât desenezi. Atinge iar pioneza ca să se închidă singur.':'Meniul se închide singur când atingi desenul.');});
+      hd.insertBefore(b,gear);
+    }
+    var t=on()?'Meniul rămâne deschis (atinge ca să se închidă singur)':'Ține meniul deschis cât desenez';
+    b.setAttribute('aria-pressed',String(on()));
+    if(b.getAttribute('data-uxt')!==t){b.setAttribute('data-uxt',t);b.setAttribute('aria-label',t);b.setAttribute('data-sktip',t);}
+  }
+  DR.sync.push(ensure);
 })();
 /*UX2611-MOD-END*/
 })();
