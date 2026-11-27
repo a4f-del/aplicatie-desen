@@ -21789,6 +21789,56 @@ function trExpModes(d){
     [[4,2,T('4 pe 2','4 on 2s')],[4,3,T('4 pe 3','4 on 3s')],[8,1,T('8 pe 1','8 on 1s')]].forEach(function(q){var b=E('button',null,q[2]);b.type='button';b.addEventListener('click',function(){AN.closeFrameMenu();AN.insertOn(q[0],q[1]);});r.appendChild(b);});
     var rc=anchor.getBoundingClientRect(),mh=m.offsetHeight;var y=rc.top-mh-8;if(y<8)y=Math.min(innerHeight-mh-8,rc.bottom+8);m.style.top=y+'px';};
 })();
+/* ---------- B6: selectezi mai multe cadre deodată (duplici, ștergi, schimbi durata, inversezi) ---------- */
+(function(){
+  var T=AN.T,E=AN.E,on=false,S=[],bar=null;
+  var st=document.createElement('style');st.textContent=
+    '.anstrip .anfr.anms{outline:3px solid #3b82f6;outline-offset:1px}.anstrip.anmsmode .anfr::before{content:"";position:absolute;right:6px;top:6px;width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25);z-index:1}.anstrip.anmsmode .anfr.anms::before{background:#3b82f6}'+
+    '.anmsbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 0}.anmsbar b{font:600 13px system-ui,sans-serif;margin-right:4px}.anmsbar button{min-height:44px;min-width:44px;padding:0 12px;border-radius:10px;border:1px solid var(--rule,#3a3b40);background:var(--card,#2a2b30);color:var(--ink,#eceae6);font:500 13px system-ui,sans-serif;cursor:pointer}.anmsbar button.danger{color:#e2554a}';
+  document.head.appendChild(st);
+  /* S = indicii cadrelor alese */
+  function idx(){var n=AN.A?AN.A.frames.length:0;S=S.filter(function(i,k){return i>=0&&i<n&&S.indexOf(i)===k;}).sort(function(a,b){return a-b;});return S.slice();}
+  function paint(){var U=AN.UI;if(!U)return;U.strip.classList.toggle('anmsmode',on);idx();
+    [].forEach.call(U.strip.querySelectorAll('.anfr'),function(b,i){b.classList.toggle('anms',on&&S.indexOf(i)>=0);});
+    if(bar){var n=S.length;bar.querySelector('b').textContent=n+T(n===1?' cadru ales':' cadre alese',n===1?' frame selected':' frames selected');[].forEach.call(bar.querySelectorAll('button[data-need]'),function(x){x.disabled=!n;});}}
+  function snap(){var A=AN.A;AN.pushSwap(function(){return {f:A.frames.slice(),c:A.cur,s:S.slice()};},function(v){A.frames=v.f;A.cur=Math.min(v.c,A.frames.length-1);S=v.s.slice();A.frames.forEach(function(f){f.dirty=true;});AN.strip();AN.selFrame();AN.dirty();AN.durNote&&AN.durNote();paint();});}
+  function done(msg){AN.strip();AN.selFrame();AN.dirty();AN.durNote&&AN.durNote();paint();if(msg)AN.toast(msg);}
+  function cp(f){return {c:AN.CP(f.c),cl:f.cl?AN.CP(f.cl):null,sk:f.sk?AN.CP(f.sk):null,hold:f.hold||1,dirty:true,b:null,clB:null,skB:null};}
+  var ops={
+    dup:function(){var A=AN.A,I=idx();if(!I.length)return;if(A.frames.length+I.length>AN.maxFrames(A.w,A.h))return AN.toast(T('Nu e loc pentru atâtea cadre.','Not enough room.'));
+      snap();var last=I[I.length-1],copies=I.map(function(i){return cp(A.frames[i]);});A.frames=A.frames.slice(0,last+1).concat(copies,A.frames.slice(last+1));S=copies.map(function(c,k){return last+1+k;});A.cur=last+1;done(T('Am copiat '+I.length+' cadre după selecție.','Copied '+I.length+' frames after the selection.'));},
+    del:function(){var A=AN.A,I=idx();if(!I.length)return;if(I.length>=A.frames.length)return AN.toast(T('Trebuie să rămână cel puțin un cadru.','At least one frame must stay.'));
+      snap();A.frames=A.frames.filter(function(f,i){return I.indexOf(i)<0;});A.cur=Math.min(I[0],A.frames.length-1);S=[];done(T('Cadrele sunt șterse (↶ le aduce înapoi).','Frames deleted (↶ brings them back).'));},
+    hold:function(h){var A=AN.A,I=idx();if(!I.length)return;snap();A.frames=A.frames.map(function(f,i){return I.indexOf(i)<0?f:Object.assign({},f,{hold:h});});done(T('Fiecare cadru ales ține '+h+'.','Each selected frame now lasts '+h+'.'));},
+    rev:function(){var A=AN.A,I=idx();if(I.length<2)return;snap();var picked=I.map(function(i){return A.frames[i];}).reverse(),F=A.frames.slice();I.forEach(function(i,k){F[i]=picked[k];});A.frames=F;done(T('Ordinea cadrelor alese e inversată.','Selected frames reversed.'));}
+  };
+  function start(){var U=AN.UI,A=AN.A;if(!U||!A||A.kind!=='cel')return;on=true;S=[A.cur];
+    if(!bar){bar=E('div','anmsbar');bar.appendChild(E('b'));
+      function B(lab,fn,cls,need){var b=E('button',cls||null,lab);b.type='button';if(need)b.setAttribute('data-need','1');b.addEventListener('click',fn);bar.appendChild(b);return b;}
+      B(T('Duplică','Duplicate'),ops.dup,null,1);B(T('Inversează','Reverse'),ops.rev,null,1);
+      bar.appendChild(E('span','ancnt',T('Ține','Hold')));[1,2,3].forEach(function(h){B(String(h),function(){ops.hold(h);},null,1);});
+      B(T('Toate','All'),function(){S=AN.A.frames.map(function(f,i){return i;});paint();});
+      B(T('Șterge','Delete'),ops.del,'danger',1);B('✕ '+T('Gata','Done'),stop);}
+    U.strip.parentNode.insertBefore(bar,U.strip);bar.hidden=false;paint();
+    AN.toast(T('Atinge cadrele pe care le vrei. Trage peste ele ca să alegi un șir.','Tap the frames you want. Drag across them to pick a run.'));}
+  function stop(){on=false;S=[];if(bar)bar.hidden=true;paint();}
+  AN.multiStart=start;AN.multiStop=stop;AN.multiSel=function(){return idx();};
+  var drag=null;
+  function frameAt(x,y){var el=document.elementFromPoint(x,y),b=el&&el.closest&&el.closest('.anstrip .anfr');if(!b)return -1;return [].indexOf.call(AN.UI.strip.querySelectorAll('.anfr'),b);}
+  function hook(){var U=AN.UI;if(!U||U.strip.__ms)return;U.strip.__ms=1;
+    U.strip.addEventListener('click',function(e){if(!on)return;var b=e.target.closest&&e.target.closest('.anfr');if(!b)return;e.stopImmediatePropagation();e.preventDefault();
+      if(drag&&drag.moved){drag=null;return;}drag=null;
+      var i=[].indexOf.call(U.strip.querySelectorAll('.anfr'),b),k=S.indexOf(i);if(k>=0)S.splice(k,1);else S.push(i);paint();},true);
+    U.strip.addEventListener('pointerdown',function(e){if(!on)return;var i=frameAt(e.clientX,e.clientY);if(i<0)return;drag={a:i,moved:false,base:S.slice()};},true);
+    U.strip.addEventListener('pointermove',function(e){if(!on||!drag)return;var i=frameAt(e.clientX,e.clientY);if(i<0||i===drag.a&&!drag.moved)return;drag.moved=true;e.preventDefault();
+      var lo=Math.min(drag.a,i),hi=Math.max(drag.a,i),R=drag.base.slice();for(var k=lo;k<=hi;k++)if(R.indexOf(k)<0)R.push(k);S=R;paint();},true);
+    U.strip.addEventListener('pointerup',function(){if(drag&&!drag.moved)drag=null;},true);
+  }
+  setInterval(function(){hook();if(on&&(!AN.A||AN.UI.ov.hidden))stop();},500);
+  var oMenu=AN.frameMenu;AN.frameMenu=function(anchor){oMenu(anchor);var m=document.querySelector('.anfrm');if(!m)return;
+    var r=E('div','anfrmr');var b=E('button',null,T('Alege mai multe cadre…','Select several frames…'));b.type='button';b.style.flex='1';b.addEventListener('click',function(){AN.closeFrameMenu();start();});r.appendChild(b);m.appendChild(r);
+    var rc=anchor.getBoundingClientRect(),mh=m.offsetHeight;var y=rc.top-mh-8;if(y<8)y=Math.min(innerHeight-mh-8,rc.bottom+8);m.style.top=y+'px';};
+})();
 /*UX2611-MOD-END*/
 })();
 </script>
