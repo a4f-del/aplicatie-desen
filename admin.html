@@ -4,234 +4,342 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#141a22">
-<title>Trasso – Admin</title>
+<meta name="theme-color" content="#1e1c1a">
+<title>Trasso Admin</title>
 <link rel="manifest" href="admin.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="admin-icon-192.png">
+<link rel="apple-touch-icon" href="admin-apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: dark; --bg:#141a22; --card:#1d2530; --card2:#18202a; --line:#2c3644; --tx:#e8edf3; --mut:#93a1b3; --acc:#2ec4b6; --warn:#f5a524; --bad:#ff6b6b; --good:#4fd08b; --pro:#8ab4ff; --plus:#d7a6ff; }
-  * { box-sizing: border-box; min-width: 0; }
-  [hidden] { display: none !important; }
-  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--tx); }
-  main { width:100%; max-width:1080px; margin:0 auto; padding:16px 16px calc(40px + env(safe-area-inset-bottom)); display:grid; gap:16px; }
-  header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-  h1 { font-size:22px; margin:0; }
-  h2 { font-size:17px; margin:0; }
-  nav { position:sticky; top:0; z-index:5; background:var(--bg); padding:8px 0; display:flex; gap:6px; overflow-x:auto; border-bottom:1px solid var(--line); }
-  nav button { white-space:nowrap; }
-  nav button[aria-current="true"] { background:var(--acc); border-color:var(--acc); color:#06201d; font-weight:600; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; display:grid; gap:12px; }
-  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-  .mut { color:var(--mut); font-size:13px; margin:0; }
-  button, select, input { font:inherit; color:var(--tx); }
-  button { border-radius:10px; border:1px solid var(--line); background:#253041; padding:10px 14px; cursor:pointer; min-height:44px; }
-  button.pri { background:var(--acc); border-color:var(--acc); color:#06201d; font-weight:600; }
-  button.big { width:100%; padding:14px; font-size:16px; }
-  button.danger { background:var(--warn); border-color:var(--warn); color:#2a1900; font-weight:600; }
-  button.sm { min-height:36px; padding:6px 10px; font-size:13px; }
-  input[type=number], input[type=text], input[type=email], input[type=search], select { padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:#111821; min-height:40px; }
-  input[type=number] { width:7em; text-align:right; }
-  .sw { position:relative; width:52px; height:30px; flex:none; }
-  .sw input { opacity:0; width:0; height:0; }
-  .sw span { position:absolute; inset:0; background:#3a4556; border-radius:30px; transition:.2s; }
-  .sw span::before { content:""; position:absolute; width:24px; height:24px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
-  .sw input:checked + span { background:var(--acc); }
-  .sw input:checked + span::before { transform:translateX(22px); }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
-  .kpi { background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:12px; }
-  .kpi span { display:block; font-size:12.5px; color:var(--mut); }
-  .kpi b { display:block; font-size:24px; font-variant-numeric:tabular-nums; line-height:1.25; }
-  .kpi small { color:var(--mut); font-size:12px; }
-  .pos { color:var(--good); } .neg { color:var(--bad); }
-  .banner { border-radius:12px; padding:10px 14px; font-size:14px; border:1px solid var(--line); background:var(--card2); }
-  .banner.on { border-color:var(--good); } .banner.off { border-color:var(--warn); }
-  table { width:100%; border-collapse:collapse; font-size:14px; }
-  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { color:var(--mut); font-weight:500; font-size:12.5px; white-space:nowrap; }
-  td.num { font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .tag { display:inline-block; padding:1px 8px; border-radius:20px; font-size:12px; border:1px solid var(--line); white-space:nowrap; }
-  .tag.plus { color:var(--plus); border-color:color-mix(in srgb, var(--plus) 50%, transparent); }
-  .tag.pro { color:var(--pro); border-color:color-mix(in srgb, var(--pro) 50%, transparent); }
-  .tag.paid { color:var(--good); border-color:color-mix(in srgb, var(--good) 50%, transparent); }
-  .tblwrap { overflow-x:auto; }
-  .filters { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-  .filters button[aria-pressed="true"] { background:var(--tx); color:var(--bg); }
-  .money { display:grid; gap:6px; }
-  .mrow { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; font-size:14.5px; padding:4px 0; border-bottom:1px dashed var(--line); }
-  .mrow b { font-variant-numeric:tabular-nums; }
-  .mrow.total { border-bottom:0; font-size:16px; padding-top:8px; }
-  .grid2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; }
-  .chart { width:100%; height:160px; }
-  .links { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px; }
-  .links a { display:block; padding:10px 12px; border:1px solid var(--line); border-radius:10px; color:var(--tx); text-decoration:none; background:var(--card2); }
-  .links a small { display:block; color:var(--mut); }
-  details summary { cursor:pointer; color:var(--mut); font-size:13px; }
-  .who { display:grid; }
-  .who small { color:var(--mut); font-size:12px; }
-  #msg { min-height:1.4em; }
-  @media (max-width:640px) {
-    .hide-sm { display:none; }
-    .kpi b { font-size:21px; }
-  }
+/* Trasso Admin – grafit cald, bej Trasso, panouri ca pe o pagină de manga.
+   Un singur moment îndrăzneț: panoul mare din Rezumat (rasterul + strălucirea bej). Restul e liniștit. */
+:root {
+  color-scheme: dark;
+  --paper: #1e1c1a;      /* fundal: grafit cald, ca tema întunecată din Trasso */
+  --panel: #282522;      /* panouri */
+  --panel-2: #23201d;    /* câmpuri, rânduri */
+  --gutter: #3b3631;     /* contur de panou, ca tușul pe hârtie gri */
+  --ink: #f1eadf;        /* text */
+  --ink-2: #aba294;      /* text secundar */
+  --beige: #d9c6a5;      /* accentul Trasso */
+  --beige-deep: #cbbba0;
+  --glow: 0 0 0 1px rgba(217,198,165,.35), 0 0 28px rgba(217,198,165,.16);
+  --good: #9fd3a8;
+  --bad: #ee9a88;
+  --pro: #a9c6f2;
+  --plus: #d3b4f5;
+  --radius-panel: 14px;
+  --radius-ctl: 10px;
+  --display: "Zen Kaku Gothic New", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --nav-h: 64px;
+}
+* { box-sizing: border-box; min-width: 0; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 var(--body); }
+a { color: var(--beige); }
+:focus-visible { outline: 2px solid var(--beige); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { .hero { animation: rise .45s ease-out both; } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.wrap { max-width: 1040px; margin: 0 auto; padding: 18px 16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom)); display: grid; gap: 18px; }
+.top { display: flex; align-items: center; gap: 12px; }
+.top img { width: 40px; height: 40px; border-radius: 11px; flex: none; }
+.top .t { flex: 1; display: grid; }
+.top h1 { font: 900 21px/1.1 var(--display); margin: 0; letter-spacing: .01em; }
+.top .who { color: var(--ink-2); font-size: 13px; }
+.pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 99px; font-size: 13.5px; border: 1px solid var(--gutter); background: var(--panel-2); white-space: nowrap; }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pill.on { color: var(--good); border-color: rgba(159,211,168,.4); }
+.pill.off { color: var(--beige); border-color: rgba(217,198,165,.4); }
+
+h2 { font: 700 18px/1.25 var(--display); margin: 0; }
+h3 { font: 700 15.5px/1.3 var(--display); margin: 0; }
+.mut { color: var(--ink-2); font-size: 14px; margin: 0; max-width: 72ch; }
+.status { color: var(--ink-2); font-size: 13.5px; min-height: 1.3em; margin: 0; }
+
+/* panouri: contur ca pe pagina de manga, colțuri ușor rotunjite */
+.panel { background: var(--panel); border: 1.5px solid var(--gutter); border-radius: var(--radius-panel); padding: 16px; display: grid; gap: 12px; align-content: start; }
+.panel.quiet { background: transparent; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* butoane și câmpuri */
+button, select, input { font: inherit; color: var(--ink); }
+button { min-height: 44px; padding: 10px 16px; border-radius: var(--radius-ctl); border: 1.5px solid var(--gutter); background: var(--panel-2); cursor: pointer; }
+button:hover { border-color: #57504a; }
+button.pri { background: var(--beige); border-color: var(--beige); color: #241f19; font-weight: 700; box-shadow: var(--glow); }
+button.big { width: 100%; font-size: 16.5px; padding: 14px; }
+button.warn { background: transparent; border-color: var(--beige); color: var(--beige); font-weight: 700; }
+button.sm { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+input[type=number], input[type=text], input[type=email], input[type=search], select {
+  min-height: 44px; padding: 8px 12px; border-radius: var(--radius-ctl); border: 1.5px solid var(--gutter); background: var(--panel-2);
+}
+input[type=number] { width: 7.5em; text-align: right; font-variant-numeric: tabular-nums; }
+.field { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 6px 0; }
+.field + .field { border-top: 1px solid rgba(59,54,49,.6); }
+.sw { position: relative; width: 52px; height: 30px; flex: none; }
+.sw input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.sw span { position: absolute; inset: 0; background: #4a443d; border-radius: 30px; transition: .2s; pointer-events: none; }
+.sw span::before { content: ""; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px; background: var(--ink); border-radius: 50%; transition: .2s; }
+.sw input:checked + span { background: var(--beige); }
+.sw input:checked + span::before { transform: translateX(22px); background: #241f19; }
+.sw input:focus-visible + span { outline: 2px solid var(--beige); outline-offset: 2px; }
+
+/* ---------- Rezumat: pagină de manga ---------- */
+.page { display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(0,1fr)); }
+.page .cell { background: var(--panel); border: 1.5px solid var(--gutter); border-radius: 10px; padding: 14px; display: grid; gap: 2px; align-content: start; }
+.cell .lab { color: var(--ink-2); font-size: 13.5px; }
+.cell .num { font: 900 30px/1.1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.cell .sub { color: var(--ink-2); font-size: 13px; }
+.hero { grid-column: span 4; grid-row: span 2; position: relative; overflow: hidden; border-color: rgba(217,198,165,.45) !important; box-shadow: var(--glow); padding: 18px !important; gap: 10px !important; }
+.hero::after { /* raster de manga, discret */
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: radial-gradient(rgba(217,198,165,.16) 1.1px, transparent 1.3px); background-size: 9px 9px;
+  -webkit-mask-image: linear-gradient(120deg, transparent 35%, #000 100%); mask-image: linear-gradient(120deg, transparent 35%, #000 100%);
+}
+.hero > * { position: relative; z-index: 1; }
+.hero .num { font-size: clamp(56px, 11vw, 88px); line-height: .95; color: var(--ink); }
+.hero .split { display: flex; gap: 8px; flex-wrap: wrap; }
+.hero .money2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 6px; }
+.hero .money2 div { background: rgba(30,28,26,.65); border: 1px solid var(--gutter); border-radius: 10px; padding: 10px 12px; }
+.hero .money2 b { display: block; font: 700 22px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+.c2 { grid-column: span 2; } .c3 { grid-column: span 3; } .c6 { grid-column: span 6; }
+.pos { color: var(--good) !important; } .neg { color: var(--bad) !important; }
+.chart { width: 100%; height: 150px; display: block; color: var(--ink-2); }
+@media (max-width: 720px) {
+  .page { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .hero, .c6, .c3 { grid-column: span 2; } .hero { grid-row: auto; }
+  .c2 { grid-column: span 1; }
+  .cell .num { font-size: 26px; }
+}
+
+/* etichete de plan */
+.tag { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 99px; font-size: 13px; border: 1.5px solid var(--gutter); white-space: nowrap; }
+.tag.plus { color: var(--plus); border-color: rgba(211,180,245,.45); }
+.tag.pro { color: var(--pro); border-color: rgba(169,198,242,.45); }
+.tag.paid { color: var(--good); border-color: rgba(159,211,168,.45); }
+
+/* ---------- Utilizatori: listă, citibilă pe telefon ---------- */
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button { min-height: 38px; padding: 6px 14px; border-radius: 99px; font-size: 14px; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: #241f19; border-color: var(--ink); }
+.ulist { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ulist li { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 12px; align-items: center; background: var(--panel-2); border: 1.5px solid var(--gutter); border-radius: 12px; padding: 12px 14px; }
+.ulist .nm { font-weight: 700; overflow-wrap: anywhere; }
+.ulist .em { color: var(--ink-2); font-size: 13.5px; overflow-wrap: anywhere; }
+.ulist .meta { grid-column: 1 / -1; display: flex; gap: 6px 14px; flex-wrap: wrap; color: var(--ink-2); font-size: 13.5px; }
+.ulist .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ulist .act { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+
+/* ---------- Bani ---------- */
+.ledger { display: grid; }
+.ledger .l { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(59,54,49,.7); font-size: 15px; }
+.ledger .l b { font-variant-numeric: tabular-nums; font-weight: 700; }
+.ledger .l.sub { color: var(--ink-2); }
+.ledger .l.key { font-weight: 700; }
+.ledger .l.total { border-bottom: 0; border-top: 1.5px solid var(--gutter); margin-top: 4px; padding-top: 12px; font: 700 17px/1.3 var(--display); }
+.plans { display: grid; gap: 8px; }
+.plans .p { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid rgba(59,54,49,.7); }
+.plans .p b { font-variant-numeric: tabular-nums; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; min-height: 32px; display: flex; align-items: center; }
+
+/* ---------- Link-uri ---------- */
+.links { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.links a { display: grid; gap: 2px; padding: 12px 14px; border: 1.5px solid var(--gutter); border-radius: 12px; color: var(--ink); text-decoration: none; background: var(--panel-2); }
+.links a:hover { border-color: rgba(217,198,165,.5); }
+.links a span { color: var(--ink-2); font-size: 13.5px; }
+.links h3 { margin-top: 6px; }
+
+/* ---------- navigare: jos pe telefon, sus pe ecran mare ---------- */
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: grid; grid-template-columns: repeat(5, 1fr);
+  background: rgba(30,28,26,.94); backdrop-filter: blur(8px); border-top: 1.5px solid var(--gutter); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+.nav button { border: 0; background: transparent; border-radius: 12px; min-height: 56px; padding: 4px 2px; display: grid; justify-items: center; align-content: center; gap: 2px; font-size: 12.5px; color: var(--ink-2); }
+.nav button svg { width: 24px; height: 24px; }
+.nav button[aria-current="true"] { color: var(--beige); background: rgba(217,198,165,.1); }
+@media (min-width: 860px) {
+  .wrap { padding-bottom: 40px; }
+  .nav { position: sticky; top: 0; bottom: auto; border-top: 0; border-bottom: 1.5px solid var(--gutter); grid-template-columns: repeat(5, auto); justify-content: start; gap: 6px; padding: 8px 0; margin: 0 auto; max-width: 1040px; background: rgba(30,28,26,.94); }
+  .nav button { grid-auto-flow: column; gap: 8px; min-height: 42px; padding: 8px 14px; font-size: 15px; }
+  .nav button svg { width: 20px; height: 20px; }
+  .navwrap { position: sticky; top: 0; z-index: 10; background: rgba(30,28,26,.94); }
+}
+.login { max-width: 420px; margin: 12vh auto 0; text-align: left; }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Trasso – panou de control</h1>
-    <button id="btnOut" class="sm" hidden>Deconectează-te</button>
-  </header>
-  <p id="msg" class="mut">Se încarcă…</p>
+<div class="navwrap" id="navwrap" hidden>
+<nav class="nav" aria-label="Secțiuni">
+  <button data-go="sRez" aria-current="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="11" height="10" rx="1.5"/><rect x="16" y="3" width="5" height="10" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="12" y="15" width="9" height="6" rx="1.5"/></svg>Rezumat</button>
+  <button data-go="sAbo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.6 3.6-5.5 6.5-5.5s5.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.4 3.6 5.2"/></svg>Utilizatori</button>
+  <button data-go="sBani"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Bani</button>
+  <button data-go="sDa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"/></svg>Dă PRO</button>
+  <button data-go="sSet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Setări</button>
+</nav>
+</div>
 
-  <section class="card" id="login" hidden>
-    <p class="mut">Intră cu contul de administrator (asahixu02@gmail.com).</p>
+<main class="wrap">
+  <header class="top">
+    <img src="admin-icon-192.png" alt="">
+    <div class="t"><h1>Trasso Admin</h1><span class="who" id="who"></span></div>
+    <span class="pill off" id="pill" hidden></span>
+  </header>
+  <p class="status" id="msg" role="status">Se încarcă…</p>
+
+  <section class="panel login" id="login" hidden>
+    <h2>Intră în panou</h2>
+    <p class="mut">Doar contul de administrator (asahixu02@gmail.com) are acces.</p>
     <button class="pri big" id="btnIn">Conectează-te cu Google</button>
   </section>
 
-  <div id="panel" hidden style="display:grid;gap:16px">
-    <nav aria-label="Secțiuni">
-      <button data-go="sRez" aria-current="true">Rezumat</button>
-      <button data-go="sAbo">Utilizatori</button>
-      <button data-go="sBani">Bani</button>
-      <button data-go="sDa">Dă PRO</button>
-      <button data-go="sSet">Setări</button>
-      <button data-go="sLink">Link-uri</button>
-    </nav>
+  <div id="panel" hidden>
 
     <!-- ============ REZUMAT ============ -->
-    <section id="sRez" style="display:grid;gap:16px">
-      <div class="banner" id="billBanner"></div>
-      <div class="kpis">
-        <div class="kpi"><span>Conturi</span><b id="kUsers">–</b><small id="kUsersNew"></small></div>
-        <div class="kpi"><span>Activi în ultimele 7 zile</span><b id="kAct7">–</b><small id="kAct30"></small></div>
-        <div class="kpi"><span>Abonați plătitori</span><b id="kPaid">–</b><small id="kPaidSplit"></small></div>
-        <div class="kpi"><span>Venit lunar estimat (net)</span><b id="kMrr">–</b><small>după TVA și Google</small></div>
-        <div class="kpi"><span>Profit lunar estimat</span><b id="kProfit">–</b><small>înainte de taxele PFA</small></div>
-        <div class="kpi"><span>PRO+ din invitații / dat manual</span><b id="kBonus">–</b><small id="kBonusDays"></small></div>
-        <div class="kpi"><span>Invitații folosite</span><b id="kRefs">–</b><small id="kRefs30"></small></div>
-      </div>
-      <div class="card">
-        <div class="row"><h2>Conturi noi pe zi</h2><span class="mut">ultimele 30 de zile</span></div>
-        <svg id="chart" class="chart" role="img" aria-label="Conturi noi pe zi"></svg>
+    <section id="sRez" style="display:grid;gap:14px">
+      <div class="page">
+        <div class="cell hero">
+          <span class="lab">Abonați plătitori</span>
+          <span class="num" id="kPaid">–</span>
+          <div class="split" id="kPaidSplit"></div>
+          <div class="money2">
+            <div><span class="lab">Îți intră pe lună</span><b id="kMrr">–</b></div>
+            <div><span class="lab">Profit pe lună</span><b id="kProfit">–</b></div>
+          </div>
+          <p class="sub" id="kNote"></p>
+        </div>
+        <div class="cell c2"><span class="lab">Conturi</span><span class="num" id="kUsers">–</span><span class="sub" id="kUsersNew"></span></div>
+        <div class="cell c2"><span class="lab">Activi în 7 zile</span><span class="num" id="kAct7">–</span><span class="sub" id="kAct30"></span></div>
+        <div class="cell c3"><span class="lab">PRO+ din invitații sau dat de tine</span><span class="num" id="kBonus">–</span><span class="sub" id="kBonusDays"></span></div>
+        <div class="cell c3"><span class="lab">Invitații folosite</span><span class="num" id="kRefs">–</span><span class="sub" id="kRefs30"></span></div>
+        <div class="cell c6">
+          <div class="row"><h3>Conturi noi pe zi</h3><span class="sub">ultimele 30 de zile</span></div>
+          <svg id="chart" class="chart" role="img" aria-label="Conturi noi pe zi, ultimele 30 de zile"></svg>
+        </div>
       </div>
     </section>
 
     <!-- ============ UTILIZATORI ============ -->
-    <section id="sAbo" class="card" hidden>
-      <div class="row"><h2>Utilizatori</h2><button class="sm" id="btnReload">↻ Reîncarcă</button></div>
-      <div class="filters" role="group" aria-label="Filtru">
-        <button class="sm" data-f="all" aria-pressed="true">Toți</button>
-        <button class="sm" data-f="paid" aria-pressed="false">Plătitori</button>
-        <button class="sm" data-f="bonus" aria-pressed="false">Invitații / manual</button>
-        <button class="sm" data-f="none" aria-pressed="false">Fără abonament</button>
-        <input type="search" id="q" placeholder="Caută email sau nume" style="flex:1;min-width:180px">
+    <section id="sAbo" class="panel" hidden>
+      <div class="row"><h2>Utilizatori</h2><button class="sm" id="btnReload">Reîncarcă</button></div>
+      <input type="search" id="q" placeholder="Caută după email sau nume" aria-label="Caută utilizatori">
+      <div class="filters" role="group" aria-label="Arată">
+        <button data-f="all" aria-pressed="true">Toți</button>
+        <button data-f="paid" aria-pressed="false">Plătitori</button>
+        <button data-f="bonus" aria-pressed="false">Invitații sau dat de tine</button>
+        <button data-f="none" aria-pressed="false">Fără abonament</button>
       </div>
       <p class="mut" id="tblInfo"></p>
-      <div class="tblwrap">
-        <table>
-          <thead><tr>
-            <th>Cont</th><th>Plan</th><th>Sursă</th><th>Până pe</th>
-            <th class="hide-sm">Creat</th><th class="hide-sm">Ultima dată activ</th><th class="hide-sm">Invitați</th><th></th>
-          </tr></thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-      <details><summary>Cum se citește tabelul</summary>
-        <p class="mut">„Plan” arată ce ar avea omul cu abonamentele pornite: plătit prin Google Play, PRO+ din invitații sau dat de tine. Cât timp abonamentele sunt oprite, toată lumea are oricum totul gratuit. „Zile strânse” sunt zilele de PRO+ din invitații care încep să curgă abia când pornești abonamentele.</p>
+      <ul class="ulist" id="tbody"></ul>
+      <details><summary>Cum citești lista</summary>
+        <p class="mut">Planul arată ce are omul când abonamentele sunt pornite: plătit prin Google Play, PRO+ din invitații sau dat de tine. Cât timp sunt oprite, toată lumea are oricum totul gratuit. „Zile strânse” sunt zilele de PRO+ din invitații, care încep să curgă abia când pornești abonamentele.</p>
       </details>
     </section>
 
     <!-- ============ BANI ============ -->
     <section id="sBani" hidden style="display:grid;gap:16px">
-      <div class="grid2">
-        <div class="card">
-          <h2>Pe lună (estimare)</h2>
-          <div class="money" id="moneyTbl"></div>
-          <p class="mut">Calculat din abonații activi acum și prețurile de mai jos. Abonamentul anual e împărțit la 12. Încasările reale le vezi în Play Console → Rapoarte financiare.</p>
+      <div class="two">
+        <div class="panel">
+          <h2>Luna asta, estimat</h2>
+          <div class="ledger" id="moneyTbl"></div>
+          <p class="mut">Din abonații activi acum și prețurile de mai jos; abonamentul anual e împărțit la 12. Încasările reale sunt în Play Console, la Rapoarte financiare.</p>
         </div>
-        <div class="card">
-          <h2>Abonați plătitori pe planuri</h2>
-          <table><tbody id="planTbl"></tbody></table>
+        <div class="panel">
+          <h2>Pe planuri</h2>
+          <div class="plans" id="planTbl"></div>
           <p class="mut" id="trialNote"></p>
         </div>
       </div>
-      <div class="card">
+      <div class="panel">
         <h2>Prețuri și costuri</h2>
-        <p class="mut">Se țin minte pe dispozitivul ăsta. Prețurile trebuie să fie aceleași ca în Play Console (în lei, cu TVA).</p>
-        <div class="grid2">
-          <div style="display:grid;gap:8px">
-            <div class="row"><span>PRO lunar (lei)</span><input type="number" step="0.01" data-m="p_pro_m"></div>
-            <div class="row"><span>PRO anual (lei)</span><input type="number" step="0.01" data-m="p_pro_y"></div>
-            <div class="row"><span>PRO+ lunar (lei)</span><input type="number" step="0.01" data-m="p_plus_m"></div>
-            <div class="row"><span>PRO+ anual (lei)</span><input type="number" step="0.01" data-m="p_plus_y"></div>
+        <p class="mut">Se țin minte pe dispozitivul ăsta. Prețurile trebuie să fie aceleași ca în Play Console, în lei, cu TVA.</p>
+        <div class="two">
+          <div>
+            <label class="field"><span>PRO lunar</span><input type="number" step="0.01" data-m="p_pro_m"></label>
+            <label class="field"><span>PRO anual</span><input type="number" step="0.01" data-m="p_pro_y"></label>
+            <label class="field"><span>PRO+ lunar</span><input type="number" step="0.01" data-m="p_plus_m"></label>
+            <label class="field"><span>PRO+ anual</span><input type="number" step="0.01" data-m="p_plus_y"></label>
           </div>
-          <div style="display:grid;gap:8px">
-            <div class="row"><span>TVA (%)</span><input type="number" step="1" data-m="vat"></div>
-            <div class="row"><span>Comision Google (%)</span><input type="number" step="1" data-m="gfee"></div>
-            <div class="row"><span>Firebase la 1.000 de conturi (lei/lună)</span><input type="number" step="1" data-m="fb1k"></div>
-            <div class="row"><span>Contabil (lei/lună)</span><input type="number" step="10" data-m="acct"></div>
-            <div class="row"><span>Alte costuri fixe (lei/lună)</span><input type="number" step="10" data-m="other"></div>
+          <div>
+            <label class="field"><span>TVA (%)</span><input type="number" step="1" data-m="vat"></label>
+            <label class="field"><span>Comision Google (%)</span><input type="number" step="1" data-m="gfee"></label>
+            <label class="field"><span>Firebase la 1.000 de conturi (lei pe lună)</span><input type="number" step="1" data-m="fb1k"></label>
+            <label class="field"><span>Contabil (lei pe lună)</span><input type="number" step="10" data-m="acct"></label>
+            <label class="field"><span>Alte costuri fixe (lei pe lună)</span><input type="number" step="10" data-m="other"></label>
           </div>
         </div>
         <details><summary>Ce nu intră în calcul</summary>
-          <p class="mut">Taxele de PFA (CAS, CASS, impozit) depind de venitul pe tot anul; vezi simulatorul de profit. Costul real Google Cloud îl vezi în Billing (link în „Link-uri”); creditul gratuit de 300 $ e valabil până pe 26 februarie 2027.</p>
+          <p class="mut">Taxele de PFA (CAS, CASS, impozit) depind de venitul pe tot anul. Costul real Google Cloud îl vezi în Billing, din Setări → Link-uri; creditul gratuit de 300 $ ține până pe 26 februarie 2027.</p>
         </details>
       </div>
     </section>
 
     <!-- ============ DĂ PRO ============ -->
-    <section id="sDa" class="card" hidden>
-      <h2>Dă PRO / PRO+ unui cont</h2>
-      <p class="mut">Pentru contul de verificare Google, testeri sau prieteni. Persoana trebuie să se fi conectat măcar o dată în Trasso. Se adaugă peste ce are deja și rămâne și după ce pornești abonamentele. Nu atinge abonamentele plătite prin Google Play.</p>
-      <div class="row"><span>Email</span><input type="email" id="gEmail" placeholder="nume@gmail.com" style="flex:1;max-width:18em"></div>
-      <div class="row"><span>Plan</span><select id="gTier"><option value="proplus">PRO+</option><option value="pro">PRO</option></select></div>
-      <div class="row"><span>Durată</span><select id="gMode"><option value="days">Un număr de zile</option><option value="forever">Permanent</option><option value="revoke">Retrage ce i-am dat</option></select></div>
-      <div class="row" id="gDaysRow"><span>Zile</span><input type="number" id="gDays" min="1" max="3650" value="30"></div>
-      <button class="pri" id="btnGrant">Aplică</button>
-      <p class="mut" id="gMsg"></p>
+    <section id="sDa" class="panel" hidden>
+      <h2>Dă PRO sau PRO+ unui cont</h2>
+      <p class="mut">Pentru contul de verificare Google, testeri sau prieteni. Persoana trebuie să se fi conectat măcar o dată în Trasso. Se adaugă peste ce are deja, rămâne și după ce pornești abonamentele și nu atinge abonamentele plătite.</p>
+      <label class="field"><span>Email</span><input type="email" id="gEmail" placeholder="nume@gmail.com" style="width:min(18em,60vw)"></label>
+      <label class="field"><span>Plan</span><select id="gTier"><option value="proplus">PRO+</option><option value="pro">PRO</option></select></label>
+      <label class="field"><span>Cât timp</span><select id="gMode"><option value="days">Un număr de zile</option><option value="forever">Permanent</option><option value="revoke">Retrage ce i-am dat</option></select></label>
+      <label class="field" id="gDaysRow"><span>Zile</span><input type="number" id="gDays" min="1" max="3650" value="30"></label>
+      <button class="pri big" id="btnGrant">Aplică</button>
+      <p class="mut" id="gMsg" role="status"></p>
     </section>
 
     <!-- ============ SETĂRI ============ -->
     <section id="sSet" hidden style="display:grid;gap:16px">
-      <section class="card">
-        <div><b>Abonamente</b><p class="mut" id="billState"></p></div>
+      <section class="panel">
+        <h2>Abonamente</h2>
+        <p class="mut" id="billState"></p>
         <button class="big" id="btnBilling"></button>
-        <p class="mut">Cât timp sunt oprite, PRO și PRO+ sunt gratuite pentru toți. Când le pornești, zilele PRO+ câștigate din invitații încep să curgă de atunci. Pornește-le abia după ce ai PFA-ul și cele 4 abonamente (<code>trasso_pro_monthly</code>, <code>trasso_pro_yearly</code>, <code>trasso_proplus_monthly</code>, <code>trasso_proplus_yearly</code>) sunt active în Google Play.</p>
+        <p class="mut">Cât timp sunt oprite, PRO și PRO+ sunt gratuite pentru toți. Când le pornești, zilele PRO+ din invitații încep să curgă. Pornește-le după ce ai PFA-ul și cele 4 abonamente sunt active în Google Play: trasso_pro_monthly, trasso_pro_yearly, trasso_proplus_monthly, trasso_proplus_yearly.</p>
       </section>
-      <section class="card">
+      <section class="panel">
         <div class="row">
-          <div><b>Campania „Adu un prieten”</b><p class="mut">Cine invită primește PRO+ gratuit.</p></div>
-          <label class="sw"><input type="checkbox" id="refOn"><span></span></label>
+          <div><h2>Adu un prieten</h2><p class="mut">Cine invită primește PRO+ gratuit.</p></div>
+          <label class="sw" aria-label="Campania pornită"><input type="checkbox" id="refOn"><span></span></label>
         </div>
-        <div class="row"><span>Zile PRO+ per prieten</span><input type="number" id="refDays" min="0" max="365"></div>
-        <div class="row"><span>Câți prieteni aduc recompensă, în total, per persoană</span><input type="number" id="refMax" min="0" max="50"></div>
-        <div class="row"><span>Codul merge doar pentru conturi mai noi de (zile)</span><input type="number" id="refAge" min="1" max="90"></div>
+        <div>
+          <label class="field"><span>Zile de PRO+ pentru fiecare prieten</span><input type="number" id="refDays" min="0" max="365"></label>
+          <label class="field"><span>Câți prieteni aduc recompensă, în total</span><input type="number" id="refMax" min="0" max="50"></label>
+          <label class="field"><span>Codul merge doar pentru conturi mai noi de (zile)</span><input type="number" id="refAge" min="1" max="90"></label>
+        </div>
       </section>
-      <section class="card">
-        <b>Salvare în cloud</b>
-        <div class="row"><span>Desene maxime per utilizator</span><input type="number" id="cMax" min="0" max="200"></div>
-        <div class="row"><span>Mărime maximă per desen (MB)</span><input type="number" id="cMB" min="1" max="100"></div>
+      <section class="panel">
+        <h2>Salvare în cloud</h2>
+        <div>
+          <label class="field"><span>Desene pentru fiecare utilizator</span><input type="number" id="cMax" min="0" max="200"></label>
+          <label class="field"><span>Mărimea maximă a unui desen (MB)</span><input type="number" id="cMB" min="1" max="100"></label>
+        </div>
       </section>
       <button class="pri big" id="btnSave">Salvează setările</button>
-    </section>
 
-    <!-- ============ LINK-URI ============ -->
-    <section id="sLink" class="card" hidden>
-      <h2>Link-uri utile</h2>
-      <div class="links">
-        <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/app-dashboard" target="_blank" rel="noopener">Play Console<small>Panoul aplicației</small></a>
-        <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/publishing" target="_blank" rel="noopener">Publishing overview<small>Ce e în verificare</small></a>
-        <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/subscriptions" target="_blank" rel="noopener">Abonamente în Play<small>Prețuri, oferte, perioadă gratuită</small></a>
-        <a href="https://play.google.com/console/u/1/developers/7296338038987731403/download-reports/financial" target="_blank" rel="noopener">Rapoarte financiare<small>Încasări reale</small></a>
-        <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/statistics" target="_blank" rel="noopener">Statistici Play<small>Instalări, dezinstalări</small></a>
-        <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/user-feedback/reviews" target="_blank" rel="noopener">Recenzii<small>Ce spun utilizatorii</small></a>
-        <a href="https://console.firebase.google.com/u/1/project/trasso-sub/usage" target="_blank" rel="noopener">Firebase – utilizare<small>Citiri, scrieri, stocare</small></a>
-        <a href="https://console.cloud.google.com/billing?authuser=1&project=trasso-sub" target="_blank" rel="noopener">Google Cloud Billing<small>Cât te costă serverul</small></a>
-        <a href="https://console.firebase.google.com/u/1/project/trasso-sub/authentication/users" target="_blank" rel="noopener">Conturi Firebase<small>Lista de autentificare</small></a>
-        <a href="./" target="_blank" rel="noopener">Trasso<small>Aplicația</small></a>
-        <a href="./?planuri" target="_blank" rel="noopener">Ecranul cu planuri<small>Previzualizare</small></a>
-      </div>
+      <section class="panel quiet">
+        <h2>Link-uri</h2>
+        <h3>Google Play</h3>
+        <div class="links">
+          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/app-dashboard" target="_blank" rel="noopener">Play Console<span>Panoul aplicației</span></a>
+          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/publishing" target="_blank" rel="noopener">Publishing overview<span>Ce e în verificare</span></a>
+          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/subscriptions" target="_blank" rel="noopener">Abonamente<span>Prețuri, oferte, perioada gratuită</span></a>
+          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/download-reports/financial" target="_blank" rel="noopener">Rapoarte financiare<span>Încasările reale</span></a>
+          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/statistics" target="_blank" rel="noopener">Statistici<span>Instalări și dezinstalări</span></a>
+          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/user-feedback/reviews" target="_blank" rel="noopener">Recenzii<span>Ce spun utilizatorii</span></a>
+        </div>
+        <h3>Server</h3>
+        <div class="links">
+          <a href="https://console.firebase.google.com/u/1/project/trasso-sub/usage" target="_blank" rel="noopener">Firebase<span>Citiri, scrieri, stocare</span></a>
+          <a href="https://console.cloud.google.com/billing?authuser=1&amp;project=trasso-sub" target="_blank" rel="noopener">Google Cloud Billing<span>Cât costă serverul</span></a>
+          <a href="https://console.firebase.google.com/u/1/project/trasso-sub/authentication/users" target="_blank" rel="noopener">Conturi Firebase<span>Lista de autentificare</span></a>
+        </div>
+        <h3>Trasso</h3>
+        <div class="links">
+          <a href="./" target="_blank" rel="noopener">Aplicația<span>Deschide Trasso</span></a>
+          <a href="./?planuri" target="_blank" rel="noopener">Ecranul cu planuri<span>Cum îl văd utilizatorii</span></a>
+        </div>
+      </section>
+      <button id="btnOut">Deconectează-te</button>
     </section>
   </div>
 </main>
@@ -278,7 +386,7 @@ const ago = (n) => {
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ---------- navigare ---------- */
-const SECTIONS = ['sRez', 'sAbo', 'sBani', 'sDa', 'sSet', 'sLink'];
+const SECTIONS = ['sRez', 'sAbo', 'sBani', 'sDa', 'sSet'];
 function go(id) {
   SECTIONS.forEach((s) => { $(s).hidden = s !== id; });
   document.querySelectorAll('nav button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.go === id)));
@@ -334,7 +442,7 @@ async function load() {
   ]);
   USERS = us.docs.map((d) => classify({ ...d.data(), __id: d.id }));
   REFS = rs.docs.map((d) => ({ ...d.data(), created: ms(d.get('createdAt')) }));
-  msg('Conectat ca ' + auth.currentUser.email + ' · actualizat ' + new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }));
+  msg('Date actualizate la ' + new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) + '.');
   renderAll();
 }
 $('btnReload').onclick = () => load().catch((e) => msg('Nu am putut încărca: ' + e.code));
@@ -357,7 +465,7 @@ function money() {
 /* ---------- afișare ---------- */
 function renderAll() {
   renderBilling();
-  if (!USERS.length && !auth.currentUser) return;
+  if (!auth.currentUser) return;
   const now = Date.now();
   const m = money();
   const n7 = USERS.filter((u) => now - u.created < 7 * DAY).length;
@@ -368,14 +476,16 @@ function renderAll() {
   const bonus = USERS.filter((u) => u.source === 'invite' || u.source === 'manual').length;
   const bonusDays = USERS.reduce((s, u) => s + u.bonusDays, 0);
   $('kUsers').textContent = USERS.length;
-  $('kUsersNew').textContent = `+${n7} în 7 zile · +${n30} în 30`;
+  $('kUsersNew').textContent = `+${n7} în ultima săptămână, +${n30} în 30 de zile`;
   $('kAct7').textContent = a7;
   $('kAct30').textContent = `${a30} în ultimele 30 de zile`;
   $('kPaid').textContent = m.paid.length;
-  $('kPaidSplit').textContent = `${m.paid.length - paidPlus} PRO · ${paidPlus} PRO+`;
+  $('kPaidSplit').innerHTML = `<span class="tag pro">${m.paid.length - paidPlus} PRO</span><span class="tag plus">${paidPlus} PRO+</span>`;
+  $('kNote').textContent = cfg.billingEnabled === true ? 'Estimat după TVA, comisionul Google și costuri, înainte de taxele PFA.' : 'Abonamentele sunt oprite, deci toată lumea folosește Trasso gratuit și aici rămâne 0 până le pornești.';
   $('kMrr').textContent = leiR(m.net);
   $('kProfit').textContent = leiR(m.profit);
   $('kProfit').className = m.profit >= 0 ? 'pos' : 'neg';
+  $('kMrr').className = '';
   $('kBonus').textContent = bonus;
   $('kBonusDays').textContent = bonusDays ? `${bonusDays} zile strânse, încă necurse` : '';
   $('kRefs').textContent = REFS.length;
@@ -386,10 +496,11 @@ function renderAll() {
 }
 function renderBilling() {
   const on = cfg.billingEnabled === true;
-  $('billBanner').className = 'banner ' + (on ? 'on' : 'off');
-  $('billBanner').innerHTML = on
-    ? '● <b>Abonamentele sunt pornite.</b> Funcțiile PRO cer abonament prin Google Play.'
-    : '○ <b>Abonamentele sunt oprite.</b> PRO și PRO+ sunt gratuite pentru toți (perioada de lansare). Cifrele de bani de mai jos rămân 0 până le pornești.';
+  const p = $('pill');
+  p.hidden = false;
+  p.className = 'pill ' + (on ? 'on' : 'off');
+  p.textContent = on ? 'Abonamente pornite' : 'Totul gratuit';
+  p.title = on ? 'Funcțiile PRO cer abonament prin Google Play.' : 'Abonamentele sunt oprite: PRO și PRO+ sunt gratuite pentru toți.';
 }
 function renderChart() {
   const svg = $('chart');
@@ -408,7 +519,7 @@ function renderChart() {
   counts.forEach((c, i) => {
     const h = (H - P - 16) * c / max;
     const x = P + i * bw + 1;
-    g += `<rect x="${x.toFixed(1)}" y="${(H - P - h).toFixed(1)}" width="${Math.max(2, bw - 3).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="var(--acc)"><title>${c} conturi</title></rect>`;
+    g += `<rect x="${x.toFixed(1)}" y="${(H - P - h).toFixed(1)}" width="${Math.max(2, bw - 3).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="var(--beige)"><title>${c} conturi</title></rect>`;
   });
   const lab = (i) => { const d = new Date(start.getTime() - (days - 1 - i) * DAY); return d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' }); };
   [0, 14, 29].forEach((i) => { g += `<text x="${(P + i * bw + bw / 2).toFixed(1)}" y="${H - 6}" font-size="11" text-anchor="middle" fill="currentColor" opacity=".6">${lab(i)}</text>`; });
@@ -427,7 +538,7 @@ $('q').addEventListener('input', () => renderTable());
 const SRC = { paid: 'Plătit', invite: 'Invitații', manual: 'Dat manual' };
 function renderTable() {
   const q = $('q').value.trim().toLowerCase();
-  let list = USERS.filter((u) => {
+  const list = USERS.filter((u) => {
     if (FILTER === 'paid' && u.source !== 'paid') return false;
     if (FILTER === 'bonus' && !(u.source === 'invite' || u.source === 'manual')) return false;
     if (FILTER === 'none' && u.plan) return false;
@@ -435,38 +546,46 @@ function renderTable() {
     return true;
   });
   list.sort((a, b) => (b.seen || b.created) - (a.seen || a.created));
-  $('tblInfo').textContent = `${list.length} din ${USERS.length} conturi`;
+  $('tblInfo').textContent = list.length === USERS.length ? `${USERS.length} conturi` : `${list.length} din ${USERS.length} conturi`;
   $('tbody').innerHTML = list.map((u) => {
-    const plan = u.plan === 'proplus' ? '<span class="tag plus">PRO+</span>' : u.plan === 'pro' ? '<span class="tag pro">PRO</span>' : '<span class="mut">—</span>';
-    let src = u.source ? `<span class="tag ${u.source === 'paid' ? 'paid' : ''}">${SRC[u.source]}${u.source === 'paid' ? (/yearly/.test(u.pid) ? ' · anual' : ' · lunar') : ''}</span>` : '<span class="mut">—</span>';
-    if (u.bonusDays) src += ` <span class="mut" title="Zile PRO+ din invitații, încep să curgă când pornești abonamentele">+${u.bonusDays} zile strânse</span>`;
-    const until = u.until >= FOREVER ? 'permanent' : u.until ? fdate(u.until) : '—';
-    return `<tr>
-      <td><div class="who"><span>${esc(u.name || u.email)}</span>${u.name ? `<small>${esc(u.email)}</small>` : ''}</div></td>
-      <td>${plan}</td><td>${src}</td><td class="num">${until}</td>
-      <td class="num hide-sm">${fdate(u.created)}</td><td class="num hide-sm">${ago(u.seen)}</td><td class="num hide-sm">${u.invited || ''}</td>
-      <td><button class="sm" data-give="${esc(u.email)}">Dă PRO</button></td></tr>`;
-  }).join('') || '<tr><td colspan="8" class="mut">Niciun cont pentru filtrul ăsta.</td></tr>';
+    const tags = [];
+    if (u.plan === 'proplus') tags.push('<span class="tag plus">PRO+</span>');
+    else if (u.plan === 'pro') tags.push('<span class="tag pro">PRO</span>');
+    if (u.source) tags.push(`<span class="tag ${u.source === 'paid' ? 'paid' : ''}">${SRC[u.source]}${u.source === 'paid' ? (/yearly/.test(u.pid) ? ', anual' : ', lunar') : ''}</span>`);
+    if (!tags.length) tags.push('<span class="tag">Fără abonament</span>');
+    const meta = [];
+    if (u.until) meta.push(u.until >= FOREVER ? 'Permanent' : 'Până pe ' + fdate(u.until));
+    if (u.bonusDays) meta.push(`${u.bonusDays} zile de PRO+ strânse`);
+    meta.push('Activ ' + ago(u.seen));
+    meta.push('Cont din ' + fdate(u.created));
+    if (u.invited) meta.push(`A invitat ${u.invited}`);
+    return `<li>
+      <div><div class="nm">${esc(u.name || u.email)}</div>${u.name ? `<div class="em">${esc(u.email)}</div>` : ''}</div>
+      <div class="tags">${tags.join('')}</div>
+      <div class="meta">${meta.map((t) => `<span>${t}</span>`).join('')}</div>
+      <div class="act"><button class="sm" data-give="${esc(u.email)}">Dă PRO</button></div>
+    </li>`;
+  }).join('') || '<li><span class="mut">Niciun cont aici.</span></li>';
   document.querySelectorAll('[data-give]').forEach((b) => {
     b.onclick = () => { $('gEmail').value = b.dataset.give; go('sDa'); $('gEmail').focus(); };
   });
 }
 function renderMoney(m) {
   const rows = [
-    ['Plătit de abonați (cu TVA)', m.gross, ''],
-    [`TVA ${M.vat}% (îl reține Google)`, -m.vat, ''],
-    [`Comision Google ${M.gfee}%`, -m.google, ''],
-    ['Îți intră de la Google', m.net, 'b'],
-    [`Firebase (estimat, ${USERS.length} conturi)`, -m.firebase, ''],
-    ['Contabil', -M.acct, ''],
-    ['Alte costuri fixe', -M.other, ''],
+    ['Plătit de abonați, cu TVA', m.gross, ''],
+    [`TVA ${M.vat}%, îl reține Google`, -m.vat, 'sub'],
+    [`Comision Google ${M.gfee}%`, -m.google, 'sub'],
+    ['Îți intră de la Google', m.net, 'key'],
+    [`Firebase, estimat pentru ${USERS.length} conturi`, -m.firebase, 'sub'],
+    ['Contabil', -M.acct, 'sub'],
+    ['Alte costuri fixe', -M.other, 'sub'],
     ['Profit înainte de taxele PFA', m.profit, 'total'],
   ];
-  $('moneyTbl').innerHTML = rows.map(([t, v, k]) => `<div class="mrow ${k === 'total' ? 'total' : ''}"><span>${k ? '<b>' + t + '</b>' : t}</span><b class="${k === 'total' ? (v >= 0 ? 'pos' : 'neg') : ''}">${v < 0 ? '−' : ''}${lei(Math.abs(v))}</b></div>`).join('');
+  $('moneyTbl').innerHTML = rows.map(([t, v, k]) => `<div class="l ${k}"><span>${t}</span><b class="${k === 'total' ? (v >= 0 ? 'pos' : 'neg') : ''}">${v < 0 ? '−' : ''}${lei(Math.abs(v))}</b></div>`).join('');
   const names = { trasso_pro_monthly: 'PRO lunar', trasso_pro_yearly: 'PRO anual', trasso_proplus_monthly: 'PRO+ lunar', trasso_proplus_yearly: 'PRO+ anual' };
   $('planTbl').innerHTML = Object.keys(names).map((pid) => {
     const n = m.byPid[pid] || 0;
-    return `<tr><td>${names[pid]}</td><td class="num">${n} abonați</td><td class="num">${lei(n * PRICE(pid))} / lună</td></tr>`;
+    return `<div class="p"><span>${names[pid]}</span><b>${n} ${n === 1 ? 'abonat' : 'abonați'}</b><span class="mut">${lei(n * PRICE(pid))} pe lună</span></div>`;
   }).join('');
   const trial = USERS.filter((u) => u.source === 'paid' && /TRIAL|FREE/i.test(u.playState)).length;
   $('trialNote').textContent = trial ? `Dintre ei, ${trial} sunt încă în perioada gratuită.` : '';
@@ -475,11 +594,12 @@ function renderMoney(m) {
 /* ---------- setări (config/app) ---------- */
 $('btnIn').onclick = () => A.signInWithPopup(auth, new A.GoogleAuthProvider()).catch((e) => msg('Conectarea n-a mers: ' + e.code));
 $('btnOut').onclick = () => A.signOut(auth);
+$('btnReload').textContent = 'Reîncarcă';
 function show() {
   const on = cfg.billingEnabled === true;
   $('billState').textContent = on ? '● PORNITE – utilizatorii plătesc prin Google Play' : '○ OPRITE – totul e gratuit (perioada de lansare)';
   $('btnBilling').textContent = on ? 'Oprește abonamentele (totul redevine gratuit)' : 'Pornește abonamentele';
-  $('btnBilling').className = 'big ' + (on ? '' : 'danger');
+  $('btnBilling').className = 'big ' + (on ? '' : 'warn');
   $('refOn').checked = cfg.referralEnabled !== false;
   $('refDays').value = cfg.referralRewardDays;
   $('refMax').value = cfg.referralMaxPerUser;
@@ -543,7 +663,9 @@ A.onAuthStateChanged(auth, async (u) => {
   const isAdmin = u && u.emailVerified && ADMINS.includes(u.email);
   $('login').hidden = !!isAdmin;
   $('panel').hidden = !isAdmin;
-  $('btnOut').hidden = !u;
+  $('navwrap').hidden = !isAdmin;
+  $('who').textContent = u ? u.email : '';
+  if (!isAdmin) $('pill').hidden = true;
   if (!u) return msg('Nu ești conectat.');
   if (!isAdmin) return msg(`${u.email} nu e cont de administrator.`);
   let tab = 'sRez';
