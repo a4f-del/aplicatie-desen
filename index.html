@@ -29,7 +29,7 @@ t=setTimeout(window.__tbootEnd,4000);/* plasă de siguranță: dacă ceva crapă
   Object.assign(D,{"Baloane": "Balloons", "Când ții creionul nemișcat pe ecran": "When you hold the pen still on the screen", "La începutul liniei, înainte să miști: ia culoarea (pipetă)": "At the start of a line, before you move: pick the colour (eyedropper)", "La finalul liniei: îndreaptă forma (cerc, elipsă, linie, dreptunghi, triunghi, arc)": "At the end of a line: clean up the shape (circle, ellipse, line, rectangle, triangle, arc)", "Sunt două momente diferite: pipeta pornește doar dacă nu ai mișcat deloc creionul, forma doar după ce ai desenat o linie.": "These are two different moments: the eyedropper only starts if you haven't moved the pen at all, the shape only after you've drawn a line.", "Mai multe opțiuni de strat ›": "More layer options ›", "Mai puține opțiuni de strat ‹": "Fewer layer options ‹"}); /* 2026.11.26 UX */
   Object.assign(D,{"Versiune nouă a aplicației. Repornește ca s-o folosești.": "New version of the app. Restart to use it.", "Repornește": "Restart"});
   Object.assign(D,{"Închide la culoare": "Darken", "Ardere culoare": "Color burn", "Subexpunere culoare": "Color dodge", "Lumină slabă": "Soft light", "Lumină puternică": "Hard light", "Excludere": "Exclusion", "Întunecare": "Darken", "Luminare": "Lighten", "Mod de amestecare": "Blend mode", "Ardere liniară": "Linear burn", "Scădere": "Subtract", "Culoare mai închisă": "Darker color", "Subexpunere cu strălucire": "Glow dodge", "Adaugă (strălucire)": "Add (Glow)", "Culoare mai deschisă": "Lighter color", "Lumină vie": "Vivid light", "Lumină liniară": "Linear light", "Lumină punctuală": "Pin light", "Amestec dur": "Hard mix", "Împarte": "Divide"});
-  Object.assign(D,{/*UX2611*/"Straturile sunt îmbinate. „Anulează” le desparte din nou.":"Layers merged. “Undo” splits them again.","Stratul e șters. „Anulează” îl aduce înapoi.":"Layer deleted. “Undo” brings it back.",});
+  Object.assign(D,{/*UX2611*/"Urcă":"Up","Coboară":"Down","Nou":"New","Copie":"Copy","Îmbină":"Merge","Golește":"Clear","Straturile sunt îmbinate. „Anulează” le desparte din nou.":"Layers merged. “Undo” splits them again.","Stratul e șters. „Anulează” îl aduce înapoi.":"Layer deleted. “Undo” brings it back.",});
   function norm(s){return s.replace(/\s+/g,' ').trim();}
   var EX=Object.create(null),FK=[];
   Object.keys(D).forEach(function(k){var n=norm(k);if(n&&!(n in EX))EX[n]=D[k];if(k.length>=4&&(/[\s.,:;!?„”“()…—–·→←]/.test(k)||k.length>=8))FK.push(k);});
@@ -985,6 +985,20 @@ html #drSide .seg button[aria-pressed="true"],html #drSide .seg button.on,html #
 html #drSide .seg:not(.sk-ind) button[aria-pressed="true"],html #drSide .seg:not(.sk-ind) button.on{background:var(--sk-solid)!important;box-shadow:0 1px 2px rgba(0,0,0,.10),0 0 0 1px var(--sk-line)}
 /* butoane-alegere pornite (preferate, panou 1/2/3): nuanță, nu bloc plin */
 html #dr #drSide .btns .btn[aria-pressed="true"],html #dr #drSide .btns .btn.on{background:var(--acc-2)!important;color:var(--acc-t)!important;border-color:color-mix(in srgb,var(--acc) 45%,transparent)!important;box-shadow:none!important}
+/* 2026.11.27 UX A2/A6: în modul Simplu, ținte de atingere de cel puțin 44–48 px (ghidul Android: 48 dp) și etichete sub iconițele straturilor */
+html body.drsimple #dr #drSide .btn{min-height:44px!important}
+html body.drsimple #dr #drSide .seg button{min-height:44px!important}
+html body.drsimple #dr #drSide select,html body.drsimple #dr #drSide .pick-sel,html body.drsimple #dr #drSide input.txt{min-height:44px!important}
+html body.drsimple #dr #drSide label.toggle{min-height:44px!important}
+html body.drsimple #dr #drSide .tabbar .tab{min-width:48px!important;min-height:48px!important}
+html body.drsimple #dr #drSide .uxqb,html body.drsimple #dr #drSide .setgear{min-width:44px!important;min-height:44px!important}
+html body.drsimple #dr #drSide .olist .oi{min-height:48px!important}
+html body.drsimple #dr #drSide .olist .oi>button{min-height:48px!important}
+html body.drsimple #dr #drSide .olist .oi>button.x{min-width:44px!important}
+html body.drsimple #dr #drSide .btns.tr4lay{display:grid!important;grid-template-columns:repeat(7,1fr);gap:1px!important}
+html body.drsimple #dr #drSide input[type=range]{min-height:44px!important}
+html body.drsimple #dr #drSide .btns.tr4lay>button{min-width:0!important;width:100%!important;min-height:52px!important;padding:4px 0 3px!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+html body.drsimple #dr #drSide .btns.tr4lay>button.tr4i::after{content:attr(data-uxl);font:500 9.5px/1.1 var(--ui);color:var(--ink-2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1px}
 </style>
 </head>
 <body>
@@ -21348,6 +21362,20 @@ function trExpModes(d){
   boot(0);
 })();
 
+/*UX2611-MOD-START*/
+/* ===================== 2026.11.27 UX: meniurile din dreapta + animație ===================== */
+(function(){
+  function T(s){return (window.__tr||String)(s);}
+  /* A6: etichete scurte sub iconițele straturilor (doar în modul Simplu, prin CSS) */
+  var LAYL=['Nou','Copie','Urcă','Coboară','Îmbină','Golește','Șterge'];
+  function uxLayLabels(){
+    var b=document.querySelector('#drSide .btns.tr4lay');if(!b)return;
+    var bs=[].filter.call(b.children,function(x){return x.tagName==='BUTTON';});
+    bs.slice(0,7).forEach(function(x,i){var v=T(LAYL[i]);if(x.getAttribute('data-uxl')!==v)x.setAttribute('data-uxl',v);});
+  }
+  DR.sync.push(uxLayLabels);
+})();
+/*UX2611-MOD-END*/
 })();
 </script>
 <script>
