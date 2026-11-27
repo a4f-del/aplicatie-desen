@@ -15,6 +15,15 @@
     var pp = +e.proplus || 0, p = Math.max(+e.pro || 0, pp);
     return tier === 'proplus' ? pp > now : p > now;
   };
+  /* Când abonamentele sunt pornite și cineva atinge o funcție PRO: deschide ecranul cu planuri
+     (cere întâi contul). Întoarce true dacă s-a deschis ecranul. Cât timp sunt oprite, nu se ajunge aici. */
+  window.trUpsell = function (tier) {
+    var s = load();
+    if (!s.cfg || s.cfg.billingEnabled !== true) return false;
+    if (!window.TC || typeof window.TC.openPlans !== 'function') return false;
+    window.TC.openPlans(tier === 'proplus' ? 'proplus' : 'pro');
+    return true;
+  };
   /* codul de invitație din link (?inv=ABC123) se ține minte până se folosește */
   try {
     var m = /[?&]inv=([A-Za-z0-9]{6})\b/.exec(location.search);

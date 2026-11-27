@@ -8726,7 +8726,7 @@ function drLibTf(fl){
 }
 /* inserare: pe stratul unde a fost pusă o variantă a aceluiași element (înlocuiește), altfel pe un strat nou */
 function lbInsert(item,vr){
-  if(lbIsPro(item)&&!trPro()){drMsg('„'+item.name+'” face parte din Trasso Pro.');return Promise.resolve(false);}
+  if(lbIsPro(item)&&!trPro()){if(window.trUpsell)trUpsell('pro');drMsg('„'+item.name+'” face parte din Trasso Pro.');return Promise.resolve(false);}
   if(!DR.ready){drMsg('Deschide întâi un desen.');return Promise.resolve(false);}
   if(DR.float)drFloatCommit();
   return lbBlobsGet(item.id).then(function(bl){if(!bl[vr.id])throw new Error('lipsa');return lbBlobCv(bl[vr.id]);}).then(function(cv){
@@ -16076,7 +16076,7 @@ function fltOv(title,onClose){
 function fltPartCv(id,vid){
   var k=id+'/'+vid;FLT.cache=FLT.cache||{};
   if(FLT.cache[k])return Promise.resolve(FLT.cache[k]);
-  var it0=lbFind(id);if(lbIsPro(it0)&&!trPro()){drMsg('„'+it0.name+'” face parte din Trasso Pro.');return Promise.reject(new Error('pro'));}
+  var it0=lbFind(id);if(lbIsPro(it0)&&!trPro()){if(window.trUpsell)trUpsell('pro');drMsg('„'+it0.name+'” face parte din Trasso Pro.');return Promise.reject(new Error('pro'));}
   return lbBlobsGet(id).then(function(bl){if(!bl[vid])throw new Error('lipsa');return lbBlobCv(bl[vid]);}).then(function(c){FLT.cache[k]=c;return c;});
 }
 /* pune o imagine pe un strat nou, ca element mutabil, în panoul ales */
@@ -16722,7 +16722,7 @@ function bgxTarget(){
 /* ---- fereastra ---- */
 function bgxOpen(){
   if(!DR.ready){drMsg('Deschide întâi un desen sau o pagină.');return;}
-  if(!trPro()){drMsg('Fundalul 3D face parte din Trasso Pro.');return;}
+  if(!trPro()){if(window.trUpsell)trUpsell('pro');drMsg('Fundalul 3D face parte din Trasso Pro.');return;}
   var last=null;try{last=JSON.parse(localStorage.getItem('ad-bg3d-last')||'null');}catch(e){}
   var S=JSON.parse(JSON.stringify(DR.bg3d||last||bgxDefault('street')));
   var T=bgxTarget(),asp=T.w/T.h;
@@ -21499,6 +21499,7 @@ function trExpModes(d){
   };
   /* PRO+: ce include, în loc de un dialog fără butoane */
   AN.proInfo=function(){
+    if(window.trUpsell&&trUpsell('proplus'))return;
     AN.ask('Trasso PRO+',T('Animația face parte din Trasso PRO+. Include:','Animation is part of Trasso PRO+. It includes:'),[
       {t:T('Animație cadru cu cadru','Frame-by-frame animation'),s:T('Onion skin, „Ține cadrul”, schiță / linie / culoare pe fiecare cadru','Onion skin, “Hold frame”, rough / line / colour on every frame')},
       {t:T('Animație rapidă, marionetă, Film','Quick animation, puppet, Film'),s:T('Personajul clipește și vorbește singur; scene legate între ele','Your character blinks and talks by itself; scenes linked together')},
