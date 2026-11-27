@@ -20393,7 +20393,26 @@ function trGlowInit(){
     '.trlaysvg{display:block;border-radius:2px;box-shadow:0 4px 12px rgba(0,0,0,.25)}'+
     '.trlaypv{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;justify-content:center}.trlaypg{display:flex;flex-direction:column;align-items:center;gap:4px}.trlaypg small{opacity:.7}'+
     '.trlay .toggle{margin-top:12px}'+
-    '.drtop .trmode{flex:none;min-width:170px}.drtop .trmode button{min-height:36px;padding:0 12px}';
+    '.drtop .trmode{flex:none;min-width:170px}.drtop .trmode button{min-height:36px;padding:0 12px}'+
+    /* Telefon (2026.11.27): nimic nu mai lățește pagina peste ecran; ferestrele cbDlg devin panou de jos, cu derulare doar în jos */
+    'html,body{max-width:100%;overflow-x:clip}.app header{min-width:0}.app header .btns{flex-wrap:wrap;min-width:0}'+
+    '@media (max-width:600px){'+
+      '.cbdlg{align-items:flex-end;padding:0}'+
+      '.cbdlg .fsbox{width:100%;max-width:100%;max-height:92dvh;border-radius:24px 24px 0 0!important;border-bottom:0!important;animation:trSheetUp .32s cubic-bezier(.2,.9,.25,1) backwards!important}'+
+      '.cbdlg .cbpad{overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:18px 16px 0}'+
+      '.cbdlg .seg button{white-space:normal;line-height:1.2;padding:6px 8px}'+
+      '.cbdlg .cbpad>.btns{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:row-reverse;gap:8px;margin:16px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--paper);border-top:1px solid var(--rule)}'+
+      '.cbdlg .cbpad>.btns .btn{min-height:48px;margin:0;flex:none;padding:0 16px}.cbdlg .cbpad>.btns .btn.solid{flex:1}'+
+      '.cbdlg .cbpad>.btns .btn:not(.solid){border-color:transparent!important;background:transparent!important;box-shadow:none!important}'+
+      '.trlayrow{display:grid;grid-template-columns:1fr;gap:4px}'+
+      '.trlaycol{min-width:0}.trlaycol .seg{margin:0}'+
+      '.trlaycol:has(.trstep){flex-direction:row;align-items:center;justify-content:space-between}'+
+      '.trlaycol:has(.trstep) .sub{margin-top:0}'+
+      '.trlaytypes{gap:6px}.trlayt{padding:8px 2px;font-size:12px}.trlayt .trlaysvg{width:38px;height:auto}'+
+      '.trlaypv{margin-top:14px}'+
+    '}'+
+    '@keyframes trSheetUp{from{transform:translateY(40px);opacity:0}}'+
+    '@media (prefers-reduced-motion:reduce){.cbdlg .fsbox{animation:none!important}}';
   var st=document.createElement('style');st.id='trGlowSt';st.textContent=css;document.head.appendChild(st);
 }
 (function trBoot(){
