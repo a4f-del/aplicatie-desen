@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trasso – Ștergerea contului / Delete your account</title>
+<style>
+  [hidden] { display: none !important; }
+  body { margin: 0; font: 16px/1.6 system-ui, sans-serif; background: #f6f4ef; color: #1d232b; }
+  main { max-width: 680px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 28px 0 8px; }
+  .meta { color: #5b6573; font-size: 14px; margin: 0 0 20px; }
+  .lang { display: flex; gap: 8px; margin-bottom: 24px; }
+  .lang button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid #c9ccd1; background: #fff; cursor: pointer; }
+  .lang button[aria-pressed="true"] { background: #1d232b; color: #fff; border-color: #1d232b; }
+  .steps { background: #fff; border: 2px solid #1d232b; border-radius: 12px; padding: 16px 20px 16px 40px; }
+  .steps li { margin: 6px 0; }
+</style>
+</head>
+<body>
+<main>
+<div class="lang">
+  <button type="button" data-l="ro">Română</button>
+  <button type="button" data-l="en">English</button>
+</div>
+
+<article data-lang="ro">
+<h1>Ștergerea contului Trasso</h1>
+<p class="meta">Trasso – Manga &amp; Drawing · dezvoltator: WhiteArhitect</p>
+
+<h2>Cum îți ștergi contul</h2>
+<ol class="steps">
+  <li>Deschide aplicația <b>Trasso</b>.</li>
+  <li>Pe ecranul <b>Acasă</b>, atinge iconița <b>Cont</b> (omulețul din bara de sus).</li>
+  <li>Jos, la secțiunea <b>Cont</b>, apasă <b>Șterge contul</b> și confirmă de două ori.</li>
+</ol>
+<p>Contul se șterge imediat.</p>
+
+<h2>Nu mai ai acces la aplicație?</h2>
+<p>Scrie-ne de pe adresa de email a contului la <a href="mailto:asahixu02@gmail.com?subject=Stergere%20cont%20Trasso">asahixu02@gmail.com</a>, cu subiectul „Ștergere cont Trasso”. Ștergem contul și datele în cel mult 30 de zile.</p>
+
+<h2>Vrei să ștergi doar desenele din cloud?</h2>
+<p>În aplicație: <b>Acasă → Cont → Desene în cloud</b>, apoi apasă <b>Șterge</b> lângă fiecare desen. Contul rămâne.</p>
+
+<h2>Ce se șterge și ce rămâne</h2>
+<ul>
+  <li><b>Se șterg imediat:</b> contul (nume, email, poză de profil, identificator), profilul, codul de invitație, zilele PRO+ câștigate și toate desenele salvate în cloud.</li>
+  <li><b>Rămâne fără identificatorul tău:</b> evidența invitațiilor pe care le-ai făcut, ca un cod să nu poată fi folosit de două ori.</li>
+  <li><b>Rămâne cât cere legea:</b> datele despre abonamentele plătite necesare contabilității.</li>
+  <li><b>Rămân pe dispozitivul tău:</b> desenele salvate local, până le ștergi tu sau dezinstalezi aplicația.</li>
+</ul>
+<p>Ștergerea contului nu anulează un abonament Google Play. Îl anulezi din Google Play → Plăți și abonamente.</p>
+<p>Detalii: <a href="privacy.html?lang=ro">politica de confidențialitate</a>.</p>
+</article>
+
+<article data-lang="en" hidden>
+<h1>Delete your Trasso account</h1>
+<p class="meta">Trasso – Manga &amp; Drawing · developer: WhiteArhitect</p>
+
+<h2>How to delete your account</h2>
+<ol class="steps">
+  <li>Open the <b>Trasso</b> app.</li>
+  <li>On the <b>Home</b> screen, tap the <b>Account</b> icon (the person icon in the top bar).</li>
+  <li>At the bottom, in the <b>Account</b> section, tap <b>Delete account</b> and confirm twice.</li>
+</ol>
+<p>Your account is deleted immediately.</p>
+
+<h2>Can't access the app?</h2>
+<p>Email us from your account's address at <a href="mailto:asahixu02@gmail.com?subject=Delete%20Trasso%20account">asahixu02@gmail.com</a> with the subject “Delete Trasso account”. We delete the account and its data within 30 days.</p>
+
+<h2>Only want to delete your cloud drawings?</h2>
+<p>In the app: <b>Home → Account → Drawings in the cloud</b>, then tap <b>Delete</b> next to each drawing. Your account stays.</p>
+
+<h2>What is deleted and what is kept</h2>
+<ul>
+  <li><b>Deleted immediately:</b> your account (name, email, profile photo, identifier), profile, invite code, earned PRO+ days and all drawings saved to the cloud.</li>
+  <li><b>Kept without your identifier:</b> the record of invites you made, so a code can't be used twice.</li>
+  <li><b>Kept as long as the law requires:</b> paid subscription data needed for accounting.</li>
+  <li><b>Stays on your device:</b> drawings saved locally, until you delete them or uninstall the app.</li>
+</ul>
+<p>Deleting your account does not cancel a Google Play subscription. Cancel it in Google Play → Payments &amp; subscriptions.</p>
+<p>Details: <a href="privacy.html?lang=en">privacy policy</a>.</p>
+</article>
+<p class="meta" style="margin-top:40px">© 2026 WhiteArhitect · Trasso</p>
+</main>
+<script>
+(function () {
+  var q = /[?&]lang=(ro|en)\b/.exec(location.search), l = q ? q[1] : '';
+  if (!l) { try { l = localStorage.getItem('trasso-lang') || ''; } catch (e) {} }
+  if (l !== 'ro' && l !== 'en') l = (navigator.language || '').slice(0, 2) === 'ro' ? 'ro' : 'en';
+  function set(v) {
+    document.documentElement.lang = v;
+    document.querySelectorAll('[data-lang]').forEach(function (a) { a.hidden = a.getAttribute('data-lang') !== v; });
+    document.querySelectorAll('[data-l]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-l') === v)); });
+  }
+  document.querySelectorAll('[data-l]').forEach(function (b) { b.addEventListener('click', function () { set(b.getAttribute('data-l')); }); });
+  set(l);
+})();
+</script>
+</body>
+</html>
