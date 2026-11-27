@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Trasso – Admin</title>
+<style>
+  :root { color-scheme: dark; --bg:#141a22; --card:#1d2530; --line:#2c3644; --tx:#e8edf3; --mut:#93a1b3; --acc:#2ec4b6; --warn:#f5a524; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--tx); display:grid; place-items:start center; min-height:100vh; padding:32px 16px; }
+  main { width:100%; max-width:560px; display:grid; gap:16px; }
+  h1 { font-size:22px; margin:0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; display:grid; gap:12px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .mut { color:var(--mut); font-size:13px; margin:0; }
+  button { font:inherit; border-radius:10px; border:1px solid var(--line); background:#253041; color:var(--tx); padding:10px 16px; cursor:pointer; }
+  button.pri { background:var(--acc); border-color:var(--acc); color:#06201d; font-weight:600; }
+  button.big { width:100%; padding:16px; font-size:17px; }
+  button.danger { background:var(--warn); border-color:var(--warn); color:#2a1900; font-weight:600; }
+  input[type=number] { width:6em; font:inherit; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:#111821; color:var(--tx); }
+  .sw { position:relative; width:52px; height:30px; flex:none; }
+  .sw input { opacity:0; width:0; height:0; }
+  .sw span { position:absolute; inset:0; background:#3a4556; border-radius:30px; transition:.2s; }
+  .sw span::before { content:""; position:absolute; width:24px; height:24px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+  .sw input:checked + span { background:var(--acc); }
+  .sw input:checked + span::before { transform:translateX(22px); }
+  .stat { font-size:28px; font-weight:700; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; text-align:center; }
+  #msg { min-height:1.5em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Trasso – panou de control</h1>
+  <p id="msg" class="mut">Se încarcă…</p>
+
+  <section class="card" id="login" hidden>
+    <p class="mut">Intră cu contul de administrator (asahixu02@gmail.com).</p>
+    <button class="pri big" id="btnIn">Conectează-te cu Google</button>
+  </section>
+
+  <div id="panel" hidden><div style="display:grid;gap:16px">
+    <section class="card">
+      <div class="row">
+        <div>
+          <b>Abonamente</b>
+          <p class="mut" id="billState"></p>
+        </div>
+      </div>
+      <button class="big" id="btnBilling"></button>
+      <p class="mut">Cât timp sunt oprite, PRO și PRO+ sunt gratuite pentru toți. Când le pornești, zilele PRO+ câștigate din invitații încep să curgă de atunci. Pornește-le abia după ce ai PFA-ul și produsele <code>trasso_pro</code> / <code>trasso_pro_plus</code> sunt active în Google Play.</p>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <div><b>Campania „Adu un prieten”</b><p class="mut">Cine invită primește PRO+ gratuit.</p></div>
+        <label class="sw"><input type="checkbox" id="refOn"><span></span></label>
+      </div>
+      <div class="row"><span>Zile PRO+ per prieten</span><input type="number" id="refDays" min="0" max="365"></div>
+      <div class="row"><span>Câți prieteni aduc recompensă, în total, per persoană</span><input type="number" id="refMax" min="0" max="50"></div>
+      <div class="row"><span>Codul merge doar pentru conturi mai noi de (zile)</span><input type="number" id="refAge" min="1" max="90"></div>
+    </section>
+
+    <section class="card">
+      <b>Salvare în cloud</b>
+      <div class="row"><span>Desene maxime per utilizator</span><input type="number" id="cMax" min="0" max="200"></div>
+      <div class="row"><span>Mărime maximă per desen (MB)</span><input type="number" id="cMB" min="1" max="100"></div>
+    </section>
+
+    <button class="pri big" id="btnSave">Salvează setările</button>
+
+    <section class="card">
+      <b>Cifre</b>
+      <div class="grid">
+        <div><div class="stat" id="nUsers">–</div><p class="mut">conturi</p></div>
+        <div><div class="stat" id="nRefs">–</div><p class="mut">invitații folosite</p></div>
+        <div><div class="stat" id="nPro">–</div><p class="mut">cu PRO+ bonus</p></div>
+      </div>
+    </section>
+    <button id="btnOut">Deconectează-te</button>
+  </div></div>
+</main>
+
+<script type="module">
+const CDN = 'https://www.gstatic.com/firebasejs/12.0.0';
+const { initializeApp } = await import(`${CDN}/firebase-app.js`);
+const A = await import(`${CDN}/firebase-auth.js`);
+const F = await import(`${CDN}/firebase-firestore.js`);
+
+const app = initializeApp({
+  apiKey: 'AIzaSyCse1cEsIUsA89pAMe7GByUXkW6L9Sq0K0',
+  authDomain: 'trasso-sub.firebaseapp.com',
+  projectId: 'trasso-sub',
+  storageBucket: 'trasso-sub.firebasestorage.app',
+  messagingSenderId: '1068653973101',
+  appId: '1:1068653973101:web:98bb92fd2179b2d9367964',
+});
+const auth = A.getAuth(app);
+const db = F.getFirestore(app);
+const ADMINS = ['asahixu02@gmail.com'];
+const $ = (id) => document.getElementById(id);
+const msg = (t) => { $('msg').textContent = t; };
+const cfgRef = F.doc(db, 'config/app');
+const DEF = { billingEnabled: false, referralEnabled: true, referralRewardDays: 30, referralMaxPerUser: 2,
+  referralMaxAccountAgeDays: 14, cloudMaxProjects: 10, cloudMaxMB: 50,
+  products: { trasso_pro: 'pro', trasso_pro_plus: 'proplus' } };
+let cfg = { ...DEF };
+
+$('btnIn').onclick = () => A.signInWithPopup(auth, new A.GoogleAuthProvider()).catch((e) => msg('Conectarea n-a mers: ' + e.code));
+$('btnOut').onclick = () => A.signOut(auth);
+
+function show() {
+  const on = cfg.billingEnabled === true;
+  $('billState').textContent = on ? '● PORNITE – utilizatorii plătesc prin Google Play' : '○ OPRITE – totul e gratuit (perioada de lansare)';
+  $('btnBilling').textContent = on ? 'Oprește abonamentele (totul redevine gratuit)' : 'Pornește abonamentele';
+  $('btnBilling').className = 'big ' + (on ? '' : 'danger');
+  $('refOn').checked = cfg.referralEnabled !== false;
+  $('refDays').value = cfg.referralRewardDays;
+  $('refMax').value = cfg.referralMaxPerUser;
+  $('refAge').value = cfg.referralMaxAccountAgeDays;
+  $('cMax').value = cfg.cloudMaxProjects;
+  $('cMB').value = cfg.cloudMaxMB;
+}
+async function write(extra) {
+  const int = (id, min, max) => Math.max(min, Math.min(max, parseInt($(id).value, 10) || 0));
+  const next = { ...DEF, ...cfg,
+    referralEnabled: $('refOn').checked,
+    referralRewardDays: int('refDays', 0, 365),
+    referralMaxPerUser: int('refMax', 0, 50),
+    referralMaxAccountAgeDays: int('refAge', 1, 90),
+    cloudMaxProjects: int('cMax', 0, 200),
+    cloudMaxMB: int('cMB', 1, 100),
+    ...extra, updatedAt: F.serverTimestamp() };
+  delete next.note;
+  await F.setDoc(cfgRef, next);
+}
+$('btnSave').onclick = () => write({}).then(() => msg('Setări salvate.'), (e) => msg('Nu am putut salva: ' + e.code));
+$('btnBilling').onclick = async () => {
+  const turnOn = cfg.billingEnabled !== true;
+  const q = turnOn
+    ? 'Pornești abonamentele? De acum PRO și PRO+ cer abonament în Google Play, iar zilele bonus din invitații încep să curgă.'
+    : 'Oprești abonamentele? PRO și PRO+ redevin gratuite pentru toți.';
+  if (!confirm(q)) return;
+  if (turnOn && !confirm('Ultima verificare: ai PFA și produsele sunt active în Google Play?')) return;
+  try { await write({ billingEnabled: turnOn }); msg(turnOn ? 'Abonamentele sunt pornite.' : 'Abonamentele sunt oprite.'); }
+  catch (e) { msg('Nu am putut schimba: ' + e.code); }
+};
+
+let unsub = null;
+A.onAuthStateChanged(auth, async (u) => {
+  if (unsub) { unsub(); unsub = null; }
+  const isAdmin = u && u.emailVerified && ADMINS.includes(u.email);
+  $('login').hidden = !!isAdmin;
+  $('panel').hidden = !isAdmin;
+  if (!u) return msg('Nu ești conectat.');
+  if (!isAdmin) return msg(`${u.email} nu e cont de administrator.`);
+  msg('Conectat ca ' + u.email);
+  unsub = F.onSnapshot(cfgRef, (s) => { cfg = { ...DEF, ...(s.exists() ? s.data() : {}) }; show(); });
+  try {
+    const [a, b, c] = await Promise.all([
+      F.getCountFromServer(F.collection(db, 'users')),
+      F.getCountFromServer(F.collection(db, 'referrals')),
+      F.getCountFromServer(F.query(F.collection(db, 'users'), F.where('bonusDays', '>', 0))),
+    ]);
+    $('nUsers').textContent = a.data().count; $('nRefs').textContent = b.data().count; $('nPro').textContent = c.data().count;
+  } catch (e) { console.warn(e); }
+});
+</script>
+</body>
+</html>
