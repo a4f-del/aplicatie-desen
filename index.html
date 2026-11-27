@@ -21742,6 +21742,53 @@ function trExpModes(d){
   /* când meniul se deschide sau se închide, șina se ascunde / apare */
   var t=0;(function w(){var sd=document.getElementById('drSide');if(sd){new MutationObserver(sync).observe(sd,{attributes:true,attributeFilter:['hidden']});}else if(t++<200)setTimeout(w,300);})();
 })();
+/* ---------- B5: durata cadrului se vede pe bandă și se trage cu mânerul; „adaugă N cadre pe 2 / pe 3” ---------- */
+(function(){
+  var T=AN.T,E=AN.E,CELL=16;
+  var st=document.createElement('style');st.textContent=
+    '.anstrip .anfr{display:inline-flex;align-items:stretch;gap:0}.anhold{display:flex;align-items:center;gap:2px;padding-left:3px}.anhold i{width:'+(CELL-2)+'px;height:60%;border-radius:4px;background:rgba(242,169,59,.28);display:block}'+
+    '.anhh{position:absolute;right:-8px;top:50%;transform:translateY(-50%);width:16px;height:44px;border-radius:8px;background:#F2A93B;cursor:ew-resize;touch-action:none;display:grid;place-items:center;z-index:2}.anhh::after{content:"";width:2px;height:18px;border-left:2px solid #2a1a00;border-right:2px solid #2a1a00;opacity:.55}'+
+    '.anhlab{position:absolute;right:-6px;top:-22px;background:#F2A93B;color:#2a1a00;font:700 12px system-ui,sans-serif;border-radius:6px;padding:1px 6px;pointer-events:none}';
+  document.head.appendChild(st);
+  function deco(){
+    var A=AN.A,U=AN.UI;if(!A||!U||A.kind!=='cel')return;
+    [].forEach.call(U.strip.querySelectorAll('.anfr'),function(b,i){
+      var f=A.frames[i];if(!f)return;var h=f.hold||1;
+      var hd=b.querySelector('.anhold');if(!hd){hd=E('div','anhold');b.appendChild(hd);}
+      if(hd.childElementCount!==h-1){hd.innerHTML='';for(var k=1;k<h;k++)hd.appendChild(E('i'));}
+      var cur=b.getAttribute('aria-current')==='true',hh=b.querySelector('.anhh');
+      if(cur&&!hh){hh=E('div','anhh');hh.setAttribute('role','slider');hh.setAttribute('aria-label',T('Trage ca să schimbi cât ține cadrul','Drag to change how long the frame lasts'));hh.setAttribute('aria-valuemin','1');hh.setAttribute('aria-valuemax','12');b.appendChild(hh);bind(hh);}
+      if(!cur&&hh)hh.remove();if(cur&&hh)hh.setAttribute('aria-valuenow',String(h));
+    });
+  }
+  function bind(hh){
+    var d=null;
+    hh.addEventListener('pointerdown',function(e){e.stopPropagation();e.preventDefault();var A=AN.A;d={x:e.clientX,h0:AN.curF().hold||1,h:AN.curF().hold||1};try{hh.setPointerCapture(e.pointerId);}catch(_){}
+      var l=E('div','anhlab','×'+d.h0);hh.parentNode.appendChild(l);d.l=l;});
+    hh.addEventListener('pointermove',function(e){if(!d)return;e.stopPropagation();d.h=Math.max(1,Math.min(12,d.h0+Math.round((e.clientX-d.x)/CELL)));d.l.textContent='×'+d.h;
+      var hd=hh.parentNode.querySelector('.anhold');if(hd&&hd.childElementCount!==d.h-1){hd.innerHTML='';for(var k=1;k<d.h;k++)hd.appendChild(E('i'));}});
+    function end(e){if(!d)return;e.stopPropagation();var h=d.h;if(d.l)d.l.remove();var ch=h!==d.h0;d=null;if(ch){AN.setHold(h);AN.toast(T('Cadrul ține ','The frame lasts ')+h+T(h===1?' cadru.':' cadre.',h===1?' frame.':' frames.'));}}
+    hh.addEventListener('pointerup',end);hh.addEventListener('pointercancel',end);
+    hh.addEventListener('click',function(e){e.stopPropagation();});
+  }
+  AN.insertOn=function(n,h){
+    var A=AN.A;if(!A||A.kind!=='cel')return;
+    if(A.frames.length+n>AN.maxFrames(A.w,A.h))return AN.toast(T('Nu mai e loc pentru atâtea cadre.','No room for that many frames.'));
+    AN.stopPlay();AN.commitSel();
+    AN.pushSwap(function(){return {f:A.frames.slice(),c:A.cur};},function(v){A.frames=v.f;A.cur=Math.min(v.c,A.frames.length-1);AN.strip();AN.selFrame();AN.dirty();AN.durNote&&AN.durNote();});
+    var add=[];for(var i=0;i<n;i++){var f=AN.newFrame(A.w,A.h);f.hold=h;add.push(f);}
+    A.frames=A.frames.slice(0,A.cur+1).concat(add,A.frames.slice(A.cur+1));A.cur++;
+    AN.strip();AN.selFrame();AN.dirty();AN.durNote&&AN.durNote();
+    AN.toast(T('Am adăugat '+n+' cadre goale, fiecare ține '+h+'.','Added '+n+' empty frames, each held for '+h+'.'));
+  };
+  var t=0;(function w(){if(AN.UI&&AN.UI.strip){new MutationObserver(deco).observe(AN.UI.strip,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-current']});deco();}else if(t++<2000)setTimeout(w,400);})();
+  /* rândul nou în meniul cadrului */
+  var oMenu=AN.frameMenu;AN.frameMenu=function(anchor){oMenu(anchor);var m=document.querySelector('.anfrm');if(!m)return;
+    m.appendChild(E('small',null,T('Adaugă cadre goale după acesta','Add empty frames after this one')));
+    var r=E('div','anfrmr');m.appendChild(r);
+    [[4,2,T('4 pe 2','4 on 2s')],[4,3,T('4 pe 3','4 on 3s')],[8,1,T('8 pe 1','8 on 1s')]].forEach(function(q){var b=E('button',null,q[2]);b.type='button';b.addEventListener('click',function(){AN.closeFrameMenu();AN.insertOn(q[0],q[1]);});r.appendChild(b);});
+    var rc=anchor.getBoundingClientRect(),mh=m.offsetHeight;var y=rc.top-mh-8;if(y<8)y=Math.min(innerHeight-mh-8,rc.bottom+8);m.style.top=y+'px';};
+})();
 /*UX2611-MOD-END*/
 })();
 </script>
