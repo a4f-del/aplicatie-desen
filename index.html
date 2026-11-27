@@ -21673,6 +21673,36 @@ function trExpModes(d){
   function mirror(){document.body.classList.toggle('anmirror',DR.railSide==='R');}
   setInterval(function(){if(!AN.UI||AN.UI.ov.hidden)return;tabs();size();mirror();},400);
 })();
+/* ---------- A4: ține degetul pe un panou al paginii → desenezi doar în el (stiloul desenează, degetul alege) ---------- */
+(function(){
+  var t=0,st=null;
+  function inPoly(x,y,P){var c=false;for(var i=0,j=P.length-1;i<P.length;j=i++){var a=P[i],b=P[j];if(((a[1]>y)!==(b[1]>y))&&(x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0]))c=!c;}return c;}
+  window.__uxPanelAt=function(cx,cy){
+    if(!DR.ready||DR.kind!=='page'||DR.link||typeof S==='undefined'||!S.page)return -1;
+    var r=DR.disp.getBoundingClientRect(),p=drS2V([cx-r.left,cy-r.top]),k=DR.w/PW,qs=pageQuads(S.page.layout);
+    for(var i=0;i<qs.length;i++)if(inPoly(p[0]/k,p[1]/k,qs[i].p))return i;return -1;
+  };
+  function cancel(){clearTimeout(t);st=null;}
+  function hook(){
+    var c=DR.disp;if(!c||c.__uxlp)return;c.__uxlp=1;
+    c.addEventListener('pointerdown',function(e){
+      cancel();if(e.pointerType!=='touch'||!DR.stylusOnly)return;
+      if(Object.keys(DR.ptr).filter(function(id){return DR.ptr[id].t==='touch';}).length>1)return;
+      st={id:e.pointerId,x:e.clientX,y:e.clientY};
+      t=setTimeout(function(){
+        if(!st)return;var n=(DR.kind==='page'&&S.page)?pageQuads(S.page.layout).length:0;if(n<2)return;
+        var i=window.__uxPanelAt(st.x,st.y);st=null;if(i<0)return;
+        if(DR.gest&&DR.gest.kind==='pan'&&DR.gest.v0){DR.v.s=DR.gest.v0.s;DR.v.x=DR.gest.v0.x;DR.v.y=DR.gest.v0.y;}
+        DR.gest=null;DR.panel=i;DR.clip=true;drSync();drDirty();
+        try{navigator.vibrate&&navigator.vibrate(15);}catch(_){}
+        drMsg(trL('Desenezi doar în panoul ','You draw only inside panel ')+(i+1)+trL('. Ține degetul pe alt panou ca să schimbi.','. Hold your finger on another panel to switch.'));
+      },550);
+    });
+    c.addEventListener('pointermove',function(e){if(st&&e.pointerId===st.id&&Math.hypot(e.clientX-st.x,e.clientY-st.y)>12)cancel();});
+    ['pointerup','pointercancel'].forEach(function(n){c.addEventListener(n,function(e){if(st&&e.pointerId===st.id)cancel();});});
+  }
+  var tries=0;(function w(){if(DR.disp)hook();else if(tries++<200)setTimeout(w,300);})();
+})();
 /*UX2611-MOD-END*/
 })();
 </script>
