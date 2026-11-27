@@ -19046,7 +19046,7 @@ var AN=(function(){
   function toBlob(c,type,q){return new Promise(function(res){c.toBlob(function(b){res(b);},type||'image/png',q);});}
   function blobCv(b,w,h){return new Promise(function(res){if(!b){res(MK(w,h));return;}var u=URL.createObjectURL(b),i=new Image();i.onload=function(){var c=MK(w||i.naturalWidth,h||i.naturalHeight);c.getContext('2d').drawImage(i,0,0);URL.revokeObjectURL(u);res(c);};i.onerror=function(){URL.revokeObjectURL(u);res(MK(w,h));};i.src=u;});}
   /* ---------- formate și limite ---------- */
-  var FMT={sq:[864,864],wide:[1080,608],tall:[608,1080]};
+  var FMT={sq:[864,864],wide:[1080,608],tall:[608,1080],post:[864,1080]};
   var MEM=360e6;/* buget aproximativ pentru cadre (octeți) */
   function maxFrames(w,h){return Math.max(8,Math.floor(MEM/(w*h*4*1.15)));}
   /* ---------- starea ---------- */
@@ -19088,7 +19088,7 @@ var AN=(function(){
       if(!D.frames.length)D.frames=[newFrame(D.w,D.h)];D.cur=Math.min(D.cur,D.frames.length-1);
       return (AN.ppLoad&&D.ppRec?AN.ppLoad(D):Promise.resolve()).then(function(){return D;});});});}
   /* ---------- compunere ---------- */
-  function composeTo(x,i,k,D){D=D||A;if(D.kind==='film'&&AN.filmThumb){AN.filmThumb(x,k,D);return;}x.save();x.setTransform(k,0,0,k,0,0);x.fillStyle='#fff';x.fillRect(0,0,D.w,D.h);x.drawImage(D.bg,0,0);
+  function composeTo(x,i,k,D){D=D||A;if(D.kind==='film'&&AN.filmThumb){AN.filmThumb(x,k,D);return;}x.save();x.setTransform(k,0,0,k,0,0);if(AN.transp){x.clearRect(0,0,D.w,D.h);}else{x.fillStyle='#fff';x.fillRect(0,0,D.w,D.h);x.drawImage(D.bg,0,0);}
     if(D.kind==='puppet'&&AN.ppDraw)AN.ppDraw(x,i,D);else if(D.frames[i]){if(D.frames[i].cl)x.drawImage(D.frames[i].cl,0,0);x.drawImage(D.frames[i].c,0,0);}
     if(AN.fxDraw)AN.fxDraw(x,i,D);x.restore();}
   var TMP=null;
@@ -19568,7 +19568,7 @@ var AN=(function(){
     function paint(){[].forEach.call(s.children,function(b,i){b.setAttribute('aria-pressed',String(opts[i][0]===cur));});}paint();return function(){return cur;};}
   var MOV=[['lin',T('Lin · 24/s','Smooth · 24/s'),24,1],['anime',T('Ca în anime · 12/s','Anime style · 12/s'),12,2],['fast',T('Rapid · 8/s','Snappy · 8/s'),8,1]];
   function zero(p,close){
-    var f=segIn(p,T('Formatul','Format'),[['wide',T('Lat 16:9','Wide 16:9')],['sq',T('Pătrat','Square')],['tall',T('Vertical 9:16','Vertical 9:16')]],'wide');
+    var f=segIn(p,T('Formatul','Format'),[['wide',T('Lat 16:9','Wide 16:9')],['sq',T('Pătrat','Square')],['tall',T('Vertical 9:16','Vertical 9:16')],['post',T('Postare 4:5','Post 4:5')]],'wide');
     var m=segIn(p,T('Mișcarea','Motion'),MOV.map(function(x){return [x[0],x[1]];}),'anime');
     p.appendChild(E('p','annote',T('„Ca în anime”: 12 cadre pe secundă, iar fiecare desen ține 2 cadre. Se poate schimba oricând.','“Anime style”: 12 frames per second, each drawing held for 2 frames. You can change it any time.')));
     foot(p,T('Începe','Start'),function(){var fm=AN.FMT[f()],mv=MOV.filter(function(x){return x[0]===m();})[0];var D=AN.newDoc({w:fm[0],h:fm[1],fps:mv[2]});D.frames[0].hold=mv[3];
@@ -20316,13 +20316,15 @@ var AN=(function(){
       b.appendChild(E('p','annote',T('Alegi formatul. Exportul se face pe dispozitiv, fără internet.','Choose the format. Export runs on your device, no internet needed.')));
       var sz=1;b.appendChild(E('div','anlab',T('Mărimea','Size')));var ss=E('div','anseg');b.appendChild(ss);
       [[1,'100% ('+D.w+'×'+D.h+')'],[.5,'50%']].forEach(function(o){var x=E('button',null,o[1]);x.type='button';x.setAttribute('aria-pressed',String(o[0]===sz));x.addEventListener('click',function(){sz=o[0];[].forEach.call(ss.children,function(y){y.setAttribute('aria-pressed',String(y===x));});});ss.appendChild(x);});
+      /* 2026.11.27: PNG cu fundal transparent (doar desenele de pe cadre), pentru alte programe */
+      var tp=false;if(D.kind==='cel'){var tl=E('label','antg');tl.style.marginTop='10px';tl.appendChild(E('span',null,T('PNG cu fundal transparent (fără fundal și fără alb)','PNG with a transparent background (no background, no white)')));var ti=E('input');ti.type='checkbox';ti.addEventListener('change',function(){tp=ti.checked;});tl.appendChild(ti);b.appendChild(tl);}
       var ch=E('div','anchoices');ch.style.marginTop='12px';b.appendChild(ch);b.appendChild(info);
       var busy=false;var run=function(kind){if(busy)return;busy=true;[].forEach.call(ch.children,function(y){y.disabled=true;});var say=function(t){info.textContent=t;};say(T('Pregătesc…','Preparing…'));
         seqOf(D).then(function(S){var nm=safe(D.name);
           if(kind==='gif')return gif(S,sz,say).then(function(bl){return saveBlob(bl,nm+'.gif');});
           if(kind==='video')return video(S,sz,say).then(function(bl){return saveBlob(bl,nm+(bl.type.indexOf('mp4')>=0?'.mp4':'.webm'));});
-          if(kind==='png')return pngs(S,sz,say,nm).then(function(bl){return saveBlob(bl,nm+'_cadre.zip');});
-          var c=MK(Math.round(S.w*sz),Math.round(S.h*sz));S.frame(D.kind==='puppet'?D.pp.t:D.kind==='film'?0:Math.max(0,AN.ticksBefore?AN.ticksBefore():0),c.getContext('2d'),sz);return AN.toBlob(c).then(function(bl){return saveBlob(bl,nm+'.png');});})
+          if(kind==='png'){AN.transp=tp;return pngs(S,sz,say,nm).then(function(bl){AN.transp=false;return saveBlob(bl,nm+'_cadre.zip');},function(e){AN.transp=false;throw e;});}
+          var c=MK(Math.round(S.w*sz),Math.round(S.h*sz));AN.transp=tp;try{S.frame(D.kind==='puppet'?D.pp.t:D.kind==='film'?0:Math.max(0,AN.ticksBefore?AN.ticksBefore():0),c.getContext('2d'),sz);}finally{AN.transp=false;}return AN.toBlob(c).then(function(bl){return saveBlob(bl,nm+'.png');});})
         .then(function(m){busy=false;say(typeof m==='string'?m:T('Gata.','Done.'));[].forEach.call(ch.children,function(y){y.disabled=false;});},
           function(e){busy=false;[].forEach.call(ch.children,function(y){y.disabled=false;});say(e&&e.message==='novideo'?T('Browserul acesta nu poate face video. Alege GIF.','This browser cannot make video. Choose GIF.'):T('Exportul n-a mers. Încearcă la 50%.','Export failed. Try at 50%.'));});};
       [['gif',T('GIF','GIF'),T('Pentru mesaje și rețele. Se repetă singur.','For messages and social posts. Loops by itself.')],
@@ -21884,6 +21886,37 @@ function trExpModes(d){
     var cel=AN.A&&AN.A.kind==='cel';box.hidden=!cel;if(!cel&&AN.lt.on){AN.lt.on=false;lt.setAttribute('aria-pressed','false');}
   }
   var lastA=null;setInterval(function(){if(!AN.UI||AN.UI.ov.hidden)return;ensure();if(AN.A!==lastA){lastA=AN.A;AN.lt.on=false;AN.lt.dx=AN.lt.dy=0;if(lt)lt.setAttribute('aria-pressed','false');}},400);
+})();
+/* ---------- B8: „Animează panoul”: din pagina de manga deschizi animația cu panoul ales ca fundal ---------- */
+(function(){
+  AN.fromPanel=function(i){
+    if(!DR.ready||DR.kind!=='page'||typeof S==='undefined'||!S.page)return null;
+    if(!AN.proPlus()){AN.proInfo();return null;}
+    var qs=pageQuads(S.page.layout),q=qs[i];if(!q)return null;
+    if(DR.float)drFloatCommit();
+    var k=DR.w/PW,bx=Math.max(0,Math.floor(q.x*k)),by=Math.max(0,Math.floor(q.y*k)),bw=Math.min(DR.w-bx,Math.ceil(q.w*k)),bh=Math.min(DR.h-by,Math.ceil(q.h*k));
+    if(bw<8||bh<8)return null;
+    var flat=drFlat(false);
+    var L=1080,ar=bw/bh,w,h;if(ar>=1){w=L;h=Math.round(L/ar);}else{h=L;w=Math.round(L*ar);}
+    w=Math.max(360,w-(w%2));h=Math.max(360,h-(h%2));
+    var D=AN.newDoc({w:w,h:h,fps:12});D.name=trL('Panoul ','Panel ')+(i+1)+' · '+(DR.name||'');D.frames[0].hold=2;
+    var x=D.bg.getContext('2d');x.save();x.fillStyle='#fff';x.fillRect(0,0,w,h);
+    x.scale(w/bw,h/bh);x.translate(-bx,-by);x.beginPath();q.p.forEach(function(a,j){j?x.lineTo(a[0]*k,a[1]*k):x.moveTo(a[0]*k,a[1]*k);});x.closePath();x.clip();x.drawImage(flat,0,0);x.restore();
+    D.bgDirty=true;D.tgt='frame';
+    drSaveNow&&drSaveNow();
+    AN.open(D);AN.save();
+    setTimeout(function(){AN.toast(AN.T('Panoul e fundalul. Desenează pe cadre doar ce se mișcă (12 cadre/s, fiecare ține 2). Exportă ca GIF sau video pentru rețele.','The panel is the background. On the frames, draw only what moves (12 fps, each held for 2). Export as GIF or video for social media.'));},400);
+    return D;
+  };
+  /* butonul, în selectorul de panou de sus */
+  function sync(){
+    var box=document.getElementById('uxPan');if(!box||box.hidden)return;var c=box.querySelector('.uxpc');if(!c||c.querySelector('.uxanim'))return;
+    if(!DR.clip)return;
+    var b=document.createElement('button');b.type='button';b.className='uxanim';b.textContent='🎞 '+trL('Animează panoul','Animate this panel');
+    b.title=trL('Deschide Animația cu acest panou ca fundal (PRO+)','Opens Animation with this panel as the background (PRO+)');b.setAttribute('aria-label',b.title);
+    b.addEventListener('click',function(){AN.fromPanel(DR.panel|0);});c.appendChild(b);
+  }
+  DR.sync.push(function(){setTimeout(sync,0);});
 })();
 /*UX2611-MOD-END*/
 })();
