@@ -21637,6 +21637,42 @@ function trExpModes(d){
   }
   setInterval(hook,500);
 })();
+/* ---------- B9: animația ca desenul: iconițe pe file, mărimea pensulei la îndemână, interfață oglindită pentru stângaci ---------- */
+(function(){
+  var T=AN.T,E=AN.E;
+  var IC={draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',lay:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+    onion:'<rect x="3" y="6" width="11" height="13" rx="2" opacity=".45"/><rect x="10" y="4" width="11" height="13" rx="2"/>',
+    play:'<path d="M7 5v14l12-7z"/>',fx:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>'};
+  var K=['draw','lay','onion','play','fx'];
+  var st=document.createElement('style');st.textContent=
+    '.anside .antabs{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))}.anside .antabs button{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:50px!important;font-size:10.5px!important;overflow:hidden;text-overflow:ellipsis}'+
+    '.anside .antabs button svg{width:20px;height:20px;flex:none}'+
+    '.anszw{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:6px;font:600 10px system-ui,sans-serif;color:var(--ink-2,#a4a29c)}'+
+    '.anszb{width:44px;height:40px;flex:none;border-radius:10px;border:1px solid var(--rule,#3a3b40);background:var(--card,#2a2b30);color:var(--ink,#eceae6);font:600 18px system-ui,sans-serif;cursor:pointer}.anszv{font:600 13px system-ui,sans-serif;color:var(--ink,#eceae6)}'+
+    'body.anmirror #anOv{grid-template-columns:300px minmax(0,1fr) 62px!important}body.anmirror #anOv .antools{grid-column:3;grid-row:2;border-right:0;border-left:1px solid var(--rule,#3a3b40)}body.anmirror #anOv .anstage{grid-column:2;grid-row:2}body.anmirror #anOv .anside{grid-column:1;grid-row:2;border-left:0;border-right:1px solid var(--rule,#3a3b40)}'+
+    '@media (max-width:760px){body.anmirror #anOv{grid-template-columns:minmax(0,1fr)!important}body.anmirror #anOv .antools,body.anmirror #anOv .anstage,body.anmirror #anOv .anside{grid-column:auto;grid-row:auto}.anszw{display:none}}';
+  document.head.appendChild(st);
+  function tabs(){
+    var t=document.querySelector('#anOv .anside .antabs');if(!t)return;
+    [].forEach.call(t.querySelectorAll('button'),function(b,i){if(b.querySelector('svg')||!K[i])return;
+      b.insertAdjacentHTML('afterbegin','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[K[i]]+'</svg>');});
+  }
+  var sz=null;
+  function size(){
+    var U=AN.UI;if(!U||!U.tools)return;
+    if(!sz||!sz.isConnected){
+      sz=E('div','anszw');sz.setAttribute('role','group');sz.setAttribute('aria-label',T('Mărimea pensulei','Brush size'));
+      var p=E('button','anszb','+'),v=E('span','anszv'),m=E('button','anszb','−');p.type=m.type='button';
+      p.setAttribute('aria-label',T('Pensulă mai groasă','Thicker brush'));m.setAttribute('aria-label',T('Pensulă mai subțire','Thinner brush'));
+      function set(n){AN.size=Math.max(1,Math.min(60,n));v.textContent=AN.size;var s2=document.querySelectorAll('.anside input[type=range]');[].forEach.call(s2,function(r){if(r.max==='60'){r.value=AN.size;r.dispatchEvent(new Event('input'));}});}
+      p.addEventListener('click',function(){set(AN.size+(AN.size<10?1:AN.size<30?3:5));});m.addEventListener('click',function(){set(AN.size-(AN.size<=10?1:AN.size<=30?3:5));});
+      sz.appendChild(E('span',null,T('Mărime','Size')));sz.appendChild(p);sz.appendChild(v);sz.appendChild(m);U.tools.appendChild(sz);sz._v=v;
+    }
+    if(sz._v.textContent!==String(AN.size))sz._v.textContent=AN.size;
+  }
+  function mirror(){document.body.classList.toggle('anmirror',DR.railSide==='R');}
+  setInterval(function(){if(!AN.UI||AN.UI.ov.hidden)return;tabs();size();mirror();},400);
+})();
 /*UX2611-MOD-END*/
 })();
 </script>
