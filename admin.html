@@ -72,6 +72,17 @@
     <button class="pri big" id="btnSave">Salvează setările</button>
 
     <section class="card">
+      <b>Dă PRO / PRO+ unui cont</b>
+      <p class="mut">Pentru contul de verificare Google (trasso.review@gmail.com), testeri sau prieteni. Persoana trebuie să se fi conectat măcar o dată în Trasso. Se adaugă peste ce are deja și rămâne și după ce pornești abonamentele.</p>
+      <div class="row"><span>Email</span><input type="email" id="gEmail" placeholder="nume@gmail.com" style="flex:1;max-width:16em;font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:#111821;color:var(--tx)"></div>
+      <div class="row"><span>Plan</span><select id="gTier" style="font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:#111821;color:var(--tx)"><option value="proplus">PRO+</option><option value="pro">PRO</option></select></div>
+      <div class="row"><span>Durată</span><select id="gMode" style="font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:#111821;color:var(--tx)"><option value="days">Un număr de zile</option><option value="forever">Permanent</option><option value="revoke">Retrage ce i-am dat</option></select></div>
+      <div class="row" id="gDaysRow"><span>Zile</span><input type="number" id="gDays" min="1" max="3650" value="30"></div>
+      <button class="pri" id="btnGrant">Aplică</button>
+      <p class="mut" id="gMsg"></p>
+    </section>
+
+    <section class="card">
       <b>Cifre</b>
       <div class="grid">
         <div><div class="stat" id="nUsers">–</div><p class="mut">conturi</p></div>
@@ -88,6 +99,7 @@ const CDN = 'https://www.gstatic.com/firebasejs/12.0.0';
 const { initializeApp } = await import(`${CDN}/firebase-app.js`);
 const A = await import(`${CDN}/firebase-auth.js`);
 const F = await import(`${CDN}/firebase-firestore.js`);
+const FN = await import(`${CDN}/firebase-functions.js`);
 
 const app = initializeApp({
   apiKey: 'AIzaSyCse1cEsIUsA89pAMe7GByUXkW6L9Sq0K0',
@@ -99,13 +111,16 @@ const app = initializeApp({
 });
 const auth = A.getAuth(app);
 const db = F.getFirestore(app);
+const fns = FN.getFunctions(app, 'europe-west1');
 const ADMINS = ['asahixu02@gmail.com'];
 const $ = (id) => document.getElementById(id);
 const msg = (t) => { $('msg').textContent = t; };
 const cfgRef = F.doc(db, 'config/app');
+// abonamentele din Google Play → ce deblochează (câte unul pe lună și pe an, vezi ghidul)
+const PRODUCTS = { trasso_pro_monthly: 'pro', trasso_pro_yearly: 'pro', trasso_proplus_monthly: 'proplus', trasso_proplus_yearly: 'proplus' };
 const DEF = { billingEnabled: false, referralEnabled: true, referralRewardDays: 30, referralMaxPerUser: 2,
   referralMaxAccountAgeDays: 14, cloudMaxProjects: 10, cloudMaxMB: 50,
-  products: { trasso_pro: 'pro', trasso_pro_plus: 'proplus' } };
+  products: PRODUCTS };
 let cfg = { ...DEF };
 
 $('btnIn').onclick = () => A.signInWithPopup(auth, new A.GoogleAuthProvider()).catch((e) => msg('Conectarea n-a mers: ' + e.code));
@@ -132,6 +147,7 @@ async function write(extra) {
     referralMaxAccountAgeDays: int('refAge', 1, 90),
     cloudMaxProjects: int('cMax', 0, 200),
     cloudMaxMB: int('cMB', 1, 100),
+    products: PRODUCTS,
     ...extra, updatedAt: F.serverTimestamp() };
   delete next.note;
   await F.setDoc(cfgRef, next);
@@ -146,6 +162,26 @@ $('btnBilling').onclick = async () => {
   if (turnOn && !confirm('Ultima verificare: ai PFA și produsele sunt active în Google Play?')) return;
   try { await write({ billingEnabled: turnOn }); msg(turnOn ? 'Abonamentele sunt pornite.' : 'Abonamentele sunt oprite.'); }
   catch (e) { msg('Nu am putut schimba: ' + e.code); }
+};
+
+$('gMode').onchange = () => { $('gDaysRow').hidden = $('gMode').value !== 'days'; };
+const GERR = { 'no-user': 'Nu există niciun cont Trasso cu emailul ăsta. Persoana trebuie să se conecteze o dată în aplicație.',
+  'no-profile': 'Contul există, dar profilul nu e gata. Mai încearcă peste un minut.', 'bad-email': 'Emailul nu arată bine.',
+  'bad-days': 'Zilele trebuie să fie între 1 și 3650.', 'not-admin': 'Doar contul de admin poate face asta.' };
+$('btnGrant').onclick = async () => {
+  const email = $('gEmail').value.trim(), tier = $('gTier').value, mode = $('gMode').value, days = parseInt($('gDays').value, 10) || 0;
+  const what = mode === 'revoke' ? `Retragi ${tier === 'pro' ? 'PRO' : 'PRO+'} dat manual lui ${email}?`
+    : `Dai ${tier === 'pro' ? 'PRO' : 'PRO+'} ${mode === 'forever' ? 'permanent' : 'pentru ' + days + ' zile'} lui ${email}?`;
+  if (!email || !confirm(what)) return;
+  $('gMsg').textContent = 'Se aplică…';
+  try {
+    const r = await FN.httpsCallable(fns, 'adminGrant')({ email, tier, mode, days });
+    const u = r.data.until;
+    $('gMsg').textContent = mode === 'revoke' ? 'Gata, retras.' : u >= Date.UTC(2099, 0, 1) ? 'Gata, permanent.' : 'Gata, valabil până pe ' + new Date(u).toLocaleDateString('ro-RO') + '.';
+  } catch (e) {
+    const k = (e && e.message) || '';
+    $('gMsg').textContent = GERR[k] || (e.code === 'functions/not-found' ? 'Funcția adminGrant nu e încă publicată (vezi ghidul, pasul „Dă PRO+”).' : 'Nu a mers: ' + (k || e.code));
+  }
 };
 
 let unsub = null;

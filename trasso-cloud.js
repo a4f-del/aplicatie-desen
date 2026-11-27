@@ -66,9 +66,11 @@ F.onSnapshot(F.doc(db, 'config/app'), (s) => {
 
 /* ---------- contul ---------- */
 let unsubUser = null;
+let restoredOnce = false;
 A.onAuthStateChanged(auth, async (u) => {
   if (unsubUser) { unsubUser(); unsubUser = null; }
   if (!u) {
+    restoredOnce = false;
     Object.assign(state, { uid: null, name: null, email: null, ent: {}, code: null, bonusDays: 0, invited: 0, referredBy: null });
     save();
     return;
@@ -102,6 +104,7 @@ A.onAuthStateChanged(auth, async (u) => {
     });
     save();
     autoRedeem();
+    if (state.cfg && state.cfg.billingEnabled && !restoredOnce) { restoredOnce = true; restore(false); }
   }, () => {});
 });
 
@@ -242,6 +245,166 @@ async function deleteAccount() {
   }
 }
 
+/* ---------- abonamente prin Google Play (Digital Goods API, doar în aplicația din Play) ---------- */
+/* Patru abonamente separate, fiecare cu un singur plan de bază și oferta „7 zile gratuit”.
+   Așa le vede sigur Digital Goods API (vede doar planul „backwards compatible” al fiecărui abonament). */
+const PLAY_PKG = 'io.github.a4fdel.trasso';
+const PLAY_METHOD = 'https://play.google.com/billing';
+const PLANS = [
+  { id: 'trasso_pro_monthly', tier: 'pro', per: 'm' },
+  { id: 'trasso_pro_yearly', tier: 'pro', per: 'y' },
+  { id: 'trasso_proplus_monthly', tier: 'proplus', per: 'm' },
+  { id: 'trasso_proplus_yearly', tier: 'proplus', per: 'y' },
+];
+const FEAT = {
+  pro: [
+    ['Coafuri din 8 unghiuri, ochi Pro, Lira cu 15 emoții, NPC-uri', 'Hairstyles from 8 angles, Pro eyes, Lira with 15 emotions, NPCs'],
+    ['Fundalul 3D și elementele PRO din bibliotecă', 'The 3D background and PRO library items'],
+    ['Salvare în cloud și deschidere pe altă tabletă', 'Cloud save, open on another tablet'],
+  ],
+  proplus: [
+    ['Tot ce are PRO', 'Everything in PRO'],
+    ['Animation: cadru cu cadru, animație rapidă, marionetă, Film', 'Animation: frame by frame, quick animation, puppet, Film'],
+    ['Export GIF și video', 'GIF and video export'],
+  ],
+};
+let DGS; // undefined = neîncercat, null = nu e disponibil (browser, nu aplicația din Play)
+async function dgs() {
+  if (DGS !== undefined) return DGS;
+  DGS = null;
+  if ('getDigitalGoodsService' in window) {
+    try { DGS = await window.getDigitalGoodsService(PLAY_METHOD); } catch (e) { DGS = null; }
+  }
+  return DGS;
+}
+let DETAILS = null;
+async function planDetails() {
+  if (DETAILS) return DETAILS;
+  const s = await dgs();
+  if (!s) return null;
+  try {
+    const list = await s.getDetails(PLANS.map((p) => p.id));
+    DETAILS = {};
+    (list || []).forEach((d) => { DETAILS[d.itemId] = d; });
+    return DETAILS;
+  } catch (e) { console.warn('[Trasso] getDetails', e); return null; }
+}
+const fmtPrice = (p) => {
+  if (!p || p.value == null) return '';
+  try { return new Intl.NumberFormat(EN() ? 'en-GB' : 'ro-RO', { style: 'currency', currency: p.currency }).format(+p.value); }
+  catch (e) { return p.value + ' ' + p.currency; }
+};
+const trialDays = (iso) => { const m = /^P(\d+)([DW])$/.exec(iso || ''); return m ? (+m[1]) * (m[2] === 'W' ? 7 : 1) : 0; };
+async function verifyToken(token) {
+  const r = await FN.httpsCallable(fns, 'verifyPlaySubscription')({ purchaseToken: token });
+  return r.data;
+}
+/* reface legătura abonament ↔ cont (ex. după reinstalare); rulează singur la conectare */
+let restoring = false;
+async function restore(loud) {
+  if (restoring || !auth.currentUser) return;
+  const s = await dgs();
+  if (!s) { if (loud) say(T('Abonamentele se verifică doar în aplicația Trasso din Google Play.', 'Subscriptions can only be checked in the Trasso app from Google Play.')); return; }
+  restoring = true;
+  try {
+    const list = await s.listPurchases();
+    for (const p of list || []) { try { await verifyToken(p.purchaseToken); } catch (e) { console.warn('[Trasso] restore', e); } }
+    if (loud) say(list && list.length ? T('Am verificat abonamentul în Google Play.', 'Checked your subscription in Google Play.') : T('Nu am găsit niciun abonament Trasso în contul tău Google Play.', 'No Trasso subscription found in your Google Play account.'));
+  } catch (e) { console.warn(e); if (loud) say(T('Nu am putut verifica. Încearcă din nou.', "Couldn't check. Try again.")); }
+  finally { restoring = false; }
+}
+async function buy(plan) {
+  if (!auth.currentUser) return signIn();
+  const s = await dgs();
+  if (!s || !window.PaymentRequest) return say(T('Abonamentul se cumpără din aplicația Trasso instalată din Google Play.', 'Subscriptions are bought in the Trasso app installed from Google Play.'));
+  let resp;
+  try {
+    const req = new PaymentRequest([{ supportedMethods: PLAY_METHOD, data: { sku: plan.id } }],
+      { total: { label: 'Total', amount: { currency: 'EUR', value: '0' } } });
+    resp = await req.show();
+  } catch (e) { if (e && e.name !== 'AbortError') console.warn('[Trasso] buy', e); return; }
+  try {
+    say(T('Verific plata…', 'Checking the payment…'));
+    await verifyToken(resp.details.purchaseToken);
+    await resp.complete('success');
+    say(T('Gata! Abonamentul e activ. Mulțumesc că susții Trasso!', 'Done! Your subscription is active. Thanks for supporting Trasso!'));
+    closePlans();
+  } catch (e) {
+    try { await resp.complete('fail'); } catch (x) {}
+    const k = (e && e.message) || '';
+    say(k === 'token-other-account'
+      ? T('Abonamentul acesta e legat de alt cont Trasso. Conectează-te cu acela.', 'This subscription is linked to another Trasso account. Sign in with that one.')
+      : T('Plata a trecut, dar nu am putut-o verifica acum. Deschide Cont → „Verifică abonamentul”.', "The payment went through but I couldn't check it right now. Open Account → “Check subscription”."));
+  }
+}
+const manageUrl = (id) => `https://play.google.com/store/account/subscriptions?package=${PLAY_PKG}${id ? '&sku=' + id : ''}`;
+
+/* ---------- ecranul cu planuri ---------- */
+let PLAN = null;
+function closePlans() { if (PLAN) { PLAN.close(); PLAN = null; } }
+function openPlans(focus) {
+  if (PLAN) return;
+  const title = T('Alege planul Trasso', 'Choose your Trasso plan');
+  if (typeof window.fltOv === 'function') {
+    PLAN = window.fltOv(title, () => { PLAN = null; });
+  } else {
+    const ov = E('div', 'chrov'), card = E('div', 'chrcard'), hd = E('div', 'chrhd');
+    hd.appendChild(E('b', null, title)); hd.appendChild(B('✕', () => closePlans(), 'sm'));
+    card.appendChild(hd); ov.appendChild(card); document.body.appendChild(ov);
+    PLAN = { ov, card, close: () => ov.remove() };
+  }
+  const body = E('div', 'tcplans'); body.style.cssText = 'display:grid;gap:14px;padding:4px 2px 8px;max-width:640px';
+  PLAN.card.appendChild(body);
+  PLAN.body = body; PLAN.focus = focus === 'proplus' ? 'proplus' : 'pro'; PLAN.per = 'y';
+  renderPlans();
+  planDetails().then(() => { if (PLAN) renderPlans(); });
+}
+function renderPlans() {
+  if (!PLAN) return;
+  const b = PLAN.body; b.innerHTML = '';
+  if (!state.uid) {
+    note(b, T('Abonamentul se leagă de contul tău Trasso, ca să-l ai pe orice tabletă. Conectează-te întâi.',
+      'Your subscription is linked to your Trasso account, so you have it on any tablet. Sign in first.'));
+    row(b).appendChild(B(T('Conectează-te cu Google', 'Sign in with Google'), signIn, 'pri'));
+    return;
+  }
+  const D = DETAILS || {};
+  /* lunar / anual */
+  const sw = row(b); sw.setAttribute('role', 'group'); sw.setAttribute('aria-label', T('Perioada', 'Billing period'));
+  [['m', T('Lunar', 'Monthly')], ['y', T('Anual · −25%', 'Yearly · −25%')]].forEach(([k, t]) => {
+    const x = B(t, () => { PLAN.per = k; renderPlans(); }, k === PLAN.per ? 'pri' : '');
+    x.setAttribute('aria-pressed', String(k === PLAN.per)); sw.appendChild(x);
+  });
+  const grid = E('div'); grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px';
+  b.appendChild(grid);
+  const now = Date.now(), e = state.ent || {};
+  ['pro', 'proplus'].forEach((tier) => {
+    const plan = PLANS.find((p) => p.tier === tier && p.per === PLAN.per);
+    const d = D[plan.id];
+    const c = E('section'); grid.appendChild(c);
+    const hi = tier === PLAN.focus;
+    c.style.cssText = 'display:grid;gap:8px;align-content:start;padding:14px;border-radius:14px;border:' + (hi ? '2px solid var(--acc,#cbbba0)' : '1px solid var(--sk-line,#e3e2e7)') + ';background:var(--card,#fff)';
+    c.appendChild(E('b', null, tier === 'proplus' ? 'Trasso PRO+' : 'Trasso PRO'));
+    const pr = E('div', null, d ? fmtPrice(d.price) + (PLAN.per === 'y' ? T(' / an', ' / year') : T(' / lună', ' / month')) : '—');
+    pr.style.cssText = 'font:700 22px/1.2 var(--ui,system-ui)'; c.appendChild(pr);
+    const td = d ? trialDays(d.freeTrialPeriod) : 0;
+    if (td) note(c, T(`Primele ${td} zile gratuit, doar la primul abonament. Anulezi oricând din Google Play.`, `First ${td} days free, on your first subscription only. Cancel anytime in Google Play.`));
+    const ul = E('ul'); ul.style.cssText = 'margin:0;padding-left:18px;display:grid;gap:4px';
+    FEAT[tier].forEach((f) => ul.appendChild(E('li', null, T(f[0], f[1])))); c.appendChild(ul);
+    const active = (tier === 'proplus' ? e.proplus : e.pro) > now;
+    if (active) note(c, T('✓ Activ pe contul tău', '✓ Active on your account'));
+    else if (d) row(c).appendChild(B(td ? T('Încearcă gratuit', 'Start free trial') : T('Abonează-te', 'Subscribe'), () => buy(plan), 'pri'));
+  });
+  if (DGS === null) {
+    note(b, T('Abonamentele se cumpără din aplicația Trasso instalată din Google Play.', 'Subscriptions are bought in the Trasso app installed from Google Play.'));
+  }
+  const r = row(b);
+  r.appendChild(B(T('Am deja abonament', 'I already subscribed'), () => restore(true)));
+  const a = E('a', null, T('Gestionează în Google Play', 'Manage in Google Play')); a.href = manageUrl(); a.target = '_blank'; a.rel = 'noopener';
+  r.appendChild(a);
+}
+window.addEventListener('trasso-cloud', () => { if (PLAN) renderPlans(); });
+
 /* ---------- fereastra „Cont” ---------- */
 let OPEN = null;
 function E(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
@@ -294,6 +457,11 @@ function render() {
     note(s1, T(`⭐ PRO activ până pe ${fmtDate(e.pro)}.`, `⭐ PRO active until ${fmtDate(e.pro)}.`));
   } else {
     note(s1, T('Nu ai un abonament activ.', "You don't have an active subscription."));
+  }
+  if (cfg.billingEnabled) {
+    const r1 = row(s1);
+    r1.appendChild(B(T('Vezi planurile', 'See plans'), () => { closeAcc(); openPlans('pro'); }, 'pri'));
+    r1.appendChild(B(T('Verifică abonamentul', 'Check subscription'), () => restore(true)));
   }
   if (state.bonusDays > 0) {
     note(s1, T(`🎁 Ai strâns ${state.bonusDays} zile de PRO+ din invitații. Încep să curgă când pornesc abonamentele, deci nu le pierzi.`,
@@ -373,4 +541,7 @@ function addButton() {
 let tries = 0;
 (function wait() { if (!addButton() && tries++ < 120) setTimeout(wait, 500); })();
 
-window.TC = { openAccount, signIn, signOut, redeem, shareInvite, cloudSaveCurrent, cloudList, cloudOpen, cloudDelete, deleteAccount, state, auth };
+/* previzualizare pentru tine, cu abonamentele oprite: …/aplicatie-desen/?planuri */
+if (/[?&]planuri\b/.test(location.search)) setTimeout(() => openPlans('pro'), 800);
+
+window.TC = { openAccount, openPlans, restore, signIn, signOut, redeem, shareInvite, cloudSaveCurrent, cloudList, cloudOpen, cloudDelete, deleteAccount, state, auth };
