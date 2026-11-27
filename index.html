@@ -20666,6 +20666,33 @@ function hmShell(){
   scrim.addEventListener('click',function(){sideSet(false);});
   document.addEventListener('pointerdown',function(e){if(sideOpen()&&e.target!==scrim&&!side.contains(e.target))sideSet(false);},true);
   if(nmq){var nmf=function(){if(!nmq.matches)sideSet(false);};if(nmq.addEventListener)nmq.addEventListener('change',nmf);else if(nmq.addListener)nmq.addListener(nmf);}
+  /* 2026.11.27 – bara se deschide și cu o atingere oriunde pe lungimea ei (nu doar pe iconițe)
+     și cu o glisare spre dreapta; o glisare spre stânga o închide */
+  side.style.touchAction='pan-y';scrim.style.touchAction='pan-y';
+  side.addEventListener('click',function(e){
+    if(!(nmq&&nmq.matches)||sideOpen())return;
+    if(e.target.closest&&e.target.closest('button,a,input,select,textarea'))return;
+    sideSet(true);
+  });
+  var sw=null,swEat=0;
+  function swNarrow(){return !!(nmq&&nmq.matches);}
+  shell.addEventListener('pointerdown',function(e){
+    sw=null;if(!swNarrow()||e.button>0)return;
+    var r=side.getBoundingClientRect(),inSide=side.contains(e.target),onScrim=e.target===scrim;
+    /* închisă: pornești pe bară sau imediat lângă ea; deschisă: pe bară sau pe fundalul întunecat */
+    if(sideOpen()?(inSide||onScrim):(inSide||e.clientX<=r.right+24))sw={id:e.pointerId,x:e.clientX,y:e.clientY,open:sideOpen(),done:false};
+  },true);
+  shell.addEventListener('pointermove',function(e){
+    if(!sw||sw.done||e.pointerId!==sw.id)return;
+    var dx=e.clientX-sw.x,dy=e.clientY-sw.y;
+    if(Math.abs(dy)>Math.abs(dx)*1.2&&Math.abs(dy)>14){sw=null;return;}
+    if(!sw.open&&dx>36){sw.done=true;sideSet(true);swEat=Date.now();}
+    else if(sw.open&&dx<-36){sw.done=true;sideSet(false);swEat=Date.now();}
+  },true);
+  function swEnd(){sw=null;}
+  shell.addEventListener('pointerup',swEnd,true);shell.addEventListener('pointercancel',swEnd,true);
+  /* după o glisare, atingerea care urmează nu mai alege nimic din bară */
+  shell.addEventListener('click',function(e){if(swEat&&Date.now()-swEat<600){swEat=0;e.preventDefault();e.stopPropagation();}},true);
   var par=side; /* 2026.11.26h: fiecare grup e o casetă separată (hmgrp), cu liniuța lui de culoare */
   function grp(g,t){var x=el('div','hmgrp');x.setAttribute('data-g',g);x.appendChild(el('div','hmgl',t));side.appendChild(x);par=x;return x;}
   function nav(v,ic,t,tab){var b=el('button','hmnav');b.type='button';b.setAttribute('data-v',v);if(tab)b.setAttribute('data-t',tab);
@@ -20830,6 +20857,7 @@ function hmCss(){
   '#home .hmshare span{display:none}#home .hmshare{padding:0 12px}html body #home .hmbody{padding:14px 14px 18px}}'+
   /* 2026.11.26 – ecran îngust: prima atingere pe o iconiță deschide bara peste conținut, cu denumiri; o atingere în afară o închide */
   '#home .hmscrim{display:none}'+
+  '@media (max-width:820px){#home .hmside:not(.hmopen){cursor:pointer}}'+
   '@media (max-width:820px){#home .hmshell{position:relative}#home .hmside{position:absolute;z-index:6;left:0;top:0;bottom:0;background:var(--card,#2a2b30);transition:width .22s cubic-bezier(.2,0,0,1),box-shadow .22s}html body #home .hmbody{margin-left:62px}'+
   '#home .hmside.hmopen{width:256px;box-shadow:12px 0 32px rgba(0,0,0,.45)}#home .hmside.hmopen .hmnav{justify-content:flex-start;padding:0 12px}#home .hmside.hmopen .hmnl{display:block}#home .hmside.hmopen .hmcnt{position:static;transform:none;margin-left:auto}'+
   '#home .hmscrim:not([hidden]){display:block;position:absolute;inset:0;z-index:5;border:0;padding:0;background:rgba(8,8,10,.55);cursor:default}}'+
@@ -22328,6 +22356,17 @@ function start(){scan();fillAll();ensureChrome();requestAnimationFrame(tick);}
 if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
+<style>
+/* 2026.11.27 – cât timp alegi ce creezi (desen, pagină, capitol…), uneltele de desen nu se mai văd:
+   bara de sus, peniță/radieră, pensulele, culorile, glisoarele, bara laterală și butoanele de vedere */
+html body #dr .drapp:has(#drNew:not([hidden]))>:not(#drMain){display:none!important}
+html body #dr .drapp:has(#drNew:not([hidden])) #drMain>:not(#drWrap){display:none!important}
+html body #dr .drapp:has(#drNew:not([hidden])) #drWrap>:not(#drNew){display:none!important}
+html body #dr .drapp:has(#drNew:not([hidden])) #drWrap{inset:0;margin:0}
+/* ferestrele de creare (ex. Capitol nou) deschise peste editor: uneltele se ascund fără să se miște pânza */
+html body:has(>.cbdlg:not([hidden])) #dr .drapp>:not(#drMain),
+html body:has(>.cbdlg:not([hidden])) #dr #drWrap>:not(#drCv):not(#drNew){visibility:hidden!important}
+</style>
 <script>
 /* versiune de sine stătătoare: funcționează offline după prima deschidere */
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
