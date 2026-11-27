@@ -5464,7 +5464,9 @@ function drEndStroke(){
     drCrackPaint(st.tctx,st.path,st.seed,false);st.bb=[0,0,DR.w,DR.h];
   }
   if(st.tool==='bubble'&&!bubEnd(st)){drCancelStroke();return;}
-  if(!st.gest&&st.raw&&(st.sx!==st.raw[0]||st.sy!==st.raw[1])&&!(DR.stab==='rope'&&!DR.ropeEnd&&!st.rail))drStrokeSeg(st,[st.sx,st.sy],st.sp,st.raw,Math.min(st.rawP||st.sp,st.sp));
+  /* La ridicarea creionului nu se mai adaugă nimic: cu „Netezire”, punctul netezit rămâne în urma vârfului, iar segmentul
+     de închidere ieșea ca o linie dreaptă în plus. Linia se închide până la vârf doar pe riglă/perspectivă și la „Sfoară” cu opțiunea pornită. */
+  if(!st.gest&&st.raw&&(st.sx!==st.raw[0]||st.sy!==st.raw[1])&&(st.rail||(DR.stab==='rope'&&DR.rope>0&&DR.ropeEnd)))drStrokeSeg(st,[st.sx,st.sy],st.sp,st.raw,Math.min(st.rawP||st.sp,st.sp));
   if(st.tool==='sharp'){var kT=DR.tool;DR.tool=st.cfgTool;drSharpFlush(st,true);DR.tool=kT;}
   if(st.gl)grFlush(st);
   DR.stroke=null;
