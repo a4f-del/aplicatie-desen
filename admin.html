@@ -4,355 +4,591 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#1e1c1a">
+<meta name="theme-color" content="#1b1917">
 <title>Trasso Admin</title>
 <link rel="manifest" href="admin.webmanifest">
 <link rel="icon" href="admin-icon-192.png">
 <link rel="apple-touch-icon" href="admin-apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* Trasso Admin – grafit cald, bej Trasso, panouri ca pe o pagină de manga.
-   Un singur moment îndrăzneț: panoul mare din Rezumat (rasterul + strălucirea bej). Restul e liniștit. */
+/* Trasso Admin
+   Consolă de lucru: grafit cald + bej Trasso. Datele stau în rânduri și tabele, nu în carduri risipite.
+   Un singur moment îndrăzneț: panoul cu abonații plătitori, cu rasterul de manga. Restul e liniștit. */
 :root {
   color-scheme: dark;
-  --paper: #1e1c1a;      /* fundal: grafit cald, ca tema întunecată din Trasso */
-  --panel: #282522;      /* panouri */
-  --panel-2: #23201d;    /* câmpuri, rânduri */
-  --gutter: #3b3631;     /* contur de panou, ca tușul pe hârtie gri */
-  --ink: #f1eadf;        /* text */
-  --ink-2: #aba294;      /* text secundar */
-  --beige: #d9c6a5;      /* accentul Trasso */
-  --beige-deep: #cbbba0;
-  --glow: 0 0 0 1px rgba(217,198,165,.35), 0 0 28px rgba(217,198,165,.16);
+  --paper: #1b1917;
+  --side: #181614;
+  --panel: #23201d;
+  --raised: #2b2824;
+  --line: #36322d;
+  --line-soft: #2e2a26;
+  --ink: #f1eadf;
+  --ink-2: #a39a8d;
+  --ink-3: #7d756a;
+  --beige: #d9c6a5;
+  --on-beige: #231e18;
   --good: #9fd3a8;
   --bad: #ee9a88;
+  --amber: #e7c27d;
   --pro: #a9c6f2;
   --plus: #d3b4f5;
-  --radius-panel: 14px;
-  --radius-ctl: 10px;
+  --r-panel: 12px;
+  --r-ctl: 8px;
   --display: "Zen Kaku Gothic New", "Figtree", system-ui, sans-serif;
   --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --nav-h: 64px;
+  --side-w: 236px;
+  --tabs-h: 64px;
 }
 * { box-sizing: border-box; min-width: 0; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 var(--body); }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--body); }
 a { color: var(--beige); }
 :focus-visible { outline: 2px solid var(--beige); outline-offset: 2px; }
-@media (prefers-reduced-motion: no-preference) { .hero { animation: rise .45s ease-out both; } }
-@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+h1, h2, h3 { font-family: var(--display); margin: 0; }
+h1 { font-size: 22px; font-weight: 900; line-height: 1.15; }
+h2 { font-size: 17px; font-weight: 700; line-height: 1.3; }
+h3 { font-size: 14.5px; font-weight: 700; line-height: 1.3; }
+.mut { color: var(--ink-2); font-size: 14px; margin: 0; max-width: 70ch; }
+.small { font-size: 13px; }
+.num { font-family: var(--display); font-variant-numeric: tabular-nums; }
+.pos { color: var(--good) !important; } .neg { color: var(--bad) !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.wrap { max-width: 1040px; margin: 0 auto; padding: 18px 16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom)); display: grid; gap: 18px; }
-.top { display: flex; align-items: center; gap: 12px; }
-.top img { width: 40px; height: 40px; border-radius: 11px; flex: none; }
-.top .t { flex: 1; display: grid; }
-.top h1 { font: 900 21px/1.1 var(--display); margin: 0; letter-spacing: .01em; }
-.top .who { color: var(--ink-2); font-size: 13px; }
-.pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 99px; font-size: 13.5px; border: 1px solid var(--gutter); background: var(--panel-2); white-space: nowrap; }
-.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-.pill.on { color: var(--good); border-color: rgba(159,211,168,.4); }
-.pill.off { color: var(--beige); border-color: rgba(217,198,165,.4); }
-
-h2 { font: 700 18px/1.25 var(--display); margin: 0; }
-h3 { font: 700 15.5px/1.3 var(--display); margin: 0; }
-.mut { color: var(--ink-2); font-size: 14px; margin: 0; max-width: 72ch; }
-.status { color: var(--ink-2); font-size: 13.5px; min-height: 1.3em; margin: 0; }
-
-/* panouri: contur ca pe pagina de manga, colțuri ușor rotunjite */
-.panel { background: var(--panel); border: 1.5px solid var(--gutter); border-radius: var(--radius-panel); padding: 16px; display: grid; gap: 12px; align-content: start; }
-.panel.quiet { background: transparent; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-
-/* butoane și câmpuri */
+/* ---------- controale ---------- */
 button, select, input { font: inherit; color: var(--ink); }
-button { min-height: 44px; padding: 10px 16px; border-radius: var(--radius-ctl); border: 1.5px solid var(--gutter); background: var(--panel-2); cursor: pointer; }
-button:hover { border-color: #57504a; }
-button.pri { background: var(--beige); border-color: var(--beige); color: #241f19; font-weight: 700; box-shadow: var(--glow); }
-button.big { width: 100%; font-size: 16.5px; padding: 14px; }
-button.warn { background: transparent; border-color: var(--beige); color: var(--beige); font-weight: 700; }
-button.sm { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 14px; border-radius: var(--r-ctl);
+  border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 600; font-size: 14.5px; white-space: nowrap; text-decoration: none; color: var(--ink); }
+.btn:hover { border-color: #504942; }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn.pri { background: var(--beige); border-color: var(--beige); color: var(--on-beige); }
+.btn.pri:hover { background: #e4d4b8; }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--ink-2); }
+.btn.ghost:hover { color: var(--ink); background: var(--raised); }
+.btn.danger { background: transparent; border-color: rgba(238,154,136,.5); color: var(--bad); }
+.btn.sm { min-height: 34px; padding: 5px 11px; font-size: 13.5px; }
+.btn.wide { width: 100%; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
 input[type=number], input[type=text], input[type=email], input[type=search], select {
-  min-height: 44px; padding: 8px 12px; border-radius: var(--radius-ctl); border: 1.5px solid var(--gutter); background: var(--panel-2);
-}
-input[type=number] { width: 7.5em; text-align: right; font-variant-numeric: tabular-nums; }
-.field { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 6px 0; }
-.field + .field { border-top: 1px solid rgba(59,54,49,.6); }
-.sw { position: relative; width: 52px; height: 30px; flex: none; }
-.sw input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.sw span { position: absolute; inset: 0; background: #4a443d; border-radius: 30px; transition: .2s; pointer-events: none; }
-.sw span::before { content: ""; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px; background: var(--ink); border-radius: 50%; transition: .2s; }
+  min-height: 40px; padding: 7px 11px; border-radius: var(--r-ctl); border: 1px solid var(--line); background: var(--paper); }
+input:hover, select:hover { border-color: #504942; }
+input[type=number] { width: 7em; text-align: right; font-variant-numeric: tabular-nums; }
+input:invalid { border-color: var(--bad); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.seg button { border: 0; background: transparent; border-radius: 7px; min-height: 32px; padding: 4px 12px; font-size: 14px; color: var(--ink-2); cursor: pointer; display: inline-flex; gap: 6px; align-items: baseline; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.seg button .c { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.seg button[aria-pressed="true"] .c { color: var(--beige); }
+.sw { position: relative; width: 46px; height: 26px; flex: none; display: inline-block; }
+.sw input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; z-index: 1; }
+.sw span { position: absolute; inset: 0; background: #4a443d; border-radius: 26px; transition: background .15s; pointer-events: none; }
+.sw span::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: var(--ink); border-radius: 50%; transition: transform .15s; }
 .sw input:checked + span { background: var(--beige); }
-.sw input:checked + span::before { transform: translateX(22px); background: #241f19; }
+.sw input:checked + span::before { transform: translateX(20px); background: var(--on-beige); }
 .sw input:focus-visible + span { outline: 2px solid var(--beige); outline-offset: 2px; }
 
-/* ---------- Rezumat: pagină de manga ---------- */
-.page { display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(0,1fr)); }
-.page .cell { background: var(--panel); border: 1.5px solid var(--gutter); border-radius: 10px; padding: 14px; display: grid; gap: 2px; align-content: start; }
-.cell .lab { color: var(--ink-2); font-size: 13.5px; }
-.cell .num { font: 900 30px/1.1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-.cell .sub { color: var(--ink-2); font-size: 13px; }
-.hero { grid-column: span 4; grid-row: span 2; position: relative; overflow: hidden; border-color: rgba(217,198,165,.45) !important; box-shadow: var(--glow); padding: 18px !important; gap: 10px !important; }
-.hero::after { /* raster de manga, discret */
-  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
-  background-image: radial-gradient(rgba(217,198,165,.16) 1.1px, transparent 1.3px); background-size: 9px 9px;
-  -webkit-mask-image: linear-gradient(120deg, transparent 35%, #000 100%); mask-image: linear-gradient(120deg, transparent 35%, #000 100%);
-}
+/* rânduri de formular: eticheta stânga, valoarea dreapta */
+.fields { display: grid; }
+.field { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 6px 16px; padding: 11px 0; border-top: 1px solid var(--line-soft); }
+.field:first-child { border-top: 0; }
+.field .hint { grid-column: 1; color: var(--ink-3); font-size: 13px; margin-top: -4px; }
+.field > span:first-child { font-weight: 500; }
+.unit { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13.5px; }
+
+/* etichete */
+.tag { display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px; border-radius: 99px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; line-height: 20px; }
+.tag.plus { color: var(--plus); border-color: rgba(211,180,245,.4); background: rgba(211,180,245,.07); }
+.tag.pro { color: var(--pro); border-color: rgba(169,198,242,.4); background: rgba(169,198,242,.07); }
+.tag.paid { color: var(--good); border-color: rgba(159,211,168,.35); }
+.tag.warn { color: var(--amber); border-color: rgba(231,194,125,.4); }
+.tag.bad { color: var(--bad); border-color: rgba(238,154,136,.4); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+
+/* ---------- carcasa aplicației ---------- */
+.shell { min-height: 100dvh; display: grid; grid-template-columns: var(--side-w) minmax(0,1fr); }
+.side { position: sticky; top: 0; height: 100dvh; background: var(--side); border-right: 1px solid var(--line-soft); display: flex; flex-direction: column; padding: 18px 12px 14px; gap: 18px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+.brand img { width: 34px; height: 34px; border-radius: 9px; }
+.brand b { font: 900 17px/1.1 var(--display); display: block; }
+.brand span { color: var(--ink-3); font-size: 12.5px; }
+.nav { display: grid; gap: 2px; }
+.nav button { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 40px; padding: 8px 10px; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink-2); font-size: 14.5px; font-weight: 500; cursor: pointer; text-align: left; }
+.nav button:hover { color: var(--ink); background: rgba(255,255,255,.03); }
+.nav button svg { width: 20px; height: 20px; flex: none; }
+.nav button[aria-current="page"] { color: var(--ink); background: var(--raised); box-shadow: inset 2px 0 0 var(--beige); }
+.nav button[aria-current="page"] svg { color: var(--beige); }
+.nav .badge { margin-left: auto; min-width: 20px; padding: 0 6px; border-radius: 99px; background: rgba(231,194,125,.16); color: var(--amber); font-size: 12px; font-weight: 700; text-align: center; line-height: 20px; }
+.side-foot { margin-top: auto; display: grid; gap: 10px; padding: 12px 6px 0; border-top: 1px solid var(--line-soft); }
+.state { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; }
+.state.on { color: var(--good); } .state.off { color: var(--beige); }
+.who { color: var(--ink-3); font-size: 12.5px; overflow-wrap: anywhere; }
+
+.main { display: grid; align-content: start; min-height: 100dvh; }
+.bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 16px 32px; background: rgba(27,25,23,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line-soft); }
+.bar .t { flex: 1; display: grid; gap: 1px; }
+.bar .upd { color: var(--ink-3); font-size: 13px; }
+.bar .state { display: none; }
+.content { padding: 24px 32px 48px; max-width: 1240px; width: 100%; display: grid; gap: 20px; }
+section.view { display: grid; gap: 20px; align-content: start; }
+
+.panel { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-panel); padding: 18px 20px; display: grid; gap: 14px; align-content: start; }
+.panel-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px; }
+.grid-rez { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(0,1fr); gap: 20px; }
+
+/* ---------- Rezumat ---------- */
+.hero { position: relative; overflow: hidden; border-color: rgba(217,198,165,.32); padding: 22px 24px; gap: 16px; }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(217,198,165,.2) 1.1px, transparent 1.4px); background-size: 8px 8px;
+  -webkit-mask-image: linear-gradient(115deg, transparent 45%, #000 100%); mask-image: linear-gradient(115deg, transparent 45%, #000 100%); }
 .hero > * { position: relative; z-index: 1; }
-.hero .num { font-size: clamp(56px, 11vw, 88px); line-height: .95; color: var(--ink); }
-.hero .split { display: flex; gap: 8px; flex-wrap: wrap; }
-.hero .money2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 6px; }
-.hero .money2 div { background: rgba(30,28,26,.65); border: 1px solid var(--gutter); border-radius: 10px; padding: 10px 12px; }
-.hero .money2 b { display: block; font: 700 22px/1.2 var(--display); font-variant-numeric: tabular-nums; }
-.c2 { grid-column: span 2; } .c3 { grid-column: span 3; } .c6 { grid-column: span 6; }
-.pos { color: var(--good) !important; } .neg { color: var(--bad) !important; }
-.sgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0 18px; margin-top: 6px; }
-.sgroup { display: grid; align-content: start; padding: 8px 0; }
-.sgroup h4 { margin: 0 0 4px; font: 700 13.5px/1.3 var(--body); color: var(--beige); }
-.srow { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(59,54,49,.6); font-size: 14.5px; }
-.srow b { font: 700 16px/1.3 var(--display); font-variant-numeric: tabular-nums; }
-.srow.warn b { color: var(--bad); }
-.chart { width: 100%; height: 150px; display: block; color: var(--ink-2); }
-@media (max-width: 720px) {
-  .page { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .hero, .c6, .c3 { grid-column: span 2; } .hero { grid-row: auto; }
-  .c2 { grid-column: span 1; }
-  .cell:not(.hero) .num { font-size: 26px; }
-}
+.hero .lab { color: var(--ink-2); font-size: 14px; font-weight: 500; }
+.hero .big { font: 900 clamp(60px, 8vw, 92px)/.9 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.hero .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.hero .money { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); border-top: 1px solid var(--line); padding-top: 14px; gap: 16px; }
+.hero .money span { color: var(--ink-2); font-size: 13.5px; display: block; }
+.hero .money b { font: 700 26px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+.hero .note { color: var(--ink-3); font-size: 13px; margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); padding: 0; gap: 0; overflow: hidden; }
+.stat { padding: 18px 20px; display: grid; gap: 2px; align-content: start; }
+.stat:nth-child(odd) { border-right: 1px solid var(--line-soft); }
+.stat:nth-child(n+3) { border-top: 1px solid var(--line-soft); }
+.stat .lab { color: var(--ink-2); font-size: 13.5px; }
+.stat .v { font: 900 32px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.stat .sub { color: var(--ink-3); font-size: 13px; }
+.chart { width: 100%; height: 170px; display: block; color: var(--ink-2); }
+.watch { list-style: none; margin: 0; padding: 0; display: grid; }
+.watch li + li { border-top: 1px solid var(--line-soft); }
+.watch button { width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 12px; align-items: center; padding: 10px 4px; background: transparent; border: 0; text-align: left; cursor: pointer; border-radius: 6px; }
+.watch button:hover { background: rgba(255,255,255,.03); }
+.watch .e { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.watch .w { grid-column: 1; color: var(--ink-3); font-size: 13px; }
+.watch .tag { grid-row: 1 / span 2; grid-column: 2; }
+.empty { color: var(--ink-3); font-size: 14px; padding: 8px 0; margin: 0; }
+.breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 4px 28px; }
+.bgroup h3 { color: var(--beige); font-size: 13.5px; margin-bottom: 4px; font-family: var(--body); }
+.brow { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+.brow b { font: 700 15px/1.3 var(--display); font-variant-numeric: tabular-nums; }
+.brow.warn b { color: var(--amber); }
 
-/* etichete de plan */
-.tag { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 99px; font-size: 13px; border: 1.5px solid var(--gutter); white-space: nowrap; }
-.tag.plus { color: var(--plus); border-color: rgba(211,180,245,.45); }
-.tag.pro { color: var(--pro); border-color: rgba(169,198,242,.45); }
-.tag.paid { color: var(--good); border-color: rgba(159,211,168,.45); }
-
-/* ---------- Utilizatori: listă, citibilă pe telefon ---------- */
-.filters { display: flex; gap: 6px; flex-wrap: wrap; }
-.filters button { min-height: 38px; padding: 6px 14px; border-radius: 99px; font-size: 14px; }
-.filters button[aria-pressed="true"] { background: var(--ink); color: #241f19; border-color: var(--ink); }
-.ulist { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.ulist li { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 12px; align-items: center; background: var(--panel-2); border: 1.5px solid var(--gutter); border-radius: 12px; padding: 12px 14px; }
-.ulist .nm { font-weight: 700; overflow-wrap: anywhere; }
-.ulist .em { color: var(--ink-2); font-size: 13.5px; overflow-wrap: anywhere; }
-.ulist .meta { grid-column: 1 / -1; display: flex; gap: 6px 14px; flex-wrap: wrap; color: var(--ink-2); font-size: 13.5px; }
-.ulist .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.ulist .act { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+/* ---------- Utilizatori ---------- */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.search { position: relative; flex: 1 1 260px; }
+.search svg { position: absolute; left: 11px; top: 50%; translate: 0 -50%; width: 17px; height: 17px; color: var(--ink-3); pointer-events: none; }
+.search input { width: 100%; padding-left: 36px; padding-right: 36px; }
+.search kbd { position: absolute; right: 9px; top: 50%; translate: 0 -50%; font: 600 12px/1 var(--body); color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; padding: 3px 6px; }
+.tbl-wrap { border: 1px solid var(--line-soft); border-radius: var(--r-panel); overflow: hidden; background: var(--panel); }
+table.ut { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ut th { text-align: left; font-weight: 600; color: var(--ink-3); font-size: 13px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.ut td { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.ut tbody tr { cursor: pointer; }
+.ut tbody tr:hover td { background: rgba(255,255,255,.025); }
+.ut tbody tr:last-child td { border-bottom: 0; }
+.ut .acc { display: grid; }
+.ut .acc button { all: unset; cursor: pointer; font-weight: 600; overflow-wrap: anywhere; }
+.ut .acc button:focus-visible { outline: 2px solid var(--beige); outline-offset: 2px; border-radius: 3px; }
+.ut .acc span { color: var(--ink-3); font-size: 13px; overflow-wrap: anywhere; }
+.ut .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.ut .r { text-align: right; font-variant-numeric: tabular-nums; }
+.ut .dim { color: var(--ink-2); white-space: nowrap; }
+.ut .m { display: none; }
+.ut .chev { width: 36px; color: var(--ink-3); }
+.ut .chev svg { width: 18px; height: 18px; display: block; }
+.tbl-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* ---------- Bani ---------- */
-.ledger { display: grid; }
-.ledger .l { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(59,54,49,.7); font-size: 15px; }
-.ledger .l b { font-variant-numeric: tabular-nums; font-weight: 700; font-family: var(--display); }
-.ledger .l.sub { color: var(--ink-2); }
-.ledger .l.key { font-weight: 700; }
-.ledger .l.total { border-bottom: 0; border-top: 1.5px solid var(--gutter); margin-top: 4px; padding-top: 12px; font: 700 17px/1.3 var(--display); }
-.plans { display: grid; gap: 8px; }
-.plans .p { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid rgba(59,54,49,.7); }
+.ledger .l { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.ledger .l b { font: 700 15px/1.3 var(--display); font-variant-numeric: tabular-nums; }
+.ledger .l.sub { color: var(--ink-2); padding-left: 14px; }
+.ledger .l.key { font-weight: 600; }
+.ledger .l.total { border-bottom: 0; border-top: 1px solid var(--line); margin-top: 4px; padding-top: 12px; font: 700 16px/1.3 var(--display); }
+.ledger .l.total b { font-size: 18px; }
+.plans .p { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(7em, auto); gap: 14px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
 .plans .p b { font-variant-numeric: tabular-nums; }
-.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.plans .p .r { text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; min-height: 32px; display: flex; align-items: center; }
 
-/* ---------- Link-uri ---------- */
-.links { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
-.links a { display: grid; gap: 2px; padding: 12px 14px; border: 1.5px solid var(--gutter); border-radius: 12px; color: var(--ink); text-decoration: none; background: var(--panel-2); }
-.links a:hover { border-color: rgba(217,198,165,.5); }
-.links a span { color: var(--ink-2); font-size: 13.5px; }
-.links h3 { margin-top: 6px; }
+/* ---------- Dă PRO ---------- */
+.grant { max-width: 640px; }
+.match { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-ctl); background: var(--paper); border: 1px dashed var(--line); font-size: 14px; color: var(--ink-2); min-height: 44px; }
+.match.ok { border-style: solid; border-color: rgba(159,211,168,.35); color: var(--ink); }
+.match.no { border-color: rgba(238,154,136,.4); color: var(--bad); }
+.stack { display: grid; gap: 8px; }
+.stack > label { font-weight: 500; }
+.custom { display: inline-flex; align-items: center; gap: 8px; }
+.result { font-size: 14px; margin: 0; min-height: 1.4em; }
 
-/* ---------- navigare: jos pe telefon, sus pe ecran mare ---------- */
-.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: grid; grid-template-columns: repeat(5, 1fr);
-  background: rgba(30,28,26,.94); backdrop-filter: blur(8px); border-top: 1.5px solid var(--gutter); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
-.nav button { border: 0; background: transparent; border-radius: 12px; min-height: 56px; padding: 4px 2px; display: grid; justify-items: center; align-content: center; gap: 2px; font-size: 12.5px; color: var(--ink-2); }
-.nav button svg { width: 24px; height: 24px; }
-.nav button[aria-current="true"] { color: var(--beige); background: rgba(217,198,165,.1); }
-@media (min-width: 860px) {
-  .wrap { padding-bottom: 40px; }
-  .nav { position: sticky; top: 0; bottom: auto; border-top: 0; border-bottom: 1.5px solid var(--gutter); grid-template-columns: repeat(5, auto); justify-content: start; gap: 6px; padding: 8px 0; margin: 0 auto; max-width: 1040px; background: rgba(30,28,26,.94); }
-  .nav button { grid-auto-flow: column; gap: 8px; min-height: 42px; padding: 8px 14px; font-size: 15px; }
-  .nav button svg { width: 20px; height: 20px; }
-  .navwrap { position: sticky; top: 0; z-index: 10; background: rgba(30,28,26,.94); }
+/* ---------- Setări ---------- */
+.danger-zone { border-color: rgba(217,198,165,.28); }
+.billing { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.billing .s { display: grid; gap: 2px; }
+.billing .s b { font: 700 16px/1.3 var(--display); }
+.pids { display: flex; flex-wrap: wrap; gap: 6px; }
+.pids code { font-size: 12.5px; color: var(--ink-2); background: var(--paper); border: 1px solid var(--line-soft); border-radius: 6px; padding: 2px 7px; }
+.savebar { position: sticky; bottom: 16px; z-index: 6; display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 18px; border-radius: 12px; background: var(--raised); border: 1px solid rgba(217,198,165,.4); box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.savebar p { flex: 1; margin: 0; font-weight: 600; font-size: 14.5px; }
+.links { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.links a { display: grid; gap: 1px; padding: 11px 13px; border: 1px solid var(--line-soft); border-radius: 10px; color: var(--ink); text-decoration: none; background: var(--paper); font-weight: 600; font-size: 14px; }
+.links a:hover { border-color: rgba(217,198,165,.45); }
+.links a span { color: var(--ink-3); font-size: 13px; font-weight: 400; }
+.lgroup { display: grid; gap: 8px; }
+.lgroup h3 { color: var(--ink-2); font-family: var(--body); font-weight: 600; font-size: 13.5px; }
+
+/* ---------- panou lateral (detalii cont) și dialoguri ---------- */
+dialog { color: var(--ink); background: var(--panel); border: 1px solid var(--line); padding: 0; }
+dialog::backdrop { background: rgba(10,9,8,.6); }
+dialog.sheet { margin: 0 0 0 auto; width: min(460px, 100vw); height: 100dvh; max-height: 100dvh; max-width: 100vw; border-width: 0 0 0 1px; border-radius: 0; }
+.sheet-in { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+.sheet-h { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--line-soft); }
+.sheet-h .t { flex: 1; display: grid; gap: 2px; }
+.sheet-h .t h2 { overflow-wrap: anywhere; }
+.sheet-h .t span { color: var(--ink-2); font-size: 13.5px; overflow-wrap: anywhere; }
+.sheet-b { overflow-y: auto; padding: 18px 20px 28px; display: grid; gap: 22px; align-content: start; }
+dl.kv { display: grid; grid-template-columns: auto minmax(0,1fr); margin: 0; }
+dl.kv dt, dl.kv dd { padding: 8px 0; border-bottom: 1px solid var(--line-soft); margin: 0; font-size: 14px; }
+dl.kv dt { color: var(--ink-2); }
+dl.kv dd { padding-left: 16px; text-align: right; font-variant-numeric: tabular-nums; }
+.box { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--paper); }
+dialog.ask { width: min(440px, calc(100vw - 32px)); border-radius: 14px; }
+.ask-in { padding: 22px; display: grid; gap: 14px; }
+.ask-in p { margin: 0; color: var(--ink-2); }
+.ask-in .chk { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--ink); cursor: pointer; }
+.ask-in .chk input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--beige); }
+.ask-in .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+@media (prefers-reduced-motion: no-preference) {
+  dialog.sheet[open] { animation: slidein .2s ease-out; }
+  .toast { animation: toastin .2s ease-out; }
 }
-.login { max-width: 420px; margin: 12vh auto 0; text-align: left; }
+@keyframes slidein { from { transform: translateX(24px); opacity: .4; } }
+@keyframes toastin { from { transform: translateY(8px); opacity: 0; } }
+.toasts { position: fixed; z-index: 50; right: 20px; bottom: 20px; display: grid; gap: 8px; width: min(380px, calc(100vw - 32px)); }
+.toast { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--raised); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.45); font-size: 14px; }
+.toast .dot { margin-top: 7px; color: var(--good); }
+.toast.err .dot { color: var(--bad); }
+
+/* ---------- autentificare ---------- */
+.login-wrap { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.login { width: min(400px, 100%); display: grid; gap: 18px; }
+.login .brand { padding: 0; }
+.login .brand img { width: 44px; height: 44px; border-radius: 11px; }
+.login .brand b { font-size: 21px; }
+.boot { color: var(--ink-3); font-size: 14px; }
+
+/* ---------- telefon și tabletă îngustă ---------- */
+@media (max-width: 1080px) { .grid-rez { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { position: fixed; top: auto; bottom: 0; left: 0; right: 0; height: auto; z-index: 20; flex-direction: row; padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); border-right: 0; border-top: 1px solid var(--line); background: rgba(24,22,20,.96); backdrop-filter: blur(8px); }
+  .side .brand, .side-foot { display: none; }
+  .nav { grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; }
+  .nav button { flex-direction: column; gap: 2px; min-height: 54px; padding: 4px 2px; font-size: 12px; justify-content: center; position: relative; text-align: center; }
+  .nav button[aria-current="page"] { box-shadow: none; background: rgba(217,198,165,.1); }
+  .nav .badge { position: absolute; top: 4px; left: calc(50% + 6px); margin: 0; min-width: 18px; line-height: 18px; font-size: 11px; padding: 0 5px; }
+  .bar { padding: 12px 16px; }
+  .bar .state { display: flex; font-size: 12.5px; }
+  h1 { font-size: 19px; }
+  .content { padding: 16px 16px calc(var(--tabs-h) + 32px + env(safe-area-inset-bottom)); gap: 16px; }
+  section.view { gap: 16px; }
+  .grid2 { grid-template-columns: 1fr; gap: 16px; }
+  .panel { padding: 16px; }
+  .panel.stats { padding: 0; }
+  #btnReload span { display: none; }
+  #btnReload { padding: 5px 9px; }
+  .bar .upd { white-space: nowrap; }
+  .savebar { bottom: calc(var(--tabs-h) + 12px + env(safe-area-inset-bottom)); }
+  .toasts { right: 16px; bottom: calc(var(--tabs-h) + 16px + env(safe-area-inset-bottom)); }
+  .search kbd { display: none; }
+}
+@media (max-width: 760px) {
+  .tbl-wrap { background: transparent; border: 0; border-radius: 0; }
+  .ut thead { display: none; }
+  .ut, .ut tbody { display: block; }
+  .ut tbody { display: grid; gap: 8px; }
+  .ut tr { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 10px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 10px; }
+  .ut td { padding: 0; border: 0 !important; }
+  .ut .d { display: none; }
+  .ut .m { display: block; grid-column: 1 / -1; color: var(--ink-3); font-size: 13px; }
+  .ut td.tg { justify-self: end; }
+  .ut .tags { justify-content: flex-end; }
+  .stat .v { font-size: 27px; }
+  .stat { padding: 14px 16px; }
+  .hero { padding: 18px; }
+  .hero .money b { font-size: 22px; }
+  .plans .p { grid-template-columns: minmax(0,1fr) auto; }
+  .plans .p .r { grid-column: 1 / -1; text-align: left; margin-top: -6px; font-size: 13px; }
+}
 </style>
 </head>
 <body>
-<div class="navwrap" id="navwrap" hidden>
-<nav class="nav" aria-label="Secțiuni">
-  <button data-go="sRez" aria-current="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="11" height="10" rx="1.5"/><rect x="16" y="3" width="5" height="10" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="12" y="15" width="9" height="6" rx="1.5"/></svg>Rezumat</button>
-  <button data-go="sAbo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.6 3.6-5.5 6.5-5.5s5.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.4 3.6 5.2"/></svg>Utilizatori</button>
-  <button data-go="sBani"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Bani</button>
-  <button data-go="sDa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"/></svg>Dă PRO</button>
-  <button data-go="sSet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Setări</button>
-</nav>
+
+<!-- ============ AUTENTIFICARE ============ -->
+<div class="login-wrap" id="login">
+  <div class="login">
+    <div class="brand"><img src="admin-icon-192.png" alt=""><div><b>Trasso Admin</b><span>Panoul aplicației</span></div></div>
+    <p class="boot" id="boot" role="status">Se încarcă…</p>
+    <div class="panel" id="loginBox" hidden>
+      <h2>Conectează-te</h2>
+      <p class="mut">Doar contul de administrator (asahixu02@gmail.com) are acces.</p>
+      <p class="mut" id="loginErr" role="alert" hidden></p>
+      <button class="btn pri wide" id="btnIn">Conectează-te cu Google</button>
+    </div>
+  </div>
 </div>
 
-<main class="wrap">
-  <header class="top">
-    <img src="admin-icon-192.png" alt="">
-    <div class="t"><h1>Trasso Admin</h1><span class="who" id="who"></span></div>
-    <span class="pill off" id="pill" hidden></span>
-  </header>
-  <p class="status" id="msg" role="status">Se încarcă…</p>
+<!-- ============ APLICAȚIA ============ -->
+<div class="shell" id="app" hidden>
+  <aside class="side">
+    <div class="brand"><img src="admin-icon-192.png" alt=""><div><b>Trasso</b><span>Admin</span></div></div>
+    <nav class="nav" aria-label="Secțiuni">
+      <button data-go="rezumat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="11" height="10" rx="1.5"/><rect x="16" y="3" width="5" height="10" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="12" y="15" width="9" height="6" rx="1.5"/></svg>Rezumat<span class="badge" id="navWatch" hidden></span></button>
+      <button data-go="utilizatori"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.6 3.6-5.5 6.5-5.5s5.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.4 3.6 5.2"/></svg>Utilizatori</button>
+      <button data-go="bani"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Bani</button>
+      <button data-go="da-pro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"/></svg>Dă PRO</button>
+      <button data-go="setari"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Setări</button>
+    </nav>
+    <div class="side-foot">
+      <span class="state" data-state></span>
+      <span class="who" data-who></span>
+      <button class="btn ghost sm" data-out style="justify-content:flex-start;padding-left:0">Deconectează-te</button>
+    </div>
+  </aside>
 
-  <section class="panel login" id="login" hidden>
-    <h2>Intră în panou</h2>
-    <p class="mut">Doar contul de administrator (asahixu02@gmail.com) are acces.</p>
-    <button class="pri big" id="btnIn">Conectează-te cu Google</button>
-  </section>
+  <div class="main">
+    <header class="bar">
+      <div class="t"><h1 id="title">Rezumat</h1><span class="upd" id="upd">Se încarcă datele…</span></div>
+      <span class="state" data-state></span>
+      <button class="btn sm" id="btnReload" title="Încarcă din nou datele"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg><span>Reîncarcă</span></button>
+    </header>
 
-  <div id="panel" hidden>
+    <main class="content">
 
-    <!-- ============ REZUMAT ============ -->
-    <section id="sRez" style="display:grid;gap:14px">
-      <div class="page">
-        <div class="cell hero">
-          <span class="lab">Abonați plătitori</span>
-          <span class="num" id="kPaid">–</span>
-          <div class="split" id="kPaidSplit"></div>
-          <div class="money2">
-            <div><span class="lab">Îți intră pe lună</span><b id="kMrr">–</b></div>
-            <div><span class="lab">Profit pe lună</span><b id="kProfit">–</b></div>
+      <!-- ============ REZUMAT ============ -->
+      <section class="view" id="v-rezumat" data-title="Rezumat">
+        <div class="grid-rez">
+          <div class="panel hero">
+            <span class="lab">Abonați plătitori</span>
+            <span class="big" id="kPaid">–</span>
+            <div class="tags" id="kPaidSplit"></div>
+            <div class="money">
+              <div><span>Îți intră pe lună</span><b id="kMrr">–</b></div>
+              <div><span>Profit pe lună</span><b id="kProfit">–</b></div>
+            </div>
+            <p class="note" id="kNote"></p>
           </div>
-          <p class="sub" id="kNote"></p>
+          <div class="panel stats">
+            <div class="stat"><span class="lab">Conturi</span><span class="v" id="kUsers">–</span><span class="sub" id="kUsersNew"></span></div>
+            <div class="stat"><span class="lab">Activi în 7 zile</span><span class="v" id="kAct7">–</span><span class="sub" id="kAct30"></span></div>
+            <div class="stat"><span class="lab">PRO+ din invitații sau de la tine</span><span class="v" id="kBonus">–</span><span class="sub" id="kBonusDays"></span></div>
+            <div class="stat"><span class="lab">Invitații folosite</span><span class="v" id="kRefs">–</span><span class="sub" id="kRefs30"></span></div>
+          </div>
         </div>
-        <div class="cell c2"><span class="lab">Conturi</span><span class="num" id="kUsers">–</span><span class="sub" id="kUsersNew"></span></div>
-        <div class="cell c2"><span class="lab">Activi în 7 zile</span><span class="num" id="kAct7">–</span><span class="sub" id="kAct30"></span></div>
-        <div class="cell c3"><span class="lab">PRO+ din invitații sau dat de tine</span><span class="num" id="kBonus">–</span><span class="sub" id="kBonusDays"></span></div>
-        <div class="cell c3"><span class="lab">Invitații folosite</span><span class="num" id="kRefs">–</span><span class="sub" id="kRefs30"></span></div>
-        <div class="cell c6 subs">
-          <h3>Abonamente</h3>
-          <div class="sgrid" id="subsGrid"></div>
-        </div>
-        <div class="cell c6">
-          <div class="row"><h3>Conturi noi pe zi</h3><span class="sub">ultimele 30 de zile</span></div>
-          <svg id="chart" class="chart" role="img" aria-label="Conturi noi pe zi, ultimele 30 de zile"></svg>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ UTILIZATORI ============ -->
-    <section id="sAbo" class="panel" hidden>
-      <div class="row"><h2>Utilizatori</h2><button class="sm" id="btnReload">Reîncarcă</button></div>
-      <input type="search" id="q" placeholder="Caută după email sau nume" aria-label="Caută utilizatori">
-      <div class="filters" role="group" aria-label="Arată">
-        <button data-f="all" aria-pressed="true">Toți</button>
-        <button data-f="paid" aria-pressed="false">Plătitori</button>
-        <button data-f="bonus" aria-pressed="false">Invitații sau dat de tine</button>
-        <button data-f="none" aria-pressed="false">Fără abonament</button>
-      </div>
-      <p class="mut" id="tblInfo"></p>
-      <ul class="ulist" id="tbody"></ul>
-      <details><summary>Cum citești lista</summary>
-        <p class="mut">Planul arată ce are omul când abonamentele sunt pornite: plătit prin Google Play, PRO+ din invitații sau dat de tine. Cât timp sunt oprite, toată lumea are oricum totul gratuit. „Zile strânse” sunt zilele de PRO+ din invitații, care încep să curgă abia când pornești abonamentele.</p>
-      </details>
-    </section>
-
-    <!-- ============ BANI ============ -->
-    <section id="sBani" hidden style="display:grid;gap:16px">
-      <div class="two">
-        <div class="panel">
-          <h2>Luna asta, estimat</h2>
-          <div class="ledger" id="moneyTbl"></div>
-          <p class="mut">Din abonații activi acum și prețurile de mai jos; abonamentul anual e împărțit la 12. Încasările reale sunt în Play Console, la Rapoarte financiare.</p>
+        <div class="grid-rez">
+          <div class="panel">
+            <div class="panel-h"><h2>Conturi noi pe zi</h2><span class="mut small" id="chartSum">ultimele 30 de zile</span></div>
+            <svg id="chart" class="chart" role="img" aria-label="Conturi noi pe zi, ultimele 30 de zile"></svg>
+          </div>
+          <div class="panel">
+            <div class="panel-h"><h2>De urmărit</h2><span class="mut small" id="watchSum"></span></div>
+            <ul class="watch" id="watch"></ul>
+          </div>
         </div>
         <div class="panel">
-          <h2>Pe planuri</h2>
-          <div class="plans" id="planTbl"></div>
-          <p class="mut" id="trialNote"></p>
+          <h2>Abonamente</h2>
+          <div class="breakdown" id="subsGrid"></div>
         </div>
-      </div>
-      <div class="panel">
-        <h2>Prețuri și costuri</h2>
-        <p class="mut">Se țin minte pe dispozitivul ăsta. Prețurile trebuie să fie aceleași ca în Play Console, în lei, cu TVA.</p>
-        <div class="two">
-          <div>
-            <label class="field"><span>PRO lunar</span><input type="number" step="0.01" data-m="p_pro_m"></label>
-            <label class="field"><span>PRO anual</span><input type="number" step="0.01" data-m="p_pro_y"></label>
-            <label class="field"><span>PRO+ lunar</span><input type="number" step="0.01" data-m="p_plus_m"></label>
-            <label class="field"><span>PRO+ anual</span><input type="number" step="0.01" data-m="p_plus_y"></label>
-          </div>
-          <div>
-            <label class="field"><span>TVA (%)</span><input type="number" step="1" data-m="vat"></label>
-            <label class="field"><span>Comision Google (%)</span><input type="number" step="1" data-m="gfee"></label>
-            <label class="field"><span>Firebase la 1.000 de conturi (lei pe lună)</span><input type="number" step="1" data-m="fb1k"></label>
-            <label class="field"><span>Contabil (lei pe lună)</span><input type="number" step="10" data-m="acct"></label>
-            <label class="field"><span>Alte costuri fixe (lei pe lună)</span><input type="number" step="10" data-m="other"></label>
-          </div>
+      </section>
+
+      <!-- ============ UTILIZATORI ============ -->
+      <section class="view" id="v-utilizatori" data-title="Utilizatori" hidden>
+        <div class="toolbar">
+          <label class="search"><span class="sr">Caută</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+            <input type="search" id="q" placeholder="Caută după email sau nume" autocomplete="off"><kbd>/</kbd>
+          </label>
+          <label class="unit"><span class="sr">Ordine</span>
+            <select id="sort" aria-label="Ordine">
+              <option value="seen">Activi recent</option>
+              <option value="created">Conturi noi</option>
+              <option value="until">Expiră curând</option>
+              <option value="email">Email, A–Z</option>
+            </select>
+          </label>
+          <button class="btn sm" id="btnCsv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Exportă CSV</button>
         </div>
-        <details><summary>Ce nu intră în calcul</summary>
-          <p class="mut">Taxele de PFA (CAS, CASS, impozit) depind de venitul pe tot anul. Costul real Google Cloud îl vezi în Billing, din Setări → Link-uri; creditul gratuit de 300 $ ține până pe 26 februarie 2027.</p>
+        <div class="seg" role="group" aria-label="Arată" id="filters">
+          <button data-f="all" aria-pressed="true">Toți <span class="c"></span></button>
+          <button data-f="paid" aria-pressed="false">Plătitori <span class="c"></span></button>
+          <button data-f="bonus" aria-pressed="false">Gratuit de la tine <span class="c"></span></button>
+          <button data-f="watch" aria-pressed="false">De urmărit <span class="c"></span></button>
+          <button data-f="none" aria-pressed="false">Fără abonament <span class="c"></span></button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="ut">
+            <thead><tr><th>Cont</th><th>Plan</th><th class="d">Valabil până</th><th class="d">Ultima dată activ</th><th class="d">Cont creat</th><th class="d r">A invitat</th><th class="d"><span class="sr">Detalii</span></th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="tbl-foot">
+          <p class="mut small" id="tblInfo"></p>
+          <button class="btn sm" id="btnMore" hidden>Arată mai multe</button>
+        </div>
+        <details><summary>Cum citești lista</summary>
+          <p class="mut">Planul arată ce are omul când abonamentele sunt pornite: plătit prin Google Play, PRO+ din invitații sau dat de tine. Cât timp sunt oprite, toată lumea are oricum totul gratuit. „Zile strânse” sunt zilele de PRO+ din invitații, care încep să curgă abia când pornești abonamentele. Apasă pe un cont ca să vezi detaliile și să-i dai sau să-i retragi PRO.</p>
         </details>
-      </div>
-    </section>
+      </section>
 
-    <!-- ============ DĂ PRO ============ -->
-    <section id="sDa" class="panel" hidden>
-      <h2>Dă PRO sau PRO+ unui cont</h2>
-      <p class="mut">Pentru contul de verificare Google, testeri sau prieteni. Persoana trebuie să se fi conectat măcar o dată în Trasso. Se adaugă peste ce are deja, rămâne și după ce pornești abonamentele și nu atinge abonamentele plătite.</p>
-      <label class="field"><span>Email</span><input type="email" id="gEmail" placeholder="nume@gmail.com" style="width:min(18em,60vw)"></label>
-      <label class="field"><span>Plan</span><select id="gTier"><option value="proplus">PRO+</option><option value="pro">PRO</option></select></label>
-      <label class="field"><span>Cât timp</span><select id="gMode"><option value="days">Un număr de zile</option><option value="forever">Permanent</option><option value="revoke">Retrage ce i-am dat</option></select></label>
-      <label class="field" id="gDaysRow"><span>Zile</span><input type="number" id="gDays" min="1" max="3650" value="30"></label>
-      <button class="pri big" id="btnGrant">Aplică</button>
-      <p class="mut" id="gMsg" role="status"></p>
-    </section>
+      <!-- ============ BANI ============ -->
+      <section class="view" id="v-bani" data-title="Bani" hidden>
+        <div class="grid2">
+          <div class="panel">
+            <div class="panel-h"><h2>Luna asta, estimat</h2></div>
+            <div class="ledger" id="moneyTbl"></div>
+            <p class="mut small">Din abonații activi acum și prețurile de mai jos; abonamentul anual e împărțit la 12. Încasările reale sunt în Play Console, la Rapoarte financiare.</p>
+          </div>
+          <div class="panel">
+            <h2>Pe planuri</h2>
+            <div class="plans" id="planTbl"></div>
+            <p class="mut small" id="trialNote"></p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><h2>Prețuri și costuri</h2><span class="mut small">Se salvează automat, doar pe dispozitivul ăsta</span></div>
+          <p class="mut small">Prețurile trebuie să fie aceleași ca în Play Console, în lei, cu TVA.</p>
+          <div class="grid2">
+            <div class="fields">
+              <label class="field"><span>PRO lunar</span><span class="unit"><input type="number" min="0" step="0.01" data-m="p_pro_m">lei</span></label>
+              <label class="field"><span>PRO anual</span><span class="unit"><input type="number" min="0" step="0.01" data-m="p_pro_y">lei</span></label>
+              <label class="field"><span>PRO+ lunar</span><span class="unit"><input type="number" min="0" step="0.01" data-m="p_plus_m">lei</span></label>
+              <label class="field"><span>PRO+ anual</span><span class="unit"><input type="number" min="0" step="0.01" data-m="p_plus_y">lei</span></label>
+            </div>
+            <div class="fields">
+              <label class="field"><span>TVA</span><span class="unit"><input type="number" min="0" max="100" step="1" data-m="vat">%</span></label>
+              <label class="field"><span>Comision Google</span><span class="unit"><input type="number" min="0" max="100" step="1" data-m="gfee">%</span></label>
+              <label class="field"><span>Firebase la 1.000 de conturi</span><span class="unit"><input type="number" min="0" step="1" data-m="fb1k">lei/lună</span></label>
+              <label class="field"><span>Contabil</span><span class="unit"><input type="number" min="0" step="10" data-m="acct">lei/lună</span></label>
+              <label class="field"><span>Alte costuri fixe</span><span class="unit"><input type="number" min="0" step="10" data-m="other">lei/lună</span></label>
+            </div>
+          </div>
+          <details><summary>Ce nu intră în calcul</summary>
+            <p class="mut">Taxele de PFA (CAS, CASS, impozit) depind de venitul pe tot anul. Costul real Google Cloud îl vezi în Billing, din Setări, la Link-uri; creditul gratuit de 300 $ ține până pe 26 februarie 2027.</p>
+          </details>
+        </div>
+      </section>
 
-    <!-- ============ SETĂRI ============ -->
-    <section id="sSet" hidden style="display:grid;gap:16px">
-      <section class="panel">
-        <h2>Abonamente</h2>
-        <p class="mut" id="billState"></p>
-        <button class="big" id="btnBilling"></button>
-        <p class="mut">Cât timp sunt oprite, PRO și PRO+ sunt gratuite pentru toți. Când le pornești, zilele PRO+ din invitații încep să curgă. Pornește-le după ce ai PFA-ul și cele 4 abonamente sunt active în Google Play: trasso_pro_monthly, trasso_pro_yearly, trasso_proplus_monthly, trasso_proplus_yearly.</p>
-      </section>
-      <section class="panel">
-        <div class="row">
-          <div><h2>Adu un prieten</h2><p class="mut">Cine invită primește PRO+ gratuit.</p></div>
-          <label class="sw" aria-label="Campania pornită"><input type="checkbox" id="refOn"><span></span></label>
-        </div>
-        <div>
-          <label class="field"><span>Zile de PRO+ pentru fiecare prieten</span><input type="number" id="refDays" min="0" max="365"></label>
-          <label class="field"><span>Câți prieteni aduc recompensă, în total</span><input type="number" id="refMax" min="0" max="50"></label>
-          <label class="field"><span>Codul merge doar pentru conturi mai noi de (zile)</span><input type="number" id="refAge" min="1" max="90"></label>
+      <!-- ============ DĂ PRO ============ -->
+      <section class="view" id="v-da-pro" data-title="Dă PRO" hidden>
+        <div class="panel grant">
+          <h2>Dă PRO sau PRO+ unui cont</h2>
+          <p class="mut">Pentru contul de verificare Google, testeri sau prieteni. Persoana trebuie să se fi conectat măcar o dată în Trasso. Se adaugă peste ce are deja, rămâne și după ce pornești abonamentele și nu atinge abonamentele plătite.</p>
+          <div class="stack">
+            <label for="gEmail">Email</label>
+            <input type="email" id="gEmail" placeholder="nume@gmail.com" list="emails" autocomplete="off">
+            <datalist id="emails"></datalist>
+            <div class="match" id="gMatch">Scrie emailul ca să verific contul.</div>
+          </div>
+          <div class="stack" id="gBox"></div>
+          <p class="result" id="gMsg" role="status"></p>
         </div>
       </section>
-      <section class="panel">
-        <h2>Salvare în cloud</h2>
-        <div>
-          <label class="field"><span>Desene pentru fiecare utilizator</span><input type="number" id="cMax" min="0" max="200"></label>
-          <label class="field"><span>Mărimea maximă a unui desen (MB)</span><input type="number" id="cMB" min="1" max="100"></label>
-        </div>
-      </section>
-      <button class="pri big" id="btnSave">Salvează setările</button>
 
-      <section class="panel quiet">
-        <h2>Link-uri</h2>
-        <h3>Google Play</h3>
-        <div class="links">
-          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/app-dashboard" target="_blank" rel="noopener">Play Console<span>Panoul aplicației</span></a>
-          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/publishing" target="_blank" rel="noopener">Publishing overview<span>Ce e în verificare</span></a>
-          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/subscriptions" target="_blank" rel="noopener">Abonamente<span>Prețuri, oferte, perioada gratuită</span></a>
-          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/download-reports/financial" target="_blank" rel="noopener">Rapoarte financiare<span>Încasările reale</span></a>
-          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/statistics" target="_blank" rel="noopener">Statistici<span>Instalări și dezinstalări</span></a>
-          <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/user-feedback/reviews" target="_blank" rel="noopener">Recenzii<span>Ce spun utilizatorii</span></a>
+      <!-- ============ SETĂRI ============ -->
+      <section class="view" id="v-setari" data-title="Setări" hidden>
+        <div class="panel danger-zone">
+          <div class="billing">
+            <div class="s"><span class="mut small">Abonamente</span><b id="billState"></b><span class="mut small" id="billSub"></span></div>
+            <button class="btn" id="btnBilling"></button>
+          </div>
+          <details><summary>Când le pornești</summary>
+            <p class="mut">Cât timp sunt oprite, PRO și PRO+ sunt gratuite pentru toți. Când le pornești, zilele PRO+ din invitații încep să curgă. Pornește-le după ce ai PFA-ul și cele 4 abonamente sunt active în Google Play:</p>
+            <div class="pids" style="margin-top:8px"><code>trasso_pro_monthly</code><code>trasso_pro_yearly</code><code>trasso_proplus_monthly</code><code>trasso_proplus_yearly</code></div>
+          </details>
         </div>
-        <h3>Server</h3>
-        <div class="links">
-          <a href="https://console.firebase.google.com/u/1/project/trasso-sub/usage" target="_blank" rel="noopener">Firebase<span>Citiri, scrieri, stocare</span></a>
-          <a href="https://console.cloud.google.com/billing?authuser=1&amp;project=trasso-sub" target="_blank" rel="noopener">Google Cloud Billing<span>Cât costă serverul</span></a>
-          <a href="https://console.firebase.google.com/u/1/project/trasso-sub/authentication/users" target="_blank" rel="noopener">Conturi Firebase<span>Lista de autentificare</span></a>
+
+        <form class="grid2" id="cfgForm" novalidate>
+          <div class="panel">
+            <div class="panel-h">
+              <div><h2>Adu un prieten</h2><p class="mut small">Cine invită primește PRO+ gratuit.</p></div>
+              <label class="sw"><span class="sr">Campania pornită</span><input type="checkbox" id="refOn"><span></span></label>
+            </div>
+            <div class="fields">
+              <label class="field"><span>Zile de PRO+ pentru fiecare prieten</span><input type="number" id="refDays" min="0" max="365" required></label>
+              <label class="field"><span>Câți prieteni aduc recompensă, în total</span><input type="number" id="refMax" min="0" max="50" required></label>
+              <label class="field"><span>Codul merge pentru conturi mai noi de</span><span class="unit"><input type="number" id="refAge" min="1" max="90" required>zile</span></label>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Salvare în cloud</h2>
+            <div class="fields">
+              <label class="field"><span>Desene pentru fiecare utilizator</span><input type="number" id="cMax" min="0" max="200" required></label>
+              <label class="field"><span>Mărimea maximă a unui desen</span><span class="unit"><input type="number" id="cMB" min="1" max="100" required>MB</span></label>
+            </div>
+          </div>
+        </form>
+        <div class="savebar" id="saveBar" hidden>
+          <p>Ai modificări nesalvate</p>
+          <button class="btn ghost sm" id="btnDiscard">Renunță</button>
+          <button class="btn pri sm" id="btnSave">Salvează setările</button>
         </div>
-        <h3>Trasso</h3>
-        <div class="links">
-          <a href="./" target="_blank" rel="noopener">Aplicația<span>Deschide Trasso</span></a>
-          <a href="./?planuri" target="_blank" rel="noopener">Ecranul cu planuri<span>Cum îl văd utilizatorii</span></a>
+
+        <div class="panel">
+          <h2>Link-uri</h2>
+          <div class="lgroup"><h3>Google Play</h3>
+            <div class="links">
+              <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/app-dashboard" target="_blank" rel="noopener">Play Console<span>Panoul aplicației</span></a>
+              <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/publishing" target="_blank" rel="noopener">Publishing overview<span>Ce e în verificare</span></a>
+              <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/subscriptions" target="_blank" rel="noopener">Abonamente<span>Prețuri, oferte, perioada gratuită</span></a>
+              <a href="https://play.google.com/console/u/1/developers/7296338038987731403/download-reports/financial" target="_blank" rel="noopener">Rapoarte financiare<span>Încasările reale</span></a>
+              <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/statistics" target="_blank" rel="noopener">Statistici<span>Instalări și dezinstalări</span></a>
+              <a href="https://play.google.com/console/u/1/developers/7296338038987731403/app/4975894766194793406/user-feedback/reviews" target="_blank" rel="noopener">Recenzii<span>Ce spun utilizatorii</span></a>
+            </div>
+          </div>
+          <div class="lgroup"><h3>Server</h3>
+            <div class="links">
+              <a href="https://console.firebase.google.com/u/1/project/trasso-sub/usage" target="_blank" rel="noopener">Firebase<span>Citiri, scrieri, stocare</span></a>
+              <a href="https://console.cloud.google.com/billing?authuser=1&amp;project=trasso-sub" target="_blank" rel="noopener">Google Cloud Billing<span>Cât costă serverul</span></a>
+              <a href="https://console.firebase.google.com/u/1/project/trasso-sub/authentication/users" target="_blank" rel="noopener">Conturi Firebase<span>Lista de autentificare</span></a>
+            </div>
+          </div>
+          <div class="lgroup"><h3>Trasso</h3>
+            <div class="links">
+              <a href="./" target="_blank" rel="noopener">Aplicația<span>Deschide Trasso</span></a>
+              <a href="./?planuri" target="_blank" rel="noopener">Ecranul cu planuri<span>Cum îl văd utilizatorii</span></a>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><div><h2>Cont</h2><span class="mut small" data-who></span></div><button class="btn" data-out>Deconectează-te</button></div>
         </div>
       </section>
-      <button id="btnOut">Deconectează-te</button>
-    </section>
+    </main>
   </div>
-</main>
+</div>
+
+<!-- detalii cont -->
+<dialog class="sheet" id="sheet" aria-labelledby="shName">
+  <div class="sheet-in">
+    <div class="sheet-h">
+      <div class="t"><h2 id="shName" tabindex="-1" autofocus style="outline:none"></h2><span id="shEmail"></span></div>
+      <button class="btn ghost sm" id="shClose" aria-label="Închide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="sheet-b" id="shBody"></div>
+  </div>
+</dialog>
+
+<!-- confirmare -->
+<dialog class="ask" id="ask" aria-labelledby="askT">
+  <form method="dialog" class="ask-in">
+    <h2 id="askT"></h2>
+    <p id="askB"></p>
+    <label class="chk" id="askChkRow" hidden><input type="checkbox" id="askChk"><span id="askChkT"></span></label>
+    <div class="acts"><button class="btn ghost" value="no">Anulează</button><button class="btn pri" id="askOk" value="yes"></button></div>
+  </form>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script type="module">
 const CDN = 'https://www.gstatic.com/firebasejs/12.0.0';
@@ -374,12 +610,13 @@ const db = F.getFirestore(app);
 const fns = FN.getFunctions(app, 'europe-west1');
 const ADMINS = ['asahixu02@gmail.com'];
 const $ = (id) => document.getElementById(id);
-const msg = (t) => { $('msg').textContent = t; };
+const $$ = (s) => document.querySelectorAll(s);
 const cfgRef = F.doc(db, 'config/app');
 const DAY = 864e5;
 const FOREVER = Date.UTC(2099, 0, 1);
 // abonamentele din Google Play → ce deblochează (câte unul pe lună și pe an, vezi ghidul)
 const PRODUCTS = { trasso_pro_monthly: 'pro', trasso_pro_yearly: 'pro', trasso_proplus_monthly: 'proplus', trasso_proplus_yearly: 'proplus' };
+const PNAME = { trasso_pro_monthly: 'PRO lunar', trasso_pro_yearly: 'PRO anual', trasso_proplus_monthly: 'PRO+ lunar', trasso_proplus_yearly: 'PRO+ anual' };
 const DEF = { billingEnabled: false, referralEnabled: true, referralRewardDays: 30, referralMaxPerUser: 2,
   referralMaxAccountAgeDays: 14, cloudMaxProjects: 10, cloudMaxMB: 50, products: PRODUCTS };
 let cfg = { ...DEF };
@@ -394,22 +631,60 @@ const ago = (n) => {
   return d <= 0 ? 'azi' : d === 1 ? 'ieri' : `acum ${d} zile`;
 };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const tierName = (t) => (t === 'pro' ? 'PRO' : 'PRO+');
+// 1 zi, 5 zile, 30 de zile, 101 zile, 120 de zile
+const zile = (n) => (n === 1 ? '1 zi' : `${n} ${(n % 100 === 0 || n % 100 >= 20) ? 'de ' : ''}zile`);
 
-/* ---------- navigare ---------- */
-const SECTIONS = ['sRez', 'sAbo', 'sBani', 'sDa', 'sSet'];
-function go(id) {
-  SECTIONS.forEach((s) => { $(s).hidden = s !== id; });
-  document.querySelectorAll('nav button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.go === id)));
+/* ---------- mesaje ---------- */
+function toast(text, err = false) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (err ? ' err' : '');
+  t.innerHTML = `<span class="dot"></span><span>${esc(text)}</span>`;
+  $('toasts').append(t);
+  setTimeout(() => t.remove(), err ? 7000 : 3800);
+}
+function ask({ title, body, ok, danger = false, check = '' }) {
+  const d = $('ask');
+  $('askT').textContent = title;
+  $('askB').textContent = body;
+  $('askOk').textContent = ok;
+  $('askOk').className = 'btn ' + (danger ? 'danger' : 'pri');
+  $('askChkRow').hidden = !check;
+  $('askChk').checked = false;
+  $('askChkT').textContent = check;
+  $('askOk').disabled = !!check;
+  $('askChk').onchange = () => { $('askOk').disabled = !$('askChk').checked; };
+  d.returnValue = '';
+  d.showModal();
+  return new Promise((res) => d.addEventListener('close', () => res(d.returnValue === 'yes'), { once: true }));
+}
+
+/* ---------- navigare (cu #adresă, merge și butonul Înapoi) ---------- */
+const VIEWS = ['rezumat', 'utilizatori', 'bani', 'da-pro', 'setari'];
+function go(id, push = true) {
+  if (!VIEWS.includes(id)) id = 'rezumat';
+  VIEWS.forEach((v) => { $('v-' + v).hidden = v !== id; });
+  $$('.nav button').forEach((b) => (b.dataset.go === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+  $('title').textContent = $('v-' + id).dataset.title;
+  document.title = $('v-' + id).dataset.title + ' – Trasso Admin';
+  if (push && location.hash !== '#' + id) history.pushState(null, '', '#' + id);
   try { localStorage.setItem('trasso-admin-tab', id); } catch (e) {}
   window.scrollTo({ top: 0 });
+  if (id === 'rezumat' && USERS.length) renderChart();
 }
-document.querySelectorAll('nav button').forEach((b) => { b.onclick = () => go(b.dataset.go); });
+$$('.nav button').forEach((b) => { b.onclick = () => go(b.dataset.go); });
+window.addEventListener('popstate', () => go(location.hash.slice(1), false));
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !document.querySelector('dialog[open]')) {
+    e.preventDefault(); go('utilizatori'); $('q').focus();
+  }
+});
 
 /* ---------- bani: setări locale ---------- */
 const MDEF = { p_pro_m: 9.99, p_pro_y: 89.99, p_plus_m: 19.99, p_plus_y: 179.99, vat: 21, gfee: 15, fb1k: 12, acct: 200, other: 0 };
 let M = { ...MDEF };
 try { M = { ...MDEF, ...JSON.parse(localStorage.getItem('trasso-admin-money') || '{}') }; } catch (e) {}
-document.querySelectorAll('[data-m]').forEach((i) => {
+$$('[data-m]').forEach((i) => {
   i.value = M[i.dataset.m];
   i.addEventListener('input', () => {
     M[i.dataset.m] = parseFloat(i.value) || 0;
@@ -438,25 +713,48 @@ function classify(d) {
     source = d.grantedBy ? 'manual' : 'invite';
     until = Math.max(ms(b.proplus), ms(b.pro));
   }
-  return {
+  const u = {
     id: d.__id, email: d.email || '', name: d.displayName || '', plan, source, until, pid,
     playState: (d.play && d.play.state) || '', created: ms(d.createdAt), seen: ms(d.lastSeen),
     invited: d.referralCount || 0, bonusDays: d.bonusDays || 0,
     paidLast: Math.max(ms(p.proplus), ms(p.pro)),
   };
+  u.watch = watchReason(u, now);
+  return u;
 }
+// de ce merită urmărit un cont (anulat, probleme la plată, expirat recent)
+function watchReason(u, now) {
+  if (u.source === 'paid' && /GRACE|ON_HOLD|PAUSED/.test(u.playState)) return { t: 'Problemă la plată', s: 'Plată', k: 'bad' };
+  if (u.source === 'paid' && /CANCELED/.test(u.playState)) return { t: 'A anulat, activ până pe ' + fdate(u.until), s: 'Anulat', k: 'warn' };
+  if (u.source !== 'paid' && u.paidLast && u.paidLast < now && now - u.paidLast < 30 * DAY) return { t: 'Abonament expirat ' + ago(u.paidLast), s: 'Expirat', k: 'warn' };
+  return null;
+}
+let loading = false;
 async function load() {
-  msg('Încarc datele…');
-  const [us, rs] = await Promise.all([
-    F.getDocs(F.collection(db, 'users')),
-    F.getDocs(F.collection(db, 'referrals')).catch(() => ({ docs: [] })),
-  ]);
-  USERS = us.docs.map((d) => classify({ ...d.data(), __id: d.id }));
-  REFS = rs.docs.map((d) => ({ ...d.data(), created: ms(d.get('createdAt')) }));
-  msg('Date actualizate la ' + new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) + '.');
-  renderAll();
+  if (loading) return;
+  loading = true;
+  $('btnReload').disabled = true;
+  $('upd').textContent = 'Se încarcă datele…';
+  try {
+    const [us, rs] = await Promise.all([
+      F.getDocs(F.collection(db, 'users')),
+      F.getDocs(F.collection(db, 'referrals')).catch(() => ({ docs: [] })),
+    ]);
+    USERS = us.docs.map((d) => classify({ ...d.data(), __id: d.id }));
+    REFS = rs.docs.map((d) => ({ ...d.data(), created: ms(d.get('createdAt')) }));
+    $('upd').textContent = 'Actualizat la ' + new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+    $('emails').innerHTML = USERS.filter((u) => u.email).map((u) => `<option value="${esc(u.email)}">${esc(u.name)}</option>`).join('');
+    renderAll();
+    if (openId) openUser(openId);
+  } catch (e) {
+    $('upd').textContent = 'Datele nu s-au încărcat';
+    toast('Nu am putut încărca datele: ' + (e.code || e.message), true);
+  } finally {
+    loading = false;
+    $('btnReload').disabled = false;
+  }
 }
-$('btnReload').onclick = () => load().catch((e) => msg('Nu am putut încărca: ' + e.code));
+$('btnReload').onclick = () => load();
 
 /* ---------- calcule ---------- */
 function money() {
@@ -486,32 +784,50 @@ function renderAll() {
   const paidPlus = m.paid.filter((u) => u.plan === 'proplus').length;
   const bonus = USERS.filter((u) => u.source === 'invite' || u.source === 'manual').length;
   const bonusDays = USERS.reduce((s, u) => s + u.bonusDays, 0);
-  $('kUsers').textContent = USERS.length;
-  $('kUsersNew').textContent = `+${n7} în ultima săptămână, +${n30} în 30 de zile`;
-  $('kAct7').textContent = a7;
+  $('kUsers').textContent = USERS.length.toLocaleString('ro-RO');
+  $('kUsersNew').textContent = `+${n7} în 7 zile, +${n30} în 30 de zile`;
+  $('kAct7').textContent = a7.toLocaleString('ro-RO');
   $('kAct30').textContent = `${a30} în ultimele 30 de zile`;
-  $('kPaid').textContent = m.paid.length;
+  $('kPaid').textContent = m.paid.length.toLocaleString('ro-RO');
   $('kPaidSplit').innerHTML = `<span class="tag pro">${m.paid.length - paidPlus} PRO</span><span class="tag plus">${paidPlus} PRO+</span>`;
   $('kNote').textContent = cfg.billingEnabled === true ? 'Estimat după TVA, comisionul Google și costuri, înainte de taxele PFA.' : 'Abonamentele sunt oprite, deci toată lumea folosește Trasso gratuit și aici rămâne 0 până le pornești.';
   $('kMrr').textContent = leiR(m.net);
   $('kProfit').textContent = leiR(m.profit);
   $('kProfit').className = m.profit >= 0 ? 'pos' : 'neg';
-  $('kMrr').className = '';
   $('kBonus').textContent = bonus;
-  $('kBonusDays').textContent = bonusDays ? `${bonusDays} zile strânse, încă necurse` : '';
+  $('kBonusDays').textContent = bonusDays ? `${zile(bonusDays)} strânse, încă necurse` : 'Nicio zi strânsă încă';
   $('kRefs').textContent = REFS.length;
   $('kRefs30').textContent = `${REFS.filter((r) => now - r.created < 30 * DAY).length} în ultimele 30 de zile`;
+  renderWatch();
   renderSubs(m);
-  renderChart();
+  if (!$('v-rezumat').hidden) renderChart();
   renderTable();
   renderMoney(m);
+  renderMatch();
 }
+function renderWatch() {
+  const list = USERS.filter((u) => u.watch).sort((a, b) => (a.watch.k === 'bad' ? -1 : 0) - (b.watch.k === 'bad' ? -1 : 0));
+  const nb = $('navWatch');
+  nb.hidden = !list.length; nb.textContent = list.length;
+  $('watchSum').textContent = list.length ? `${list.length} ${list.length === 1 ? 'cont' : 'conturi'}` : '';
+  const shown = list.slice(0, 6);
+  $('watch').innerHTML = shown.length
+    ? shown.map((u) => `<li><button data-open="${esc(u.id)}"><span class="e">${esc(u.name || u.email)}</span><span class="w">${esc(u.watch.t)}</span><span class="tag ${u.watch.k}">${u.watch.s}</span></button></li>`).join('')
+      + (list.length > shown.length ? `<li><button data-allwatch><span class="e" style="color:var(--beige)">Vezi toate cele ${list.length}</span></button></li>` : '')
+    : '<li><p class="empty">Nimic de urmărit acum. Aici apar abonații care au anulat, au probleme la plată sau le-a expirat abonamentul.</p></li>';
+}
+$('watch').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.open) openUser(b.dataset.open);
+  else if ('allwatch' in b.dataset) { setFilter('watch'); go('utilizatori'); }
+});
 function renderSubs(m) {
-  const now = Date.now();
   const has = (t) => USERS.filter((u) => u.plan === t).length;
   const paid = m.paid;
   const cnt = (pid) => paid.filter((u) => u.pid === pid).length;
   const st = (re) => paid.filter((u) => re.test(u.playState)).length;
+  const now = Date.now();
   const expired30 = USERS.filter((u) => u.source !== 'paid' && u.paidLast && u.paidLast < now && now - u.paidLast < 30 * DAY).length;
   const monthly = cnt('trasso_pro_monthly') + cnt('trasso_proplus_monthly');
   const yearly = cnt('trasso_pro_yearly') + cnt('trasso_proplus_yearly');
@@ -528,7 +844,7 @@ function renderSubs(m) {
       ['PRO anual', cnt('trasso_pro_yearly')],
       ['PRO+ lunar', cnt('trasso_proplus_monthly')],
       ['PRO+ anual', cnt('trasso_proplus_yearly')],
-      ['Total lunar / anual', `${monthly} / ${yearly}`],
+      ['Lunar / anual', `${monthly} / ${yearly}`],
     ]],
     ['De urmărit', [
       ['Au anulat, încă activi', st(/CANCELED/), 'warn'],
@@ -545,19 +861,19 @@ function renderSubs(m) {
       ['Venit net per plătitor', leiR(arpu)],
     ]],
   ];
-  $('subsGrid').innerHTML = groups.map(([h, rows]) => `<div class="sgroup"><h4>${h}</h4>${rows.map(([t, v, k]) => `<div class="srow ${k && v ? k : ''}"><span>${t}</span><b>${v}</b></div>`).join('')}</div>`).join('');
+  $('subsGrid').innerHTML = groups.map(([h, rows]) => `<div class="bgroup"><h3>${h}</h3>${rows.map(([t, v, k]) => `<div class="brow ${k && v ? k : ''}"><span>${t}</span><b>${v}</b></div>`).join('')}</div>`).join('');
 }
 function renderBilling() {
   const on = cfg.billingEnabled === true;
-  const p = $('pill');
-  p.hidden = false;
-  p.className = 'pill ' + (on ? 'on' : 'off');
-  p.textContent = on ? 'Abonamente pornite' : 'Totul gratuit';
-  p.title = on ? 'Funcțiile PRO cer abonament prin Google Play.' : 'Abonamentele sunt oprite: PRO și PRO+ sunt gratuite pentru toți.';
+  $$('[data-state]').forEach((p) => {
+    p.className = 'state ' + (on ? 'on' : 'off');
+    p.innerHTML = `<span class="dot"></span>${on ? 'Abonamente pornite' : 'Totul gratuit'}`;
+    p.title = on ? 'Funcțiile PRO cer abonament prin Google Play.' : 'Abonamentele sunt oprite: PRO și PRO+ sunt gratuite pentru toți.';
+  });
 }
 function renderChart() {
   const svg = $('chart');
-  const W = svg.clientWidth || 600, H = svg.clientHeight || 160, P = 22;
+  const W = svg.clientWidth || 600, H = svg.clientHeight || 170, P = 24, T = 14;
   const days = 30, start = new Date(); start.setHours(0, 0, 0, 0);
   const counts = Array(days).fill(0);
   USERS.forEach((u) => {
@@ -565,64 +881,219 @@ function renderChart() {
     const i = days - 1 - Math.floor((start.getTime() + DAY - 1 - u.created) / DAY);
     if (i >= 0 && i < days) counts[i]++;
   });
+  const total = counts.reduce((a, b) => a + b, 0);
+  $('chartSum').textContent = `${total} în ultimele 30 de zile`;
   const max = Math.max(1, ...counts);
   const bw = (W - P) / days;
-  let g = `<line x1="${P}" x2="${W}" y1="${H - P}" y2="${H - P}" stroke="currentColor" opacity=".25"/>`;
-  g += `<text x="0" y="12" font-size="11" fill="currentColor" opacity=".6">${max}</text><text x="0" y="${H - P}" font-size="11" fill="currentColor" opacity=".6">0</text>`;
+  const y0 = H - P;
+  let g = `<line x1="${P}" x2="${W}" y1="${y0}" y2="${y0}" stroke="currentColor" opacity=".25"/>`;
+  g += `<line x1="${P}" x2="${W}" y1="${T}" y2="${T}" stroke="currentColor" opacity=".1" stroke-dasharray="2 4"/>`;
+  g += `<text x="0" y="${T + 4}" font-size="11" fill="currentColor" opacity=".7">${max}</text><text x="0" y="${y0 + 4}" font-size="11" fill="currentColor" opacity=".7">0</text>`;
+  const lab = (i) => new Date(start.getTime() - (days - 1 - i) * DAY).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' });
   counts.forEach((c, i) => {
-    const h = (H - P - 16) * c / max;
+    const h = (y0 - T) * c / max;
     const x = P + i * bw + 1;
-    g += `<rect x="${x.toFixed(1)}" y="${(H - P - h).toFixed(1)}" width="${Math.max(2, bw - 3).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="var(--beige)"><title>${c} conturi</title></rect>`;
+    const last = i === days - 1;
+    g += `<rect x="${x.toFixed(1)}" y="${(y0 - Math.max(h, c ? 2 : 0)).toFixed(1)}" width="${Math.max(2, bw - 3).toFixed(1)}" height="${Math.max(h, c ? 2 : 0).toFixed(1)}" rx="2" fill="var(--beige)" opacity="${last ? 1 : .75}"><title>${lab(i)}: ${c} ${c === 1 ? 'cont nou' : 'conturi noi'}</title></rect>`;
   });
-  const lab = (i) => { const d = new Date(start.getTime() - (days - 1 - i) * DAY); return d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' }); };
-  [0, 14, 29].forEach((i) => { g += `<text x="${(P + i * bw + bw / 2).toFixed(1)}" y="${H - 6}" font-size="11" text-anchor="middle" fill="currentColor" opacity=".6">${lab(i)}</text>`; });
+  [0, 14, 29].forEach((i) => { g += `<text x="${(P + i * bw + bw / 2).toFixed(1)}" y="${H - 6}" font-size="11" text-anchor="${i === 29 ? 'end' : i === 0 ? 'start' : 'middle'}" fill="currentColor" opacity=".7">${i === 29 ? 'azi' : lab(i)}</text>`; });
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = g;
 }
-let FILTER = 'all';
-document.querySelectorAll('[data-f]').forEach((b) => {
-  b.onclick = () => {
-    FILTER = b.dataset.f;
-    document.querySelectorAll('[data-f]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    renderTable();
-  };
-});
-$('q').addEventListener('input', () => renderTable());
-const SRC = { paid: 'Plătit', invite: 'Invitații', manual: 'Dat manual' };
-function renderTable() {
-  const q = $('q').value.trim().toLowerCase();
-  const list = USERS.filter((u) => {
-    if (FILTER === 'paid' && u.source !== 'paid') return false;
-    if (FILTER === 'bonus' && !(u.source === 'invite' || u.source === 'manual')) return false;
-    if (FILTER === 'none' && u.plan) return false;
-    if (q && !(u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q))) return false;
-    return true;
-  });
-  list.sort((a, b) => (b.seen || b.created) - (a.seen || a.created));
-  $('tblInfo').textContent = list.length === USERS.length ? `${USERS.length} conturi` : `${list.length} din ${USERS.length} conturi`;
-  $('tbody').innerHTML = list.map((u) => {
-    const tags = [];
-    if (u.plan === 'proplus') tags.push('<span class="tag plus">PRO+</span>');
-    else if (u.plan === 'pro') tags.push('<span class="tag pro">PRO</span>');
-    if (u.source) tags.push(`<span class="tag ${u.source === 'paid' ? 'paid' : ''}">${SRC[u.source]}${u.source === 'paid' ? (/yearly/.test(u.pid) ? ', anual' : ', lunar') : ''}</span>`);
-    if (!tags.length) tags.push('<span class="tag">Fără abonament</span>');
-    const meta = [];
-    if (u.until) meta.push(u.until >= FOREVER ? 'Permanent' : 'Până pe ' + fdate(u.until));
-    if (u.bonusDays) meta.push(`${u.bonusDays} zile de PRO+ strânse`);
-    meta.push('Activ ' + ago(u.seen));
-    meta.push('Cont din ' + fdate(u.created));
-    if (u.invited) meta.push(`A invitat ${u.invited}`);
-    return `<li>
-      <div><div class="nm">${esc(u.name || u.email)}</div>${u.name ? `<div class="em">${esc(u.email)}</div>` : ''}</div>
-      <div class="tags">${tags.join('')}</div>
-      <div class="meta">${meta.map((t) => `<span>${t}</span>`).join('')}</div>
-      <div class="act"><button class="sm" data-give="${esc(u.email)}">Dă PRO</button></div>
-    </li>`;
-  }).join('') || '<li><span class="mut">Niciun cont aici.</span></li>';
-  document.querySelectorAll('[data-give]').forEach((b) => {
-    b.onclick = () => { $('gEmail').value = b.dataset.give; go('sDa'); $('gEmail').focus(); };
-  });
+
+/* ---------- lista de utilizatori ---------- */
+let FILTER = 'all', PAGE = 60, shown = 60;
+const FILTERS = {
+  all: () => true,
+  paid: (u) => u.source === 'paid',
+  bonus: (u) => u.source === 'invite' || u.source === 'manual',
+  watch: (u) => !!u.watch,
+  none: (u) => !u.plan,
+};
+function setFilter(f) {
+  FILTER = f; shown = PAGE;
+  $$('[data-f]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.f === f)));
+  renderTable();
 }
+$$('[data-f]').forEach((b) => { b.onclick = () => setFilter(b.dataset.f); });
+$('q').addEventListener('input', () => { shown = PAGE; renderTable(); });
+$('sort').onchange = () => { shown = PAGE; renderTable(); };
+$('btnMore').onclick = () => { shown += PAGE; renderTable(); };
+const SRC = { paid: 'Plătit', invite: 'Invitații', manual: 'Dat de tine' };
+function filtered() {
+  const q = $('q').value.trim().toLowerCase();
+  const f = FILTERS[FILTER];
+  const list = USERS.filter((u) => f(u) && (!q || u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q)));
+  const s = $('sort').value;
+  const cmp = {
+    seen: (a, b) => (b.seen || b.created) - (a.seen || a.created),
+    created: (a, b) => b.created - a.created,
+    until: (a, b) => (a.until || Infinity) - (b.until || Infinity),
+    email: (a, b) => a.email.localeCompare(b.email, 'ro'),
+  }[s];
+  return list.sort(cmp);
+}
+function tagsFor(u) {
+  const t = [];
+  if (u.plan === 'proplus') t.push('<span class="tag plus">PRO+</span>');
+  else if (u.plan === 'pro') t.push('<span class="tag pro">PRO</span>');
+  if (u.source) t.push(`<span class="tag ${u.source === 'paid' ? 'paid' : ''}">${SRC[u.source]}${u.source === 'paid' ? (/yearly/.test(u.pid) ? ', anual' : ', lunar') : ''}</span>`);
+  if (u.watch) t.push(`<span class="tag ${u.watch.k}" title="${esc(u.watch.t)}">${u.watch.s}</span>`);
+  if (!t.length) t.push('<span class="tag">Fără abonament</span>');
+  return t.join('');
+}
+const untilText = (u) => (u.until ? (u.until >= FOREVER ? 'Permanent' : fdate(u.until)) : '—');
+function renderTable() {
+  $$('[data-f]').forEach((b) => { b.querySelector('.c').textContent = USERS.filter(FILTERS[b.dataset.f]).length; });
+  const list = filtered();
+  const page = list.slice(0, shown);
+  $('tblInfo').textContent = list.length === USERS.length ? `${USERS.length} conturi` : `${list.length} din ${USERS.length} conturi`;
+  if (list.length > page.length) $('tblInfo').textContent += `, se văd primele ${page.length}`;
+  $('btnMore').hidden = list.length <= page.length;
+  $('tbody').innerHTML = page.map((u) => {
+    const meta = [u.until ? (u.until >= FOREVER ? 'Permanent' : 'Până pe ' + fdate(u.until)) : '', 'Activ ' + ago(u.seen)].filter(Boolean).join(', ');
+    return `<tr data-id="${esc(u.id)}">
+      <td><div class="acc"><button data-open="${esc(u.id)}">${esc(u.name || u.email || u.id)}</button>${u.name ? `<span>${esc(u.email)}</span>` : ''}</div></td>
+      <td class="tg"><div class="tags">${tagsFor(u)}</div></td>
+      <td class="d dim">${untilText(u)}</td>
+      <td class="d dim">${ago(u.seen)}</td>
+      <td class="d dim">${fdate(u.created)}</td>
+      <td class="d r">${u.invited || '—'}</td>
+      <td class="d chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></td>
+      <td class="m">${meta}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7"><p class="empty">${USERS.length ? 'Niciun cont nu se potrivește. Schimbă filtrul sau caută altceva.' : 'Încă nu există conturi.'}</p></td></tr>`;
+}
+$('tbody').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr[data-id]');
+  if (tr) openUser(tr.dataset.id);
+});
+$('btnCsv').onclick = () => {
+  const rows = [['email', 'nume', 'plan', 'sursa', 'abonament_play', 'valabil_pana', 'ultima_activitate', 'cont_creat', 'a_invitat', 'zile_stranse']];
+  const iso = (n) => (n ? new Date(n).toISOString().slice(0, 10) : '');
+  filtered().forEach((u) => rows.push([u.email, u.name, u.plan, u.source, u.pid, u.until >= FOREVER ? 'permanent' : iso(u.until), iso(u.seen), iso(u.created), u.invited, u.bonusDays]));
+  const csv = '﻿' + rows.map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `trasso-utilizatori-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`Am exportat ${rows.length - 1} conturi.`);
+};
+
+/* ---------- formularul de acordare (folosit pe pagina Dă PRO și în detaliile contului) ---------- */
+const DURS = [['7', '7 zile'], ['30', '30 de zile'], ['90', '90 de zile'], ['365', 'Un an'], ['forever', 'Permanent'], ['custom', 'Altă durată']];
+function grantForm(box, getEmail, opts = {}) {
+  const st = { tier: 'proplus', dur: '30', days: 30 };
+  box.innerHTML = `
+    <div class="stack"><span>Plan</span><div class="seg" role="group" aria-label="Plan" data-k="tier">
+      <button type="button" data-v="proplus" aria-pressed="true">PRO+</button><button type="button" data-v="pro" aria-pressed="false">PRO</button></div></div>
+    <div class="stack"><span>Cât timp</span><div class="seg" role="group" aria-label="Cât timp" data-k="dur">
+      ${DURS.map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${v === st.dur}">${t}</button>`).join('')}</div>
+      <label class="custom" hidden><span class="sr">Zile</span><input type="number" min="1" max="3650" value="60" data-days><span class="mut small">zile, între 1 și 3650</span></label></div>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn pri" data-apply></button>
+      ${opts.revoke === false ? '' : '<button type="button" class="btn ghost" data-revoke>Retrage ce i-am dat</button>'}
+    </div>`;
+  const custom = box.querySelector('.custom'), daysIn = box.querySelector('[data-days]'), apply = box.querySelector('[data-apply]');
+  const label = () => {
+    const d = st.dur === 'custom' ? (parseInt(daysIn.value, 10) || 0) : +st.dur;
+    apply.textContent = st.dur === 'forever' ? `Dă ${tierName(st.tier)} permanent` : `Dă ${tierName(st.tier)} pentru ${zile(d)}`;
+  };
+  box.querySelectorAll('.seg').forEach((seg) => seg.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    st[seg.dataset.k] = b.dataset.v;
+    custom.hidden = st.dur !== 'custom';
+    if (st.dur === 'custom') daysIn.focus();
+    label();
+  }));
+  daysIn.addEventListener('input', label);
+  label();
+  apply.onclick = () => {
+    const days = st.dur === 'custom' ? parseInt(daysIn.value, 10) || 0 : st.dur === 'forever' ? 0 : +st.dur;
+    if (st.dur === 'custom' && (days < 1 || days > 3650)) { toast('Zilele trebuie să fie între 1 și 3650.', true); daysIn.focus(); return; }
+    grant(getEmail(), st.tier, st.dur === 'forever' ? 'forever' : 'days', days, opts.out);
+  };
+  const rv = box.querySelector('[data-revoke]');
+  if (rv) rv.onclick = () => grant(getEmail(), st.tier, 'revoke', 0, opts.out);
+}
+const GERR = { 'no-user': 'Nu există niciun cont Trasso cu emailul ăsta. Persoana trebuie să se conecteze o dată în aplicație.',
+  'no-profile': 'Contul există, dar profilul nu e gata. Mai încearcă peste un minut.', 'bad-email': 'Emailul nu arată bine.',
+  'bad-days': 'Zilele trebuie să fie între 1 și 3650.', 'not-admin': 'Doar contul de admin poate face asta.' };
+async function grant(email, tier, mode, days, out) {
+  email = (email || '').trim();
+  if (!email) { toast('Scrie emailul contului.', true); $('gEmail').focus(); return; }
+  const revoke = mode === 'revoke';
+  const okd = await ask(revoke
+    ? { title: `Retragi ${tierName(tier)}?`, body: `Retragi ${tierName(tier)} dat de tine lui ${email}. Abonamentele plătite și zilele din invitații rămân neatinse.`, ok: `Retrage ${tierName(tier)}`, danger: true }
+    : { title: `Dai ${tierName(tier)}?`, body: `${email} primește ${tierName(tier)} ${mode === 'forever' ? 'permanent' : `pentru ${zile(days)}`}, peste ce are deja.`, ok: `Dă ${tierName(tier)}` });
+  if (!okd) return;
+  const setOut = (t) => { if (out) out.textContent = t; };
+  setOut('Se aplică…');
+  try {
+    const r = await FN.httpsCallable(fns, 'adminGrant')({ email, tier, mode, days });
+    const u = r.data.until;
+    const t = revoke ? `Am retras ${tierName(tier)} de la ${email}.` : u >= FOREVER ? `${email} are ${tierName(tier)} permanent.` : `${email} are ${tierName(tier)} până pe ${new Date(u).toLocaleDateString('ro-RO')}.`;
+    setOut(t); toast(t);
+    load();
+  } catch (e) {
+    const k = (e && e.message) || '';
+    const t = GERR[k] || (e.code === 'functions/not-found' ? 'Funcția adminGrant nu e încă publicată (vezi ghidul, pasul „Dă PRO+”).' : 'Nu a mers: ' + (k || e.code));
+    setOut(t); toast(t, true);
+  }
+}
+grantForm($('gBox'), () => $('gEmail').value, { out: $('gMsg') });
+function renderMatch() {
+  const v = $('gEmail').value.trim().toLowerCase(), box = $('gMatch');
+  if (!v) { box.className = 'match'; box.textContent = 'Scrie emailul ca să verific contul.'; return; }
+  const u = USERS.find((x) => x.email.toLowerCase() === v);
+  if (u) {
+    box.className = 'match ok';
+    box.innerHTML = `<span style="flex:1"><b>${esc(u.name || u.email)}</b><br><span class="mut small">Cont din ${fdate(u.created)}, activ ${ago(u.seen)}</span></span><span class="tags" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">${tagsFor(u)}</span>`;
+  } else if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) {
+    box.className = 'match no';
+    box.textContent = USERS.length ? 'Nu găsesc contul în listă. Persoana trebuie să se conecteze o dată în Trasso.' : 'Lista de conturi nu s-a încărcat încă.';
+  } else { box.className = 'match'; box.textContent = 'Continuă să scrii emailul…'; }
+}
+$('gEmail').addEventListener('input', renderMatch);
+
+/* ---------- detaliile unui cont ---------- */
+let openId = null;
+function openUser(id) {
+  const u = USERS.find((x) => x.id === id);
+  if (!u) return;
+  openId = id;
+  $('shName').textContent = u.name || u.email || u.id;
+  $('shEmail').textContent = u.name ? u.email : '';
+  const rows = [
+    ['Plan', u.plan ? tierName(u.plan) : 'Fără abonament'],
+    ['De unde', u.source ? SRC[u.source] + (u.pid ? ', ' + PNAME[u.pid] : '') : '—'],
+    ['Valabil până', untilText(u)],
+    u.playState ? ['Stare Google Play', u.playState.replace(/^SUBSCRIPTION_STATE_/, '').toLowerCase().replace(/_/g, ' ')] : null,
+    ['Ultima dată activ', ago(u.seen)],
+    ['Cont creat', fdate(u.created)],
+    ['A invitat', u.invited ? `${u.invited} ${u.invited === 1 ? 'prieten' : 'prieteni'}` : '—'],
+    ['Zile PRO+ strânse', u.bonusDays || '—'],
+  ].filter(Boolean);
+  $('shBody').innerHTML = `
+    <div class="tags" style="display:flex;gap:6px;flex-wrap:wrap">${tagsFor(u)}</div>
+    ${u.watch ? `<div class="match" style="border-style:solid;color:var(--${u.watch.k === 'bad' ? 'bad' : 'amber'})">${esc(u.watch.t)}</div>` : ''}
+    <dl class="kv">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    <div class="box"><h3>Dă sau retrage PRO</h3><div class="stack" id="shGrant"></div><p class="result mut" id="shMsg" role="status"></p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm" id="shCopy">Copiază emailul</button>
+      <a class="btn sm" href="https://console.firebase.google.com/u/1/project/trasso-sub/firestore/databases/-default-/data/~2Fusers~2F${encodeURIComponent(u.id)}" target="_blank" rel="noopener">Deschide în Firestore</a>
+    </div>`;
+  grantForm($('shGrant'), () => u.email, { out: $('shMsg'), revoke: u.source === 'manual' });
+  $('shCopy').onclick = () => navigator.clipboard.writeText(u.email).then(() => toast('Email copiat.'), () => toast('Nu am putut copia emailul.', true));
+  if (!$('sheet').open) $('sheet').showModal();
+}
+$('shClose').onclick = () => $('sheet').close();
+$('sheet').addEventListener('close', () => { openId = null; });
+$('sheet').addEventListener('click', (e) => { if (e.target === $('sheet')) $('sheet').close(); });
+
+/* ---------- bani ---------- */
 function renderMoney(m) {
   const rows = [
     ['Plătit de abonați, cu TVA', m.gross, ''],
@@ -635,99 +1106,97 @@ function renderMoney(m) {
     ['Profit înainte de taxele PFA', m.profit, 'total'],
   ];
   $('moneyTbl').innerHTML = rows.map(([t, v, k]) => `<div class="l ${k}"><span>${t}</span><b class="${k === 'total' ? (v >= 0 ? 'pos' : 'neg') : ''}">${v < 0 ? '−' : ''}${lei(Math.abs(v))}</b></div>`).join('');
-  const names = { trasso_pro_monthly: 'PRO lunar', trasso_pro_yearly: 'PRO anual', trasso_proplus_monthly: 'PRO+ lunar', trasso_proplus_yearly: 'PRO+ anual' };
-  $('planTbl').innerHTML = Object.keys(names).map((pid) => {
+  $('planTbl').innerHTML = Object.keys(PNAME).map((pid) => {
     const n = m.byPid[pid] || 0;
-    return `<div class="p"><span>${names[pid]}</span><b>${n} ${n === 1 ? 'abonat' : 'abonați'}</b><span class="mut">${lei(n * PRICE(pid))} pe lună</span></div>`;
+    return `<div class="p"><span>${PNAME[pid]}</span><b>${n} ${n === 1 ? 'abonat' : 'abonați'}</b><span class="r">${lei(n * PRICE(pid))} pe lună</span></div>`;
   }).join('');
   const trial = USERS.filter((u) => u.source === 'paid' && /TRIAL|FREE/i.test(u.playState)).length;
   $('trialNote').textContent = trial ? `Dintre ei, ${trial} sunt încă în perioada gratuită.` : '';
 }
 
 /* ---------- setări (config/app) ---------- */
-$('btnIn').onclick = () => A.signInWithPopup(auth, new A.GoogleAuthProvider()).catch((e) => msg('Conectarea n-a mers: ' + e.code));
-$('btnOut').onclick = () => A.signOut(auth);
-$('btnReload').textContent = 'Reîncarcă';
+const CF = [['refOn', 'referralEnabled'], ['refDays', 'referralRewardDays', 0, 365], ['refMax', 'referralMaxPerUser', 0, 50],
+  ['refAge', 'referralMaxAccountAgeDays', 1, 90], ['cMax', 'cloudMaxProjects', 0, 200], ['cMB', 'cloudMaxMB', 1, 100]];
+const formVals = () => Object.fromEntries(CF.map(([id, k, min, max]) => [k, $(id).type === 'checkbox' ? $(id).checked : Math.max(min, Math.min(max, parseInt($(id).value, 10) || 0))]));
+const cfgVals = () => Object.fromEntries(CF.map(([, k]) => [k, k === 'referralEnabled' ? cfg[k] !== false : cfg[k]]));
+const isDirty = () => JSON.stringify(formVals()) !== JSON.stringify(cfgVals());
+function fillForm() {
+  const v = cfgVals();
+  CF.forEach(([id, k]) => { if ($(id).type === 'checkbox') $(id).checked = v[k]; else $(id).value = v[k]; });
+  $('saveBar').hidden = true;
+}
 function show() {
   const on = cfg.billingEnabled === true;
-  $('billState').textContent = on ? '● PORNITE – utilizatorii plătesc prin Google Play' : '○ OPRITE – totul e gratuit (perioada de lansare)';
-  $('btnBilling').textContent = on ? 'Oprește abonamentele (totul redevine gratuit)' : 'Pornește abonamentele';
-  $('btnBilling').className = 'big ' + (on ? '' : 'warn');
-  $('refOn').checked = cfg.referralEnabled !== false;
-  $('refDays').value = cfg.referralRewardDays;
-  $('refMax').value = cfg.referralMaxPerUser;
-  $('refAge').value = cfg.referralMaxAccountAgeDays;
-  $('cMax').value = cfg.cloudMaxProjects;
-  $('cMB').value = cfg.cloudMaxMB;
+  $('billState').textContent = on ? 'Pornite' : 'Oprite, totul e gratuit';
+  $('billSub').textContent = on ? 'Utilizatorii plătesc prin Google Play.' : 'Perioada de lansare: PRO și PRO+ sunt gratuite pentru toți.';
+  $('btnBilling').textContent = on ? 'Oprește abonamentele' : 'Pornește abonamentele';
+  $('btnBilling').className = 'btn ' + (on ? 'danger' : 'pri');
+  if (!isDirty() || $('saveBar').hidden) fillForm(); // nu-ți strica modificările nesalvate
   renderBilling();
+  renderAll();
 }
+$('cfgForm').addEventListener('input', () => { $('saveBar').hidden = !isDirty(); });
+$('cfgForm').addEventListener('submit', (e) => e.preventDefault());
+$('btnDiscard').onclick = () => fillForm();
 async function write(extra) {
-  const int = (id, min, max) => Math.max(min, Math.min(max, parseInt($(id).value, 10) || 0));
-  const next = { ...DEF, ...cfg,
-    referralEnabled: $('refOn').checked,
-    referralRewardDays: int('refDays', 0, 365),
-    referralMaxPerUser: int('refMax', 0, 50),
-    referralMaxAccountAgeDays: int('refAge', 1, 90),
-    cloudMaxProjects: int('cMax', 0, 200),
-    cloudMaxMB: int('cMB', 1, 100),
-    products: PRODUCTS,
-    ...extra, updatedAt: F.serverTimestamp() };
+  const next = { ...DEF, ...cfg, ...formVals(), products: PRODUCTS, ...extra, updatedAt: F.serverTimestamp() };
   delete next.note;
   await F.setDoc(cfgRef, next);
 }
-$('btnSave').onclick = () => write({}).then(() => msg('Setări salvate.'), (e) => msg('Nu am putut salva: ' + e.code));
+$('btnSave').onclick = async () => {
+  const bad = CF.find(([id]) => $(id).type === 'number' && !$(id).checkValidity());
+  if (bad) { toast('O valoare e în afara limitelor. Am corectat-o la cea mai apropiată permisă.', true); }
+  $('btnSave').disabled = true;
+  try { await write({}); $('saveBar').hidden = true; fillForm(); toast('Setări salvate.'); }
+  catch (e) { toast('Nu am putut salva: ' + e.code, true); }
+  finally { $('btnSave').disabled = false; }
+};
+window.addEventListener('beforeunload', (e) => { if (!$('saveBar').hidden) { e.preventDefault(); e.returnValue = ''; } });
 $('btnBilling').onclick = async () => {
   const turnOn = cfg.billingEnabled !== true;
-  const q = turnOn
-    ? 'Pornești abonamentele? De acum PRO și PRO+ cer abonament în Google Play, iar zilele bonus din invitații încep să curgă.'
-    : 'Oprești abonamentele? PRO și PRO+ redevin gratuite pentru toți.';
-  if (!confirm(q)) return;
-  if (turnOn && !confirm('Ultima verificare: ai PFA și cele 4 abonamente sunt active în Google Play?')) return;
-  try { await write({ billingEnabled: turnOn }); msg(turnOn ? 'Abonamentele sunt pornite.' : 'Abonamentele sunt oprite.'); }
-  catch (e) { msg('Nu am putut schimba: ' + e.code); }
-};
-
-/* ---------- dă PRO ---------- */
-$('gMode').onchange = () => { $('gDaysRow').hidden = $('gMode').value !== 'days'; };
-const GERR = { 'no-user': 'Nu există niciun cont Trasso cu emailul ăsta. Persoana trebuie să se conecteze o dată în aplicație.',
-  'no-profile': 'Contul există, dar profilul nu e gata. Mai încearcă peste un minut.', 'bad-email': 'Emailul nu arată bine.',
-  'bad-days': 'Zilele trebuie să fie între 1 și 3650.', 'not-admin': 'Doar contul de admin poate face asta.' };
-$('btnGrant').onclick = async () => {
-  const email = $('gEmail').value.trim(), tier = $('gTier').value, mode = $('gMode').value, days = parseInt($('gDays').value, 10) || 0;
-  const what = mode === 'revoke' ? `Retragi ${tier === 'pro' ? 'PRO' : 'PRO+'} dat manual lui ${email}?`
-    : `Dai ${tier === 'pro' ? 'PRO' : 'PRO+'} ${mode === 'forever' ? 'permanent' : 'pentru ' + days + ' zile'} lui ${email}?`;
-  if (!email || !confirm(what)) return;
-  $('gMsg').textContent = 'Se aplică…';
+  const okd = await ask(turnOn
+    ? { title: 'Pornești abonamentele?', body: 'De acum PRO și PRO+ cer abonament în Google Play, iar zilele bonus din invitații încep să curgă.', ok: 'Pornește abonamentele', check: 'Am PFA și cele 4 abonamente sunt active în Google Play.' }
+    : { title: 'Oprești abonamentele?', body: 'PRO și PRO+ redevin gratuite pentru toți. Abonații plătitori nu sunt anulați în Google Play.', ok: 'Oprește abonamentele', danger: true });
+  if (!okd) return;
   try {
-    const r = await FN.httpsCallable(fns, 'adminGrant')({ email, tier, mode, days });
-    const u = r.data.until;
-    $('gMsg').textContent = mode === 'revoke' ? 'Gata, retras.' : u >= FOREVER ? 'Gata, permanent.' : 'Gata, valabil până pe ' + new Date(u).toLocaleDateString('ro-RO') + '.';
-    load().catch(() => {});
-  } catch (e) {
-    const k = (e && e.message) || '';
-    $('gMsg').textContent = GERR[k] || (e.code === 'functions/not-found' ? 'Funcția adminGrant nu e încă publicată (vezi ghidul, pasul „Dă PRO+”).' : 'Nu a mers: ' + (k || e.code));
-  }
+    // salvează doar starea abonamentelor; restul setărilor rămân cum sunt în cloud
+    const keep = Object.fromEntries(CF.map(([, k]) => [k, cfgVals()[k]]));
+    await F.setDoc(cfgRef, { ...DEF, ...cfg, ...keep, products: PRODUCTS, billingEnabled: turnOn, updatedAt: F.serverTimestamp() });
+    toast(turnOn ? 'Abonamentele sunt pornite.' : 'Abonamentele sunt oprite.');
+  } catch (e) { toast('Nu am putut schimba: ' + e.code, true); }
 };
 
-/* ---------- pornire ---------- */
+/* ---------- autentificare ---------- */
+$('btnIn').onclick = () => A.signInWithPopup(auth, new A.GoogleAuthProvider()).catch((e) => {
+  $('loginErr').hidden = false; $('loginErr').textContent = 'Conectarea n-a mers: ' + e.code;
+});
+$$('[data-out]').forEach((b) => { b.onclick = () => A.signOut(auth); });
+
 let unsub = null;
 A.onAuthStateChanged(auth, async (u) => {
   if (unsub) { unsub(); unsub = null; }
-  const isAdmin = u && u.emailVerified && ADMINS.includes(u.email);
-  $('login').hidden = !!isAdmin;
-  $('panel').hidden = !isAdmin;
-  $('navwrap').hidden = !isAdmin;
-  $('who').textContent = u ? u.email : '';
-  if (!isAdmin) $('pill').hidden = true;
-  if (!u) return msg('Nu ești conectat.');
-  if (!isAdmin) return msg(`${u.email} nu e cont de administrator.`);
-  let tab = 'sRez';
-  try { tab = localStorage.getItem('trasso-admin-tab') || tab; } catch (e) {}
-  go(SECTIONS.includes(tab) ? tab : 'sRez');
+  const isAdmin = !!(u && u.emailVerified && ADMINS.includes(u.email));
+  $('login').hidden = isAdmin;
+  $('app').hidden = !isAdmin;
+  $('boot').hidden = true;
+  $('loginBox').hidden = isAdmin;
+  $$('[data-who]').forEach((w) => { w.textContent = u ? u.email : ''; });
+  if (!isAdmin) {
+    $('loginErr').hidden = !u;
+    if (u) $('loginErr').textContent = `${u.email} nu e cont de administrator. Deconectează-te și intră cu contul de admin.`;
+    $('btnIn').textContent = u ? 'Intră cu alt cont Google' : 'Conectează-te cu Google';
+    if (u) $('btnIn').onclick = () => A.signOut(auth).then(() => A.signInWithPopup(auth, new A.GoogleAuthProvider()));
+    return;
+  }
+  let tab = location.hash.slice(1);
+  if (!VIEWS.includes(tab)) { try { tab = localStorage.getItem('trasso-admin-tab') || 'rezumat'; } catch (e) { tab = 'rezumat'; } }
+  go(VIEWS.includes(tab) ? tab : 'rezumat', false);
+  history.replaceState(null, '', '#' + (VIEWS.includes(tab) ? tab : 'rezumat'));
   unsub = F.onSnapshot(cfgRef, (s) => { cfg = { ...DEF, ...(s.exists() ? s.data() : {}) }; show(); });
-  load().catch((e) => msg('Nu am putut încărca datele: ' + e.code));
+  load();
 });
-window.addEventListener('resize', () => { if (USERS.length) renderChart(); });
+let rz;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (USERS.length && !$('v-rezumat').hidden) renderChart(); }, 120); });
 </script>
 </body>
 </html>
