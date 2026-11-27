@@ -4696,10 +4696,65 @@ function drStrokeSrc(st,r){
    la exportul imaginii unite se aplică după o.modes. */
 function drModeOf(L){return L&&(L.mode==='gray'||L.mode==='mono')?L.mode:'color';}
 function drModeOn(L,o){return drModeOf(L)!=='color'&&(o.flat?!!o.modes:true);}
+/* 2026.11.27: conversia se face pe placa video, cu un filtru SVG (fără getImageData). Citirea pixelilor
+   înapoi din placa video oprea desenul la fiecare cadru pe tabletă. Dacă browserul nu dă exact același
+   rezultat ca varianta pixel cu pixel (verific o dată, la prima folosire), rămân pe varianta veche. */
+var MF={ok:null,svg:null,ids:{},n:0};
+function drMFTab(f){var a=[],k;for(k=0;k<256;k++)a.push(f(k)?1:0);return a.join(' ');}
+function drMFId(mode,thr){
+  var t=(thr==null?50:thr)*2.55,key=mode==='gray'?'g':'m'+t.toFixed(2);
+  if(MF.ids[key])return MF.ids[key];
+  if(!MF.svg){var sv=document.createElementNS('http://www.w3.org/2000/svg','svg');sv.setAttribute('width','0');sv.setAttribute('height','0');sv.setAttribute('aria-hidden','true');sv.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';document.body.appendChild(sv);MF.svg=sv;}
+  var id='trMF'+(++MF.n),L='.30078125 .5859375 .11328125',h;
+  if(mode==='gray')h='<feColorMatrix type="matrix" values="'+L+' 0 0 '+L+' 0 0 '+L+' 0 0 0 0 0 1 0"/>';
+  else h='<feFlood flood-color="#ffffff" flood-opacity="1" result="w"/>'+
+    '<feComposite in="SourceGraphic" in2="w" operator="over" result="p"/>'+
+    '<feColorMatrix in="p" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 '+L+' 0 0" result="pa"/>'+
+    '<feComponentTransfer in="pa" result="blk"><feFuncA type="discrete" tableValues="'+drMFTab(function(k){return k<t;})+'"/></feComponentTransfer>'+
+    '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 '+L+' 0 0" result="la"/>'+
+    '<feComponentTransfer in="la" result="wl"><feFuncA type="discrete" tableValues="'+drMFTab(function(k){return k>=t;})+'"/></feComponentTransfer>'+
+    '<feComponentTransfer in="SourceGraphic" result="am"><feFuncA type="discrete" tableValues="'+drMFTab(function(k){return k>=128;})+'"/></feComponentTransfer>'+
+    '<feComposite in="wl" in2="am" operator="in" result="wh"/>'+
+    '<feMerge><feMergeNode in="wh"/><feMergeNode in="blk"/></feMerge>';
+  MF.svg.insertAdjacentHTML('beforeend','<filter id="'+id+'" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">'+h+'</filter>');
+  MF.ids[key]=id;return id;
+}
+function drMFTest(){
+  try{
+    var px=[[200,30,30,255],[20,20,20,100],[250,250,250,200],[150,150,150,255],[90,160,40,255],[0,0,0,0],[10,10,200,140],[128,128,128,64],[255,255,255,255],[60,60,60,255]],n=px.length,ok=true;
+    function src(){var c=drMk(n,1),cx=c.getContext('2d',{willReadFrequently:true}),im=cx.createImageData(n,1),i;px.forEach(function(p,j){for(i=0;i<4;i++)im.data[j*4+i]=p[i];});cx.putImageData(im,0,0);return c;}
+    [['gray',50],['mono',50],['mono',30],['mono',80]].forEach(function(q){
+      if(!ok)return;
+      var a=src(),ax=a.getContext('2d',{willReadFrequently:true});drModeApplyJS(ax,q[0],q[1],0,0,n,1);
+      var b=drMk(n,1),bx=b.getContext('2d',{willReadFrequently:true});
+      bx.filter='url(#'+drMFId(q[0],q[1])+')';if(String(bx.filter).indexOf('url')<0){ok=false;return;}
+      bx.drawImage(src(),0,0);bx.filter='none';
+      var A=ax.getImageData(0,0,n,1).data,B=bx.getImageData(0,0,n,1).data,i;
+      for(i=0;i<A.length;i+=4){
+        if(Math.abs(A[i+3]-B[i+3])>3){ok=false;break;}
+        if(A[i+3]>16&&(Math.abs(A[i]-B[i])>3||Math.abs(A[i+1]-B[i+1])>3||Math.abs(A[i+2]-B[i+2])>3)){ok=false;break;}
+      }
+    });
+    return ok;
+  }catch(e){return false;}
+}
 function drModeApply(x,mode,thr,r){
   var W=x.canvas.width,H=x.canvas.height,x0=r?Math.max(0,Math.floor(r[0])):0,y0=r?Math.max(0,Math.floor(r[1])):0,
     x1=r?Math.min(W,Math.ceil(r[2])):W,y1=r?Math.min(H,Math.ceil(r[3])):H,w=x1-x0,h=y1-y0;
   if(w<=0||h<=0)return;
+  if(MF.ok==null)MF.ok=drMFTest();
+  if(MF.ok){
+    var S=DR.mscr;if(!S||S.width<w||S.height<h){S=DR.mscr=drMk(Math.max(w,S?S.width:0),Math.max(h,S?S.height:0));}
+    var sx=S.getContext('2d');sx.setTransform(1,0,0,1,0,0);sx.globalAlpha=1;sx.globalCompositeOperation='source-over';sx.filter='none';
+    sx.clearRect(0,0,w,h);sx.drawImage(x.canvas,x0,y0,w,h,0,0,w,h);
+    x.save();x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
+    x.beginPath();x.rect(x0,y0,w,h);x.clip();x.clearRect(x0,y0,w,h);
+    x.filter='url(#'+drMFId(mode,thr)+')';x.drawImage(S,0,0,w,h,x0,y0,w,h);x.filter='none';
+    x.restore();return;
+  }
+  drModeApplyJS(x,mode,thr,x0,y0,w,h);
+}
+function drModeApplyJS(x,mode,thr,x0,y0,w,h){
   x.save();x.setTransform(1,0,0,1,0,0);
   var im=x.getImageData(x0,y0,w,h),d=im.data,n=d.length,i,a,l,t=(thr==null?50:thr)*2.55;
   if(mode==='gray'){for(i=0;i<n;i+=4){if(!d[i+3])continue;l=(d[i]*77+d[i+1]*150+d[i+2]*29)>>8;d[i]=d[i+1]=d[i+2]=l;}}
@@ -4745,6 +4800,8 @@ function drModeLive(L,st,sr){
   if(w<=0||h<=0)return c;
   var rr=[x0,y0,x1,y1];
   x.clearRect(x0,y0,w,h);x.drawImage(L.cv,x0,y0,w,h,x0,y0,w,h);
+  /* radiera, estomparea și degetul scriu direct pe strat: copiez doar zona schimbată și o convertesc */
+  if(st.direct){drModeApply(x,L.mode,L.thr,rr);return c;}
   var src=drStrokeSrc(st,rr);
   x.globalAlpha=st.alpha;if(st.erase)x.globalCompositeOperation=L.alock?'destination-over':'destination-out';else if(L.alock)x.globalCompositeOperation='source-atop';
   if(!(st.erase&&L.alock))x.drawImage(src,x0,y0,w,h,x0,y0,w,h);
@@ -4770,9 +4827,13 @@ function drCompose(x,o){
       if(sr){x.globalAlpha=L.op*st.alpha;x.drawImage(st.gl&&DR.gbuf?DR.gbuf:DR.sbuf,sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1],sr[0],sr[1],sr[2]-sr[0],sr[3]-sr[1]);}
       x.globalAlpha=1;x.globalCompositeOperation='source-over';return;
     }
-    var live=md&&!o.flat&&sr&&drModeLiveOk(st);
+    var dsr=(!sr&&md&&!o.flat&&st&&st.direct&&st.layer===i&&!st.sel&&!st.eye&&!st.fd)?drStrokeRect(st):null;
+    var live=md&&!o.flat&&(sr||dsr)&&drModeLiveOk(st);
+    if(dsr&&live)sr=dsr;
     /* strat Gri / Monocrom fără mască de tăiere sau selecție plutitoare: copia vie merge direct pe ecran */
     if(live&&!base&&!hasFl){drBlendDraw(x,L.blend,L.op,drModeLive(L,st,sr),0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';return;}
+    /* celelalte straturi Gri / Monocrom (pe care nu desenezi acum): imaginea convertită direct, fără copie intermediară */
+    if(md&&!o.flat&&!sr&&!base&&!hasFl){drBlendDraw(x,L.blend,L.op,drModeCv(L),0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';return;}
     var tc=DR.tmp.getContext('2d');
     tc.save();tc.setTransform(1,0,0,1,0,0);tc.globalAlpha=1;tc.globalCompositeOperation='source-over';tc.clearRect(0,0,w,h);
     if(live)tc.drawImage(drModeLive(L,st,sr),0,0);
@@ -5360,7 +5421,7 @@ function drEndStroke(){
   DR.stroke=null;
   var L=DR.layers[st.layer],rc=drStrokeRect(st);
   /* strat Gri / Monocrom: termin copia vie (ultima bucată de linie) și o păstrez ca imagine convertită a stratului */
-  var mlv=L&&rc&&!st.direct&&st._mlL===L&&DR.mlive&&drModeOf(L)!=='color';
+  var mlv=L&&rc&&!(st.direct&&DR.sel)&&st._mlL===L&&DR.mlive&&drModeOf(L)!=='color';
   if(mlv)drModeLive(L,st,rc);
   if(!st.direct&&L&&rc){
     var src=drStrokeSrc(st,rc),w=rc[2]-rc[0],h=rc[3]-rc[1];
