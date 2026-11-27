@@ -21236,6 +21236,83 @@ function trExpModes(d){
 
 
 
+/* ===== 2026.11.27 – Meniul selecției / al elementului pus din bibliotecă stă deasupra elementului =====
+   Înainte, „Desenezi doar în selecție · ✕ Deselectează · 💾 În bibliotecă” (și „Muți / transformi · ✓ Gata · ✕ Anulează”)
+   stăteau sus, în bara de moduri, sub eticheta „Toată pagina ▾”. Acum apar lipite deasupra elementului
+   (sau sub el, dacă sus nu e loc), îl urmăresc când îl muți, mărești sau rotești, și stau peste celelalte etichete. */
+(function(){
+  var POP_K={sel:1,float:1};
+  function boot(n){
+    if(typeof DR==='undefined'||typeof mdList!=='function'||!document.getElementById('mdBar')||!document.getElementById('drWrap')){if(n<240)setTimeout(function(){boot(n+1);},250);return;}
+    try{init();}catch(e){console.error(e);}
+  }
+  function init(){
+    if(document.getElementById('mdSelPop'))return;
+    var wrap=document.getElementById('drWrap');
+    var all=mdList;
+    /* bara de sus nu le mai arată pe acestea două: sunt lângă element */
+    mdList=function(){return all().filter(function(m){return !POP_K[m.k];});};
+    var pop=document.createElement('div');pop.id='mdSelPop';pop.className='mdpop';pop.hidden=true;
+    pop.setAttribute('role','toolbar');
+    pop.addEventListener('pointerdown',function(e){e.stopPropagation();});
+    wrap.appendChild(pop);
+    var st=document.createElement('style');
+    st.textContent='.mdpop{position:absolute;left:0;top:0;z-index:40;display:flex;align-items:center;gap:6px;padding:4px 4px 4px 12px;border-radius:999px;background:var(--float,#fff);color:var(--ink);border:1px solid var(--rule);box-shadow:0 4px 16px rgba(0,0,0,.22);font-size:13px;white-space:nowrap;max-width:calc(100% - 16px);transition:opacity .15s;will-change:transform}'+
+      '.mdpop[hidden]{display:none}.mdpop.busy{opacity:.3;pointer-events:none}'+
+      '.mdpop>span{overflow:hidden;text-overflow:ellipsis;min-width:0}'+
+      '.mdpop button{flex:none;border:0;border-radius:999px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--acc,#CBBBA0);color:var(--acc-ink,#2B2418);min-height:32px}'+
+      '.mdpop button+button{background:var(--paper-2);color:var(--ink)}'+
+      '.mdpop::after{content:"";position:absolute;left:var(--ax,50%);width:10px;height:10px;background:inherit;border:inherit;border-width:0 1px 1px 0;transform:translateX(-50%) rotate(45deg);bottom:-6px}'+
+      '.mdpop.below::after{bottom:auto;top:-6px;border-width:1px 0 0 1px}'+
+      '@media (max-width:520px){.mdpop>span{display:none}.mdpop{padding-left:4px}}';
+    document.head.appendChild(st);
+
+    var lastKey='',raf=0;
+    function item(){var M=all();for(var i=0;i<M.length;i++)if(POP_K[M[i].k])return M[i];return null;}
+    function docBox(){
+      var f=DR.float,pts;
+      if(f){
+        var hw=f.w*Math.abs(f.sx)/2,hh=f.h*Math.abs(f.sy)/2,c=Math.cos(f.rot||0),s=Math.sin(f.rot||0);
+        pts=[[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(function(q){return [f.cx+q[0]*c-q[1]*s,f.cy+q[0]*s+q[1]*c];});
+      }else if(DR.sel&&DR.sel.has&&DR.sel.bb){
+        var b=DR.sel.bb;pts=[[b[0],b[1]],[b[2],b[1]],[b[2],b[3]],[b[0],b[3]]];
+      }else return null;
+      var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      pts.forEach(function(p){var q=drV2S(p);x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1]);});
+      return [x0,y0,x1,y1];
+    }
+    function render(m){
+      var key=m.k+m.t;if(key===lastKey)return;lastKey=key;
+      pop.innerHTML='';pop.setAttribute('aria-label',m.t);
+      var t=document.createElement('span');t.textContent=m.t;pop.appendChild(t);
+      m.b.forEach(function(b){var x=document.createElement('button');x.type='button';x.textContent=b[0];
+        x.addEventListener('click',function(){b[1]();drSync();drDirty();drSaveSoon();});pop.appendChild(x);});
+    }
+    function place(){
+      var m=DR.ready?item():null,bx=m&&docBox();
+      if(!m||!bx||(DR.focus&&m.k!=='float')){pop.hidden=true;lastKey='';return false;}
+      render(m);pop.hidden=false;
+      pop.classList.toggle('busy',!!DR.stroke);
+      var W=wrap.clientWidth,H=wrap.clientHeight,pw=pop.offsetWidth,ph=pop.offsetHeight,gap=12;
+      var topMin=(document.body.classList.contains('haschstrip')?58:8)+48; /* sub etichetele de sus („Toată pagina ▾”) */
+      var cx=(bx[0]+bx[2])/2,y=bx[1]-ph-gap,below=false;
+      if(y<topMin){y=bx[3]+gap;below=true;}            /* sus nu e loc: îl pun sub element */
+      if(y+ph>H-8){y=Math.max(topMin,Math.min(H-ph-8,bx[1]+gap));below=false;} /* elementul umple ecranul: îl țin înăuntru */
+      var x=Math.max(8,Math.min(W-pw-8,cx-pw/2));
+      pop.classList.toggle('below',below);
+      pop.style.setProperty('--ax',Math.max(16,Math.min(pw-16,cx-x))+'px');
+      pop.style.transform='translate('+Math.round(x)+'px,'+Math.round(y)+'px)';
+      return true;
+    }
+    function loop(){raf=0;if(place())raf=requestAnimationFrame(loop);}
+    function kick(){if(!raf)raf=requestAnimationFrame(loop);}
+    DR.sync.push(kick);
+    window.addEventListener('resize',kick);
+    kick();
+  }
+  boot(0);
+})();
+
 })();
 </script>
 <script>
