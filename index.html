@@ -19101,10 +19101,12 @@ var AN=(function(){
     x.fillStyle='#fff';x.fillRect(0,0,A.w,A.h);x.drawImage(A.bg,0,0);
     var o=A.onion,n=A.frames.length;
     /* 2026.11.27: onion skin pe direcții (înainte / după), până la 8 cadre pe fiecare parte, culori alese */
+    var ltOn=AN.lt&&AN.lt.on&&!play;if(ltOn){x.save();x.translate(AN.lt.dx,AN.lt.dy);}
     if(o.on&&!play){var nb=o.pv===false?0:Math.min(n-1,o.nb||o.n||1),na=o.nx===false?0:Math.min(n-1,o.na||o.n||1),cb=o.cb||'#d0553f',ca=o.ca||'#2f8f6a';
       for(var k=Math.max(nb,na);k>=1;k--){var p=A.cur-k,q=A.cur+k;
       if(k<=nb){var a=o.a*(1-(k-1)/(nb+.5));if(p>=0)tint(x,A.frames[p].c,cb,a);else if(A.loop&&n>2)tint(x,A.frames[(p%n+n)%n].c,cb,a*.6);}
       if(k<=na){var a2=o.a*(1-(k-1)/(na+.5));if(q<n)tint(x,A.frames[q].c,ca,a2);else if(A.loop&&n>2)tint(x,A.frames[q%n].c,ca,a2*.6);}}}
+    if(ltOn)x.restore();
     var F=curF();
     if(A.tgt==='bg')liveOn(x,A.bg);
     if(F.cl){x.drawImage(F.cl,0,0);}liveOn(x,F.cl);
@@ -21838,6 +21840,50 @@ function trExpModes(d){
   var oMenu=AN.frameMenu;AN.frameMenu=function(anchor){oMenu(anchor);var m=document.querySelector('.anfrm');if(!m)return;
     var r=E('div','anfrmr');var b=E('button',null,T('Alege mai multe cadre…','Select several frames…'));b.type='button';b.style.flex='1';b.addEventListener('click',function(){AN.closeFrameMenu();start();});r.appendChild(b);m.appendChild(r);
     var rc=anchor.getBoundingClientRect(),mh=m.offsetHeight;var y=rc.top-mh-8;if(y<8)y=Math.min(innerHeight-mh-8,rc.bottom+8);m.style.top=y+'px';};
+})();
+/* ---------- B7: Flip (ții apăsat și tragi ca să răsfoiești cadrele vecine) și masa de lumină (muți cadrele-fantomă ca să copiezi) ---------- */
+(function(){
+  var T=AN.T,E=AN.E,box=null,fl=null,lt=null;AN.lt={on:false,dx:0,dy:0};
+  var st=document.createElement('style');st.textContent=
+    '.anflipbox{position:absolute;left:12px;bottom:12px;z-index:3;display:flex;gap:6px}.anflipbox button{min-width:52px;min-height:48px;border-radius:12px;border:1px solid var(--rule,#3a3b40);background:var(--card,#2a2b30);color:var(--ink,#eceae6);font:600 13px system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:0 12px;touch-action:none;user-select:none;-webkit-user-select:none}'+
+    '.anflipbox button[aria-pressed=true]{border-color:#F2A93B;background:rgba(242,169,59,.18)}.anflipbox svg{width:20px;height:20px}'+
+    'body.anmirror .anflipbox{left:auto;right:12px}';
+  document.head.appendChild(st);
+  var IF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="11" height="14" rx="2"/><path d="M15 7l4 1.5v9L15 19"/></svg>';
+  var IL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="7" width="16" height="11" rx="2"/><path d="M8 4l1.5 2M16 4l-1.5 2M12 3v3"/></svg>';
+  function flipSetup(b){
+    var d=null;
+    b.addEventListener('pointerdown',function(e){var A=AN.A;if(!A||A.kind!=='cel')return;e.preventDefault();e.stopPropagation();AN.stopPlay();AN.commitSel();
+      d={x:e.clientX,c0:A.cur,k:0};try{b.setPointerCapture(e.pointerId);}catch(_){}b.setAttribute('aria-pressed','true');});
+    b.addEventListener('pointermove',function(e){if(!d)return;var A=AN.A,n=A.frames.length,k=Math.round((e.clientX-d.x)/36);var c=Math.max(0,Math.min(n-1,d.c0+k));
+      if(c!==A.cur){A.cur=c;AN.render();}});
+    function end(){if(!d)return;var A=AN.A;A.cur=d.c0;d=null;b.setAttribute('aria-pressed','false');AN.render();}
+    b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);
+    b.addEventListener('click',function(e){e.stopPropagation();});
+  }
+  function ltSetup(b){
+    b.addEventListener('click',function(e){e.stopPropagation();var A=AN.A;if(!A)return;AN.lt.on=!AN.lt.on;AN.lt.dx=AN.lt.dy=0;
+      if(AN.lt.on&&!A.onion.on){A.onion.on=true;if(AN.onionBtn)AN.onionBtn.setAttribute('aria-pressed','true');}
+      b.setAttribute('aria-pressed',String(AN.lt.on));AN.render();
+      AN.toast(AN.lt.on?T('Masa de lumină: trage pe foaie ca să muți cadrele-fantomă și să copiezi peste ele. Atinge iar ca să revii.','Light table: drag on the sheet to move the ghost frames and trace over them. Tap again to go back.'):T('Cadrele-fantomă sunt la loc.','Ghost frames are back in place.'));});
+  }
+  function ensure(){
+    var U=AN.UI;if(!U||!U.sheet)return;var stage=U.sheet.parentNode;
+    if(!box||!box.isConnected){box=E('div','anflipbox');
+      fl=E('button');fl.type='button';fl.innerHTML=IF+'<span>Flip</span>';fl.title=T('Ține apăsat și trage stânga / dreapta ca să răsfoiești cadrele','Press and drag left / right to flip through frames');fl.setAttribute('aria-label',fl.title);flipSetup(fl);
+      lt=E('button');lt.type='button';lt.innerHTML=IL+'<span>'+T('Masă de lumină','Light table')+'</span>';lt.title=T('Muți cadrele-fantomă ca să copiezi peste ele','Move the ghost frames to trace over them');lt.setAttribute('aria-label',lt.title);lt.setAttribute('aria-pressed','false');ltSetup(lt);
+      box.appendChild(fl);box.appendChild(lt);stage.appendChild(box);
+      /* în modul masă de lumină, tragi pe foaie = muți fantomele (nu desenezi) */
+      var g=null;
+      stage.addEventListener('pointerdown',function(e){if(!AN.lt.on||box.contains(e.target)||e.target.closest('.anzoom'))return;e.stopImmediatePropagation();e.preventDefault();
+        var r=AN.UI.cv.getBoundingClientRect();g={x:e.clientX,y:e.clientY,dx:AN.lt.dx,dy:AN.lt.dy,k:AN.A.w/r.width,id:e.pointerId};},true);
+      stage.addEventListener('pointermove',function(e){if(!g||e.pointerId!==g.id)return;e.stopImmediatePropagation();AN.lt.dx=g.dx+(e.clientX-g.x)*g.k;AN.lt.dy=g.dy+(e.clientY-g.y)*g.k;AN.render();},true);
+      function up(e){if(g&&e.pointerId===g.id){e.stopImmediatePropagation();g=null;}}
+      stage.addEventListener('pointerup',up,true);stage.addEventListener('pointercancel',up,true);
+    }
+    var cel=AN.A&&AN.A.kind==='cel';box.hidden=!cel;if(!cel&&AN.lt.on){AN.lt.on=false;lt.setAttribute('aria-pressed','false');}
+  }
+  var lastA=null;setInterval(function(){if(!AN.UI||AN.UI.ov.hidden)return;ensure();if(AN.A!==lastA){lastA=AN.A;AN.lt.on=false;AN.lt.dx=AN.lt.dy=0;if(lt)lt.setAttribute('aria-pressed','false');}},400);
 })();
 /*UX2611-MOD-END*/
 })();
