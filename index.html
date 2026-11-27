@@ -19059,7 +19059,7 @@ var AN=(function(){
   function curF(){return A.frames[A.cur];}
   function ticks(){var n=0;A.frames.forEach(function(f){n+=f.hold||1;});return n;}
   /* ---------- salvare ---------- */
-  function dirty(){A.t=Date.now();clearTimeout(saveT);saveT=setTimeout(save,1200);}
+  function dirty(){A.t=Date.now();clearTimeout(saveT);saveT=setTimeout(save,1200);if(window.__anSaveSt)window.__anSaveSt('dirty');}
   var saving=null;
   function save(){if(!A)return Promise.resolve();clearTimeout(saveT);var D=A;
     var run=function(){
@@ -19073,7 +19073,7 @@ var AN=(function(){
         composeTo(th.getContext('2d'),Math.min(D.cur,D.frames.length-1),th.width/D.w,D);
         return Promise.all([dput('a:'+D.id,rec),toBlob(th,'image/jpeg',.85)]).then(function(r){
           return idx().then(function(L){L=L.filter(function(e){return e.id!==D.id;});
-            L.unshift({id:D.id,name:D.name,kind:D.kind,t:D.t,n:D.frames.length,dur:durOf(D),thumb:r[1]});return dput('index',L);});
+            L.unshift({id:D.id,name:D.name,kind:D.kind,t:D.t,n:D.frames.length,dur:durOf(D),thumb:r[1]});return dput('index',L).then(function(x){if(window.__anSaveSt&&D===A)window.__anSaveSt('saved');return x;});});
         });
       });
     };
@@ -19127,7 +19127,7 @@ var AN=(function(){
     if(A.kind==='puppet'){if(AN.ppStrip)AN.ppStrip(s);return;}
     A.frames.forEach(function(f,i){var b=E('button','anfr');b.type='button';b.setAttribute('aria-label',T('Cadrul ','Frame ')+(i+1));b.setAttribute('aria-current',String(i===A.cur));
       thumb(i);b.appendChild(f.th);b.appendChild(E('span',null,(i+1)+((f.hold||1)>1?' ×'+f.hold:'')));
-      b.addEventListener('click',function(){stopPlay();commitSel();A.cur=i;selFrame();});s.appendChild(b);});
+      b.addEventListener('click',function(){var was=!play&&A.cur===i;stopPlay();commitSel();A.cur=i;selFrame();if(was&&AN.frameMenu)AN.frameMenu(b);});s.appendChild(b);});
     var a=E('button','anadd','+');a.type='button';a.setAttribute('aria-label',T('Cadru nou, gol, după cel ales','New empty frame after the selected one'));
     a.addEventListener('click',function(){addFrame(false);});s.appendChild(a);
     mem();}
@@ -19164,6 +19164,7 @@ var AN=(function(){
   function doRedo(){if(A.kind==='puppet'&&AN.ppRedo)return AN.ppRedo();var u=redo.pop();if(!u)return;
     if(u.k==='px'){var x=u.c.getContext('2d');undo.push({k:'px',c:u.c,d:x.getImageData(0,0,u.c.width,u.c.height)});x.putImageData(u.d,0,0);markDirty(u.c);thumbAll(u.c===A.bg);}
     else if(u.k==='fr'){undo.push({k:'fr',frames:A.frames,cur:A.cur});A.frames=u.frames;A.cur=Math.min(u.cur,A.frames.length-1);strip();AN.durNote&&AN.durNote();dirty();}
+    else if(u.k==='fn'){undo.push(u.redo());u.undo();}
     selFrame();}
   /* ---------- redare ---------- */
   function startPlay(){if(play)return stopPlay();commitSel();play=true;UI.play.textContent='❚❚';UI.play.setAttribute('aria-label',T('Oprește','Pause'));last=0;sub=0;
@@ -19278,7 +19279,9 @@ var AN=(function(){
     addFrame:addFrame,delFrame:delFrame,moveFrame:moveFrame,setHold:setHold,reverse:reverse,pingpong:pingpong,clearFrame:clearFrame,pushPx:pushPx,markDirty:markDirty,
     undo:doUndo,redo:doRedo,startPlay:startPlay,stopPlay:stopPlay,tick:tick,down:down,move:move,up:up,commitSel:commitSel,dropSel:dropSel,cancelSel:cancelSel,
     toast:toast,dlg:dlg,ask:ask,durOf:durOf,curF:curF,ticks:ticks,mem:mem,pt:pt,get undoS(){return undo;},resetUndo:function(){undo=[];redo=[];},
-    pushFn:function(u,r){undo.push({k:'fn',undo:u,redo:r});redo=[];}};
+    pushFn:function(u,r){undo.push({k:'fn',undo:u,redo:r});redo=[];},
+    /* 2026.11.27: pas de anulare care salvează o stare (get) și o pune la loc (set); refacerea folosește același mecanism */
+    pushSwap:function(get,set){function mk(v){return {k:'fn',undo:function(){set(v);},redo:function(){return mk(get());}};}undo.push(mk(get()));redo=[];trimUndo();}};
 })();
 
 /* ---------- Animation: interfața ---------- */
@@ -19406,8 +19409,8 @@ var AN=(function(){
     var hold=E('span','anseg');hold.setAttribute('role','group');hold.setAttribute('aria-label',T('Câte cadre ține desenul ales','How many frames the selected drawing is held'));ops.appendChild(hold);
     [1,2,3,4].forEach(function(h){var b=E('button',null,String(h));b.type='button';b.dataset.h=h;b.addEventListener('click',function(){AN.setHold(h);});hold.appendChild(b);});
     var dup=E('button','anbtn',T('Duplică','Duplicate'));dup.type='button';ops.appendChild(dup);
-    var ml=E('button','anbtn','◀');ml.type='button';ml.title=T('Mută cadrul la stânga','Move frame left');ml.setAttribute('aria-label',ml.title);ops.appendChild(ml);
-    var mr=E('button','anbtn','▶');mr.type='button';mr.title=T('Mută cadrul la dreapta','Move frame right');mr.setAttribute('aria-label',mr.title);ops.appendChild(mr);
+    var ml=E('button','anbtn');ml.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="11" y="5" width="10" height="14" rx="2"/><path d="M8 12H2M5 9l-3 3 3 3"/></svg>';ml.type='button';ml.title=T('Mută cadrul la stânga','Move frame left');ml.setAttribute('aria-label',ml.title);ops.appendChild(ml);
+    var mr=E('button','anbtn');mr.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="10" height="14" rx="2"/><path d="M16 12h6M19 9l3 3-3 3"/></svg>';mr.type='button';mr.title=T('Mută cadrul la dreapta','Move frame right');mr.setAttribute('aria-label',mr.title);ops.appendChild(mr);
     var del=E('button','anbtn',T('Șterge','Delete'));del.type='button';ops.appendChild(del);
     var more=E('button','anbtn','⋯');more.type='button';more.setAttribute('aria-label',T('Mai multe pentru cadre','More frame actions'));ops.appendChild(more);
     var strip=E('div','anstrip');tl.appendChild(strip);var mem=E('p','anmem');tl.appendChild(mem);
@@ -19500,7 +19503,7 @@ var AN=(function(){
     rng(T('Cât de vizibilă','How visible'),10,100,1,function(){return Math.round((A.skA||.55)*100);},function(v){A.skA=v/100;AN.render();},function(v){return v+'%';});
     var cb=E('div','anrow');S.appendChild(cb);
     var c1=E('button','anbtn',T('Șterge schița din cadru','Clear the rough in this frame'));c1.type='button';c1.addEventListener('click',function(){var f=AN.curF();if(!f.sk)return;AN.pushPx(f.sk);f.sk.getContext('2d').clearRect(0,0,A.w,A.h);AN.markDirty(f.sk);AN.render();});cb.appendChild(c1);
-    var c2=E('button','anbtn',T('Din toate cadrele…','From all frames…'));c2.type='button';c2.addEventListener('click',function(){AN.ask(T('Ștergi schița din toate cadrele?','Clear the rough from every frame?'),T('Liniile și culoarea rămân. Nu se poate anula.','Lines and colour stay. This cannot be undone.'),[{t:T('Șterge schițele','Clear roughs'),danger:1,fn:function(){A.frames.forEach(function(f){if(f.sk){f.sk=null;f.skB=null;f.dirty=true;}});AN.dirty();AN.render();}},{t:T('Renunță','Cancel')}]);});cb.appendChild(c2);
+    var c2=E('button','anbtn',T('Din toate cadrele…','From all frames…'));c2.type='button';c2.addEventListener('click',function(){AN.ask(T('Ștergi schița din toate cadrele?','Clear the rough from every frame?'),T('Liniile și culoarea rămân. ↶ Anulează le aduce înapoi.','Lines and colour stay. ↶ Undo brings them back.'),[{t:T('Șterge schițele','Clear roughs'),danger:1,fn:function(){AN.pushSwap(function(){return A.frames.map(function(f){return [f,f.sk,f.skB];});},function(v){v.forEach(function(q){q[0].sk=q[1];q[0].skB=q[2];q[0].dirty=true;});AN.dirty();AN.render();});A.frames.forEach(function(f){if(f.sk){f.sk=null;f.skB=null;f.dirty=true;}});AN.dirty();AN.render();}},{t:T('Renunță','Cancel')}]);});cb.appendChild(c2);
     S=P.onion;h('Onion skin');
     tg(T('Arată cadrele vecine','Show neighbouring frames'),function(){return A.onion.on;},function(v){A.onion.on=v;if(AN.onionBtn)AN.onionBtn.setAttribute('aria-pressed',String(!!v));AN.render();AN.dirty();});
     rng(T('Câte cadre','How many frames'),1,3,1,function(){return A.onion.n;},function(v){A.onion.n=v;AN.render();},function(v){return T(v+' înainte · '+v+' după',v+' before · '+v+' after');});
@@ -19521,7 +19524,7 @@ var AN=(function(){
     paintT();}
   AN.sideCel=sideCel;
   /* ---------- deschidere / închidere ---------- */
-  function open(D){if(!AN.proPlus()){AN.ask('PRO+',T('Animația face parte din Trasso PRO+.','Animation is part of Trasso PRO+.'),[]);return;}
+  function open(D){if(!AN.proPlus()){AN.proInfo();return;}
     var go=function(){var U=build();AN.A=D;AN.resetUndo();AN.tool='pen';U.ov.hidden=false;U.name.textContent=D.name;U.sheet.style.setProperty('--ar',String(D.w/D.h));
       U.ops.style.display=D.kind==='cel'?'':'none';U.tools.classList.remove('anoff');
       if(D.kind==='puppet'&&AN.ppOpen)AN.ppOpen();else if(D.kind==='film'&&AN.filmOpen)AN.filmOpen();else sideCel();
@@ -19533,7 +19536,7 @@ var AN=(function(){
     AN.save().then(fin,fin);}
   AN.open=open;AN.close=close;
   /* ---------- început: De la zero / Din desenele mele / Din imagini ---------- */
-  function startDlg(){if(!AN.proPlus()){AN.ask('PRO+',T('Animația face parte din Trasso PRO+.','Animation is part of Trasso PRO+.'),[]);return;}css();
+  function startDlg(){if(!AN.proPlus()){AN.proInfo();return;}css();
     AN.dlg(T('Animație nouă','New animation'),function(b,close){
       var row=E('div','anstart');b.appendChild(row);var opts=E('div','anopts');b.appendChild(opts);
       var cards=[['zero',T('De la zero','From scratch'),T('Foaie goală, desenezi cadru cu cadru','Blank sheet, you draw frame by frame')],
@@ -20138,18 +20141,18 @@ var AN=(function(){
   AN.fxOverlay=function(x){if(placing){x.fillStyle='rgba(242,169,59,.10)';x.fillRect(0,0,AN.A.w,AN.A.h);}};
   function curT(){var D=AN.A;return D.kind==='puppet'?D.pp.t:D.cur;}
   function fpsT(){var D=AN.A;if(D.kind==='puppet')return D.fps;var n=0;D.frames.forEach(function(f){n+=f.hold||1;});return D.frames.length/Math.max(1,n/D.fps);}
-  AN.fxPlace=function(p){var D=AN.A;placing=false;var dur=Math.max(2,Math.round(fxDur*fpsT()));D.fx=(D.fx||[]).concat([{type:fxType,x:p[0],y:p[1],start:curT(),dur:dur,on:true,text:fxType==='impact'?'PAK!':undefined}]);
+  AN.fxPlace=function(p){var D=AN.A;placing=false;AN.pushSwap(function(){return (AN.A.fx||[]).map(function(q){return Object.assign({},q);});},function(v){AN.A.fx=v.map(function(q){return Object.assign({},q);});AN.dirty();fxList();AN.thumbAll&&AN.thumbAll(true);AN.render();});var dur=Math.max(2,Math.round(fxDur*fpsT()));D.fx=(D.fx||[]).concat([{type:fxType,x:p[0],y:p[1],start:curT(),dur:dur,on:true,text:fxType==='impact'?'PAK!':undefined}]);
     AN.dirty();fxList();AN.thumbAll&&AN.thumbAll(true);AN.render();AN.toast(T(FXN[fxType][0]+' pus de la cadrul '+(curT()+1)+'. Apasă ▶.',FXN[fxType][1]+' added from frame '+(curT()+1)+'. Press ▶.'));if(fxBtn)fxBtn.setAttribute('aria-pressed','false');};
   var origPD=null;
   var fxL=null,fxBtn=null;
   function fxList(){if(!fxL||!AN.A)return;var D=AN.A,L=D.fx||[];fxL.innerHTML='';if(!L.length){fxL.appendChild(E('p','annote',T('Niciun efect încă.','No effects yet.')));return;}
     L.forEach(function(e,i){var r=E('div','anfxr');var lab=E('label');var cb=E('input');cb.type='checkbox';cb.checked=e.on;lab.appendChild(cb);lab.appendChild(E('span',null,T(FXN[e.type][0],FXN[e.type][1])));
       lab.appendChild(E('small',null,T(' · cadrele ',' · frames ')+(e.start+1)+'–'+(e.start+e.dur)));r.appendChild(lab);
-      cb.addEventListener('change',function(){e.on=cb.checked;AN.dirty();AN.thumbAll&&AN.thumbAll(true);AN.render();});
+      cb.addEventListener('change',function(){AN.pushSwap(function(){return (AN.A.fx||[]).map(function(q){return Object.assign({},q);});},function(v){AN.A.fx=v.map(function(q){return Object.assign({},q);});AN.dirty();fxList();AN.thumbAll&&AN.thumbAll(true);AN.render();});e.on=cb.checked;AN.dirty();AN.thumbAll&&AN.thumbAll(true);AN.render();});
       if(e.type==='impact'){var ti=E('input','anbtn anfxt');ti.value=e.text==null?'PAK!':e.text;ti.maxLength=12;ti.setAttribute('aria-label',T('Textul impactului','Impact text'));ti.addEventListener('change',function(){e.text=ti.value.slice(0,12);AN.dirty();AN.render();});r.appendChild(ti);}
       var go=E('button','anbtn','↦');go.type='button';go.title=T('Du-te la cadrul efectului','Go to the effect’s frame');go.setAttribute('aria-label',go.title);
       go.addEventListener('click',function(){AN.stopPlay();if(D.kind==='puppet'){D.pp.t=Math.min(e.start,D.pp.n-1);AN.ppSideSync&&AN.ppSideSync();AN.strip();}else{D.cur=Math.min(e.start,D.frames.length-1);}AN.selFrame();});r.appendChild(go);
-      var x=E('button','anbtn','✕');x.type='button';x.setAttribute('aria-label',T('Șterge efectul','Delete effect'));x.addEventListener('click',function(){D.fx=D.fx.filter(function(q){return q!==e;});AN.dirty();fxList();AN.thumbAll&&AN.thumbAll(true);AN.render();});r.appendChild(x);
+      var x=E('button','anbtn','✕');x.type='button';x.setAttribute('aria-label',T('Șterge efectul','Delete effect'));x.addEventListener('click',function(){AN.pushSwap(function(){return (AN.A.fx||[]).map(function(q){return Object.assign({},q);});},function(v){AN.A.fx=v.map(function(q){return Object.assign({},q);});AN.dirty();fxList();AN.thumbAll&&AN.thumbAll(true);AN.render();});D.fx=D.fx.filter(function(q){return q!==e;});AN.dirty();fxList();AN.thumbAll&&AN.thumbAll(true);AN.render();});r.appendChild(x);
       fxL.appendChild(r);});}
   AN.fxSide=function(S){S.appendChild(E('h3',null,T('Efecte','Effects')));
     S.appendChild(E('p','annote',T('Un strat separat care se mișcă singur: nu le desenezi cadru cu cadru.','A separate layer that moves by itself: you don’t draw them frame by frame.')));
@@ -21399,6 +21402,60 @@ function trExpModes(d){
     if(b.getAttribute('data-uxt')!==t){b.setAttribute('data-uxt',t);b.setAttribute('aria-label',t);b.setAttribute('data-sktip',t);}
   }
   DR.sync.push(ensure);
+})();
+/* ---------- Animație: meniu de cadru, indicator „Salvat”, PRO+ ---------- */
+(function(){
+  var T=AN.T,E=AN.E;
+  var st=document.createElement('style');
+  st.textContent=[
+  '.anfrm{position:fixed;z-index:9700;min-width:210px;background:var(--card,#2a2b30);color:var(--ink,#eceae6);border:1px solid var(--rule,#3a3b40);border-radius:14px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:8px;display:grid;gap:6px;font:14px/1.3 system-ui,"Segoe UI",Roboto,Arial,sans-serif}',
+  '.anfrm .anfrmr{display:flex;gap:6px;flex-wrap:wrap}.anfrm button{min-height:44px;min-width:44px;border-radius:10px;border:1px solid var(--rule,#3a3b40);background:var(--paper-2,#28292d);color:inherit;font:inherit;cursor:pointer;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px}',
+  '.anfrm button[aria-pressed=true]{border-color:#F2A93B;background:rgba(242,169,59,.16)}.anfrm button.danger{color:#ff8a7a}.anfrm small{color:var(--ink-2,#a4a29c);padding:2px 4px}',
+  '.ansave{font:500 12px/1 system-ui,sans-serif;color:var(--ink-2,#a4a29c);padding:4px 8px;border-radius:99px;white-space:nowrap;transition:opacity .3s}.ansave.dirty{opacity:.75}.ansave.saved{opacity:1}'
+  ].join('');document.head.appendChild(st);
+  var menu=null;
+  function closeMenu(){if(menu){menu.remove();menu=null;document.removeEventListener('pointerdown',outside,true);}}
+  function outside(e){if(menu&&!menu.contains(e.target))closeMenu();}
+  AN.frameMenu=function(anchor){
+    var A=AN.A;if(!A||A.kind!=='cel')return;closeMenu();
+    menu=E('div','anfrm');menu.setAttribute('role','menu');menu.setAttribute('aria-label',T('Cadrul ','Frame ')+(A.cur+1));
+    menu.appendChild(E('small',null,T('Cadrul ','Frame ')+(A.cur+1)));
+    function btn(row,html,lab,fn,cls){var b=E('button',cls||null);b.type='button';b.innerHTML=html;b.setAttribute('aria-label',lab);b.title=lab;b.addEventListener('click',function(){fn();});row.appendChild(b);return b;}
+    var r1=E('div','anfrmr');menu.appendChild(r1);
+    btn(r1,T('Duplică','Duplicate'),T('Duplică cadrul','Duplicate frame'),function(){closeMenu();AN.addFrame(true);});
+    btn(r1,'+',T('Cadru gol după acesta','Empty frame after this one'),function(){closeMenu();AN.addFrame(false);});
+    btn(r1,T('Șterge','Delete'),T('Șterge cadrul','Delete frame'),function(){closeMenu();AN.delFrame();},'danger');
+    var r2=E('div','anfrmr');menu.appendChild(r2);
+    btn(r2,'⇠ '+T('Mută','Move'),T('Mută cadrul la stânga','Move frame left'),function(){AN.moveFrame(-1);reopen();});
+    btn(r2,T('Mută','Move')+' ⇢',T('Mută cadrul la dreapta','Move frame right'),function(){AN.moveFrame(1);reopen();});
+    menu.appendChild(E('small',null,T('Ține cadrul (câte cadre durează)','Hold (how many frames it lasts)')));
+    var r3=E('div','anfrmr');menu.appendChild(r3);
+    [1,2,3,4,6,8].forEach(function(h){var b=btn(r3,String(h),T('Ține ','Hold ')+h,function(){AN.setHold(h);[].forEach.call(r3.children,function(x){x.setAttribute('aria-pressed',String(x===b));});});b.setAttribute('aria-pressed',String((AN.curF().hold||1)===h));});
+    document.body.appendChild(menu);
+    var r=anchor.getBoundingClientRect(),mw=menu.offsetWidth,mh=menu.offsetHeight;
+    var x=Math.max(8,Math.min(innerWidth-mw-8,r.left+r.width/2-mw/2)),y=r.top-mh-8;if(y<8)y=Math.min(innerHeight-mh-8,r.bottom+8);
+    menu.style.left=x+'px';menu.style.top=y+'px';
+    setTimeout(function(){document.addEventListener('pointerdown',outside,true);},0);
+    function reopen(){var b=AN.UI&&AN.UI.strip.querySelectorAll('.anfr')[AN.A.cur];if(b){b.scrollIntoView({block:'nearest',inline:'nearest'});AN.frameMenu(b);}else closeMenu();}
+  };
+  AN.closeFrameMenu=closeMenu;
+  /* indicator Salvat / Se salvează */
+  var ind=null,tm=0;
+  window.__anSaveSt=function(s){
+    var U=AN.UI;if(!U||!U.hx)return;
+    if(!ind||!ind.isConnected){ind=E('span','ansave');ind.setAttribute('role','status');U.hx.parentNode.insertBefore(ind,U.hx);}
+    clearTimeout(tm);
+    if(s==='dirty'){ind.className='ansave dirty';ind.textContent=T('Se salvează…','Saving…');}
+    else{ind.className='ansave saved';ind.textContent='✓ '+T('Salvat','Saved');}
+  };
+  /* PRO+: ce include, în loc de un dialog fără butoane */
+  AN.proInfo=function(){
+    AN.ask('Trasso PRO+',T('Animația face parte din Trasso PRO+. Include:','Animation is part of Trasso PRO+. It includes:'),[
+      {t:T('Animație cadru cu cadru','Frame-by-frame animation'),s:T('Onion skin, „Ține cadrul”, schiță / linie / culoare pe fiecare cadru','Onion skin, “Hold frame”, rough / line / colour on every frame')},
+      {t:T('Animație rapidă, marionetă, Film','Quick animation, puppet, Film'),s:T('Personajul clipește și vorbește singur; scene legate între ele','Your character blinks and talks by itself; scenes linked together')},
+      {t:T('Export GIF, video și PNG','GIF, video and PNG export'),s:T('Pentru rețele sociale sau pentru alte programe','For social media or other software')},
+      {t:T('Înapoi','Back'),pri:1}]);
+  };
 })();
 /*UX2611-MOD-END*/
 })();
