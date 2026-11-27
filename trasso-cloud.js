@@ -60,6 +60,8 @@ F.onSnapshot(F.doc(db, 'config/app'), (s) => {
     referralMaxPerUser: d.referralMaxPerUser ?? 2,
     cloudMaxProjects: d.cloudMaxProjects ?? 10,
     cloudMaxMB: d.cloudMaxMB ?? 50,
+    featColor2: d.featColor2 === true,
+    featManhwa: d.featManhwa === true,
   };
   save();
 }, () => {});

@@ -526,7 +526,25 @@ dialog.ask { width: min(440px, calc(100vw - 32px)); border-radius: 14px; }
               <label class="field"><span>Mărimea maximă a unui desen</span><span class="unit"><input type="number" id="cMB" min="1" max="100" required>MB</span></label>
             </div>
           </div>
+          <div class="panel">
+            <h2>Funcții noi</h2>
+            <p class="mut small">Pornite aici, apar pentru toți la următoarea deschidere a aplicației. Apasă apoi „Salvează setările”.</p>
+            <div class="fields">
+              <div class="panel-h"><div><b>Colorare</b><p class="mut small">Paleta cu fișe de personaj și straturile la vedere (prindere, transparență, amestec).</p></div>
+                <label class="sw"><span class="sr">Colorare pornită pentru toți</span><input type="checkbox" id="fColor"><span></span></label></div>
+              <div class="panel-h"><div><b>Mod Manhwa</b><p class="mut small">Banda verticală pentru webtoon.</p></div>
+                <label class="sw"><span class="sr">Mod Manhwa pornit pentru toți</span><input type="checkbox" id="fManhwa"><span></span></label></div>
+            </div>
+          </div>
         </form>
+        <div class="panel">
+          <h2>Testează pe acest dispozitiv</h2>
+          <p class="mut small">Pornește o funcție doar aici, ca s-o încerci înainte s-o dai tuturor. Deschide consola în Chrome pe tableta pe care ai aplicația, bifează, apoi repornește aplicația.</p>
+          <div class="fields">
+            <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="bColor"> <span>Colorare</span></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="bManhwa"> <span>Mod Manhwa</span></label>
+          </div>
+        </div>
         <div class="savebar" id="saveBar" hidden>
           <p>Ai modificări nesalvate</p>
           <button class="btn ghost sm" id="btnDiscard">Renunță</button>
@@ -618,7 +636,7 @@ const FOREVER = Date.UTC(2099, 0, 1);
 const PRODUCTS = { trasso_pro_monthly: 'pro', trasso_pro_yearly: 'pro', trasso_proplus_monthly: 'proplus', trasso_proplus_yearly: 'proplus' };
 const PNAME = { trasso_pro_monthly: 'PRO lunar', trasso_pro_yearly: 'PRO anual', trasso_proplus_monthly: 'PRO+ lunar', trasso_proplus_yearly: 'PRO+ anual' };
 const DEF = { billingEnabled: false, referralEnabled: true, referralRewardDays: 30, referralMaxPerUser: 2,
-  referralMaxAccountAgeDays: 14, cloudMaxProjects: 10, cloudMaxMB: 50, products: PRODUCTS };
+  referralMaxAccountAgeDays: 14, cloudMaxProjects: 10, cloudMaxMB: 50, featColor2: false, featManhwa: false, products: PRODUCTS };
 let cfg = { ...DEF };
 
 const ms = (t) => (t && typeof t.toMillis === 'function' ? t.toMillis() : (typeof t === 'number' ? t : 0));
@@ -1116,9 +1134,9 @@ function renderMoney(m) {
 
 /* ---------- setări (config/app) ---------- */
 const CF = [['refOn', 'referralEnabled'], ['refDays', 'referralRewardDays', 0, 365], ['refMax', 'referralMaxPerUser', 0, 50],
-  ['refAge', 'referralMaxAccountAgeDays', 1, 90], ['cMax', 'cloudMaxProjects', 0, 200], ['cMB', 'cloudMaxMB', 1, 100]];
+  ['refAge', 'referralMaxAccountAgeDays', 1, 90], ['cMax', 'cloudMaxProjects', 0, 200], ['cMB', 'cloudMaxMB', 1, 100], ['fColor', 'featColor2'], ['fManhwa', 'featManhwa']];
 const formVals = () => Object.fromEntries(CF.map(([id, k, min, max]) => [k, $(id).type === 'checkbox' ? $(id).checked : Math.max(min, Math.min(max, parseInt($(id).value, 10) || 0))]));
-const cfgVals = () => Object.fromEntries(CF.map(([, k]) => [k, k === 'referralEnabled' ? cfg[k] !== false : cfg[k]]));
+const cfgVals = () => Object.fromEntries(CF.map(([, k]) => [k, k === 'referralEnabled' ? cfg[k] !== false : (k.startsWith('feat') ? cfg[k] === true : cfg[k])]));
 const isDirty = () => JSON.stringify(formVals()) !== JSON.stringify(cfgVals());
 function fillForm() {
   const v = cfgVals();
@@ -1136,6 +1154,15 @@ function show() {
   renderAll();
 }
 $('cfgForm').addEventListener('input', () => { $('saveBar').hidden = !isDirty(); });
+/* funcții noi doar pe acest dispozitiv (localStorage, același site ca aplicația) */
+(() => {
+  const get = () => { try { return (localStorage.getItem('trasso-beta') || '').split(',').filter(Boolean); } catch (e) { return []; } };
+  const set = (a) => { try { if (a.length) localStorage.setItem('trasso-beta', a.join(',')); else localStorage.removeItem('trasso-beta'); } catch (e) {} };
+  [['bColor', 'color2'], ['bManhwa', 'manhwa']].forEach(([id, n]) => {
+    const c = $(id); c.checked = get().includes(n) || get().includes('all');
+    c.onchange = () => { const a = get().filter((x) => x !== n && x !== 'all'); if (c.checked) a.push(n); set(a); toast(c.checked ? 'Pornită pe acest dispozitiv. Repornește aplicația.' : 'Oprită pe acest dispozitiv.'); };
+  });
+})();
 $('cfgForm').addEventListener('submit', (e) => e.preventDefault());
 $('btnDiscard').onclick = () => fillForm();
 async function write(extra) {

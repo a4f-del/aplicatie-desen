@@ -24,6 +24,17 @@
     window.TC.openPlans(tier === 'proplus' ? 'proplus' : 'pro');
     return true;
   };
+  /* funcții noi, ascunse până le pornești din consola admin (config/app: featColor2, featManhwa).
+     Pe un singur dispozitiv le poți porni pentru test: din consola admin („pe acest dispozitiv”) sau cu ?beta=color2,manhwa (?beta=off le oprește). */
+  window.trFeat = function (name) {
+    try { var b = localStorage.getItem('trasso-beta') || ''; if (b === 'all' || (',' + b + ',').indexOf(',' + name + ',') >= 0) return true; } catch (e) {}
+    var cfg = load().cfg || {};
+    return cfg['feat' + name.charAt(0).toUpperCase() + name.slice(1)] === true;
+  };
+  try {
+    var bm = /[?&]beta=([A-Za-z0-9,]+)/.exec(location.search);
+    if (bm) { if (bm[1] === 'off') localStorage.removeItem('trasso-beta'); else localStorage.setItem('trasso-beta', bm[1].toLowerCase()); }
+  } catch (e) {}
   /* codul de invitație din link (?inv=ABC123) se ține minte până se folosește */
   try {
     var m = /[?&]inv=([A-Za-z0-9]{6})\b/.exec(location.search);
