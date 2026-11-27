@@ -29,6 +29,7 @@ t=setTimeout(window.__tbootEnd,4000);/* plasă de siguranță: dacă ceva crapă
   Object.assign(D,{"Baloane": "Balloons", "Când ții creionul nemișcat pe ecran": "When you hold the pen still on the screen", "La începutul liniei, înainte să miști: ia culoarea (pipetă)": "At the start of a line, before you move: pick the colour (eyedropper)", "La finalul liniei: îndreaptă forma (cerc, elipsă, linie, dreptunghi, triunghi, arc)": "At the end of a line: clean up the shape (circle, ellipse, line, rectangle, triangle, arc)", "Sunt două momente diferite: pipeta pornește doar dacă nu ai mișcat deloc creionul, forma doar după ce ai desenat o linie.": "These are two different moments: the eyedropper only starts if you haven't moved the pen at all, the shape only after you've drawn a line.", "Mai multe opțiuni de strat ›": "More layer options ›", "Mai puține opțiuni de strat ‹": "Fewer layer options ‹"}); /* 2026.11.26 UX */
   Object.assign(D,{"Versiune nouă a aplicației. Repornește ca s-o folosești.": "New version of the app. Restart to use it.", "Repornește": "Restart"});
   Object.assign(D,{"Închide la culoare": "Darken", "Ardere culoare": "Color burn", "Subexpunere culoare": "Color dodge", "Lumină slabă": "Soft light", "Lumină puternică": "Hard light", "Excludere": "Exclusion", "Întunecare": "Darken", "Luminare": "Lighten", "Mod de amestecare": "Blend mode", "Ardere liniară": "Linear burn", "Scădere": "Subtract", "Culoare mai închisă": "Darker color", "Subexpunere cu strălucire": "Glow dodge", "Adaugă (strălucire)": "Add (Glow)", "Culoare mai deschisă": "Lighter color", "Lumină vie": "Vivid light", "Lumină liniară": "Linear light", "Lumină punctuală": "Pin light", "Amestec dur": "Hard mix", "Împarte": "Divide"});
+  Object.assign(D,{/*UX2611*/"Straturile sunt îmbinate. „Anulează” le desparte din nou.":"Layers merged. “Undo” splits them again.","Stratul e șters. „Anulează” îl aduce înapoi.":"Layer deleted. “Undo” brings it back.",});
   function norm(s){return s.replace(/\s+/g,' ').trim();}
   var EX=Object.create(null),FK=[];
   Object.keys(D).forEach(function(k){var n=norm(k);if(n&&!(n in EX))EX[n]=D[k];if(k.length>=4&&(/[\s.,:;!?„”“()…—–·→←]/.test(k)||k.length>=8))FK.push(k);});
@@ -5487,6 +5488,7 @@ function drUndo(){
   if(DR.float){drFloatCancel();return;}
   var u=DR.undo.pop();if(!u)return;
   DR.undoPx-=u.w*u.h*2;
+  if(u.st){drStructApply(u,true);DR.redo.push(u);drSync();drDirty();drSaveSoon();return;}
   var L=DR.layers.filter(function(q){return q.id===u.id;})[0];
   if(L){L._rev=(L._rev||0)+1;drModeDirty(L,u.x,u.y,u.x+u.w,u.y+u.h);L.ctx.clearRect(u.x,u.y,u.w,u.h);L.ctx.drawImage(u.b,u.x,u.y);DR.redo.push(u);bubOnUndo(u);drKoSoon(L);}
   drSync();drDirty();drSaveSoon();
@@ -5495,9 +5497,50 @@ function drRedo(){
   if(DR.float)return;
   var u=DR.redo.pop();if(!u)return;
   DR.undoPx+=u.w*u.h*2;
+  if(u.st){drStructApply(u,false);DR.undo.push(u);drSync();drDirty();drSaveSoon();return;}
   var L=DR.layers.filter(function(q){return q.id===u.id;})[0];
   if(L){L._rev=(L._rev||0)+1;drModeDirty(L,u.x,u.y,u.x+u.w,u.y+u.h);L.ctx.clearRect(u.x,u.y,u.w,u.h);L.ctx.drawImage(u.a,u.x,u.y);DR.undo.push(u);bubOnRedo(u);drKoSoon(L);}
   drSync();drDirty();drSaveSoon();
+}
+/* 2026.11.27 UX: pași de anulare pentru operații pe straturi (îmbină, șterge, îmbină grupul).
+   Înainte acestea goleau tot istoricul; acum se pot anula și istoricul de dinainte rămâne. */
+function drLProps(L){return {op:L.op,blend:L.blend,vis:L.vis,name:L.name,grp:L.grp,lib:L.lib};}
+function drStructSnap(){return {l:DR.layers.slice(),c:DR.cur,p:[]};}
+function drStructKeep(S,L){if(L&&!S.p.some(function(q){return q.L===L;}))S.p.push({L:L,b:drCrop(L.cv,0,0,DR.w,DR.h),pr:drLProps(L)});}
+function drStructPush(S){
+  var u={st:1,id:null,x:0,y:0,w:DR.w,h:DR.h*S.p.length,pl:S.l,pc:S.c,nl:DR.layers.slice(),nc:DR.cur,
+    pix:S.p.map(function(p){return {L:p.L,b:p.b,a:drCrop(p.L.cv,0,0,DR.w,DR.h),pb:p.pr,pa:drLProps(p.L)};})};
+  DR.undo.push(u);DR.undoPx+=u.w*u.h*2;
+  while(DR.undo.length>1&&(DR.undo.length>60||DR.undoPx>90e6)){var o=DR.undo.shift();DR.undoPx-=o.w*o.h*2;}
+  DR.redo=[];
+}
+function drStructApply(u,back){
+  DR.layers=(back?u.pl:u.nl).slice();DR.cur=Math.min(DR.layers.length-1,Math.max(0,back?u.pc:u.nc));
+  u.pix.forEach(function(p){
+    var L=p.L,c=back?p.b:p.a,pr=back?p.pb:p.pa,k;
+    L.ctx.save();L.ctx.setTransform(1,0,0,1,0,0);L.ctx.globalAlpha=1;L.ctx.globalCompositeOperation='source-over';L.ctx.clearRect(0,0,DR.w,DR.h);L.ctx.drawImage(c,0,0);L.ctx.restore();
+    for(k in pr)L[k]=pr[k];
+    L._rev=(L._rev||0)+1;drModeDirty(L,0,0,DR.w,DR.h);drKoSoon(L);
+  });
+  DR.bub=null;if(typeof tlSoon==='function')tlSoon();
+}
+function drLayerMergeDown(){
+  var i=DR.cur;if(i<1)return false;var a=DR.layers[i],b=DR.layers[i-1];
+  var S=drStructSnap();drStructKeep(S,b);
+  b.ctx.save();drBlendDraw(b.ctx,a.blend,a.op,a.cv,0,0);b.ctx.restore();
+  DR.layers.splice(i,1);DR.cur=i-1;drStructPush(S);drSync();drDirty();drSaveSoon();
+  drMsg('Straturile sunt îmbinate. „Anulează” le desparte din nou.');return true;
+}
+function drLayerDelete(){
+  if(DR.layers.length<2){drMsg('Trebuie să rămână cel puțin un strat.');return false;}
+  var S=drStructSnap();
+  DR.layers.splice(DR.cur,1);DR.cur=Math.max(0,DR.cur-1);drStructPush(S);drSync();drDirty();drSaveSoon();
+  drMsg('Stratul e șters. „Anulează” îl aduce înapoi.');return true;
+}
+function drLayerGroupMerge(g){
+  var mem=DR.layers.filter(function(q){return q.grp===g;});if(!mem.length)return false;
+  var S=drStructSnap();drStructKeep(S,mem[0]);
+  drGroupMerge(g);drStructPush(S);drSync();drDirty();drSaveSoon();return true;
 }
 /* ton (screentone) */
 function drToneTile(T,color){
@@ -6359,7 +6402,7 @@ function drThumbOf(snap){
 /* istoricul de anulare se păstrează (ultimii pași, cât încape) */
 function drHistPick(){
   var out=[],px=0,i;
-  for(i=DR.undo.length-1;i>=0&&out.length<30;i--){var u=DR.undo[i];px+=u.w*u.h*2;if(px>14e6)break;out.unshift(u);}
+  for(i=DR.undo.length-1;i>=0&&out.length<30;i--){var u=DR.undo[i];if(u.st)break;px+=u.w*u.h*2;if(px>14e6)break;out.unshift(u);}
   return out;
 }
 function drCvBlob(c){return new Promise(function(r){c.toBlob(r,'image/png');});}
@@ -7116,7 +7159,6 @@ function drBuildSide(){
     });
     lb.appendChild(b);
   }
-  function hist0(){DR.undo=[];DR.redo=[];DR.undoPx=0;}
   lbtn('+ Strat',function(){var L=drAddLayer('Strat '+DR.nid);DR.cur=DR.layers.indexOf(L);drSync();drDirty();drSaveSoon();});
   lbtn('Duplică',function(){var s0=DR.layers[DR.cur];if(!s0)return;var L=drAddLayer(s0.name+' copie');L.over=!!s0.over;L.ctx.drawImage(s0.cv,0,0);L.op=s0.op;L.blend=s0.blend;L.clip=s0.clip;L.mode=s0.mode||'color';L.thr=s0.thr==null?50:s0.thr;DR.cur=DR.layers.indexOf(L);drSync();drDirty();drSaveSoon();});
   lbtn('↑',function(){var i=DR.cur,L0=DR.layers[i];
@@ -7125,21 +7167,14 @@ function drBuildSide(){
   lbtn('↓',function(){var i=DR.cur,L0=DR.layers[i];
     if(L0&&drFrOn()&&L0.over&&i===drFrF()){L0.over=false;drSync();drDirty();drSaveSoon();drMsg('„'+L0.name+'” e acum sub cadre, în panou.');return;}
     if(i>0){var t=DR.layers[i];DR.layers[i]=DR.layers[i-1];DR.layers[i-1]=t;DR.cur=i-1;drSync();drDirty();drSaveSoon();}});
-  lbtn('Îmbină jos',function(){
-    var i=DR.cur;if(i<1)return;var a=DR.layers[i],b=DR.layers[i-1];
-    b.ctx.save();drBlendDraw(b.ctx,a.blend,a.op,a.cv,0,0);b.ctx.restore();
-    DR.layers.splice(i,1);DR.cur=i-1;hist0();drSync();drDirty();drSaveSoon();
-  },true);
+  lbtn('Îmbină jos',function(){drLayerMergeDown();},true);
   lbtn('Curăță',function(){var L=DR.layers[DR.cur];if(!L||L.lock)return;if(DR.float)drFloatCommit();drBeginSnap(L);L.ctx.clearRect(0,0,DR.w,DR.h);drPush(L,[0,0,DR.w,DR.h]);drMsg('Stratul e golit. „Anulează” îl aduce înapoi.');drSync();drDirty();drSaveSoon();},true);
-  lbtn('Șterge',function(){
-    if(DR.layers.length<2){drMsg('Trebuie să rămână cel puțin un strat.');return;}
-    DR.layers.splice(DR.cur,1);DR.cur=Math.max(0,DR.cur-1);hist0();drSync();drDirty();drSaveSoon();
-  },true);
+  lbtn('Șterge',function(){drLayerDelete();},true);
   var gr=el('div','btns');sd.appendChild(gr);
   var gs=el('select','pick-sel');gs.setAttribute('aria-label','Grupul stratului');gr.appendChild(gs);
   var gu=drBtn(gr,'Grup ↑',function(){var L=DR.layers[DR.cur];if(L&&L.grp){drGroupMove(L.grp,1);drSync();drDirty();drSaveSoon();}});
   var gd=drBtn(gr,'Grup ↓',function(){var L=DR.layers[DR.cur];if(L&&L.grp){drGroupMove(L.grp,-1);drSync();drDirty();drSaveSoon();}});
-  var gm=drBtn(gr,'Îmbină grupul',function(){var L=DR.layers[DR.cur];if(!L||!L.grp)return;if(gm.getAttribute('data-armed')!=='1'){gm.setAttribute('data-armed','1');gm.textContent='Sigur?';setTimeout(function(){gm.removeAttribute('data-armed');gm.textContent='Îmbină grupul';},3000);return;}gm.removeAttribute('data-armed');gm.textContent='Îmbină grupul';drGroupMerge(L.grp);hist0();drSync();drDirty();drSaveSoon();});
+  var gm=drBtn(gr,'Îmbină grupul',function(){var L=DR.layers[DR.cur];if(!L||!L.grp)return;if(gm.getAttribute('data-armed')!=='1'){gm.setAttribute('data-armed','1');gm.textContent='Sigur?';setTimeout(function(){gm.removeAttribute('data-armed');gm.textContent='Îmbină grupul';},3000);return;}gm.removeAttribute('data-armed');gm.textContent='Îmbină grupul';drLayerGroupMerge(L.grp);});
   gs.addEventListener('change',function(){
     var L=DR.layers[DR.cur];if(!L)return;var v=gs.value;
     if(v==='+'){var n=1;while(drGroups().indexOf('Grup '+n)>=0)n++;v='Grup '+n;}
