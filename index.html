@@ -19099,9 +19099,11 @@ var AN=(function(){
     if(A.kind==='puppet'&&AN.ppRender){AN.ppRender(x);status();return;}
     x.fillStyle='#fff';x.fillRect(0,0,A.w,A.h);x.drawImage(A.bg,0,0);
     var o=A.onion,n=A.frames.length;
-    if(o.on&&!play){for(var k=o.n;k>=1;k--){var a=o.a*(1-(k-1)/(o.n+.5)),p=A.cur-k,q=A.cur+k;
-      if(p>=0)tint(x,A.frames[p].c,'#d0553f',a);else if(A.loop&&n>2)tint(x,A.frames[(p%n+n)%n].c,'#d0553f',a*.6);
-      if(q<n)tint(x,A.frames[q].c,'#2f8f6a',a);else if(A.loop&&n>2)tint(x,A.frames[q%n].c,'#2f8f6a',a*.6);}}
+    /* 2026.11.27: onion skin pe direcții (înainte / după), până la 8 cadre pe fiecare parte, culori alese */
+    if(o.on&&!play){var nb=o.pv===false?0:Math.min(n-1,o.nb||o.n||1),na=o.nx===false?0:Math.min(n-1,o.na||o.n||1),cb=o.cb||'#d0553f',ca=o.ca||'#2f8f6a';
+      for(var k=Math.max(nb,na);k>=1;k--){var p=A.cur-k,q=A.cur+k;
+      if(k<=nb){var a=o.a*(1-(k-1)/(nb+.5));if(p>=0)tint(x,A.frames[p].c,cb,a);else if(A.loop&&n>2)tint(x,A.frames[(p%n+n)%n].c,cb,a*.6);}
+      if(k<=na){var a2=o.a*(1-(k-1)/(na+.5));if(q<n)tint(x,A.frames[q].c,ca,a2);else if(A.loop&&n>2)tint(x,A.frames[q%n].c,ca,a2*.6);}}}
     var F=curF();
     if(A.tgt==='bg')liveOn(x,A.bg);
     if(F.cl){x.drawImage(F.cl,0,0);}liveOn(x,F.cl);
@@ -19510,9 +19512,15 @@ var AN=(function(){
     var c2=E('button','anbtn',T('Din toate cadrele…','From all frames…'));c2.type='button';c2.addEventListener('click',function(){AN.ask(T('Ștergi schița din toate cadrele?','Clear the rough from every frame?'),T('Liniile și culoarea rămân. ↶ Anulează le aduce înapoi.','Lines and colour stay. ↶ Undo brings them back.'),[{t:T('Șterge schițele','Clear roughs'),danger:1,fn:function(){AN.pushSwap(function(){return A.frames.map(function(f){return [f,f.sk,f.skB];});},function(v){v.forEach(function(q){q[0].sk=q[1];q[0].skB=q[2];q[0].dirty=true;});AN.dirty();AN.render();});A.frames.forEach(function(f){if(f.sk){f.sk=null;f.skB=null;f.dirty=true;}});AN.dirty();AN.render();}},{t:T('Renunță','Cancel')}]);});cb.appendChild(c2);
     S=P.onion;h('Onion skin');
     tg(T('Arată cadrele vecine','Show neighbouring frames'),function(){return A.onion.on;},function(v){A.onion.on=v;if(AN.onionBtn)AN.onionBtn.setAttribute('aria-pressed',String(!!v));AN.render();AN.dirty();});
-    rng(T('Câte cadre','How many frames'),1,3,1,function(){return A.onion.n;},function(v){A.onion.n=v;AN.render();},function(v){return T(v+' înainte · '+v+' după',v+' before · '+v+' after');});
-    rng(T('Cât de vizibile','How visible'),10,70,1,function(){return Math.round(A.onion.a*100);},function(v){A.onion.a=v/100;AN.render();},function(v){return v+'%';});
-    S.appendChild(E('p','annote',T('Roșu = cadrele de dinainte, verde = cele de după.','Red = frames before, green = frames after.')));
+    tg(T('Cadrele de dinainte','Frames before'),function(){return A.onion.pv!==false;},function(v){A.onion.pv=v;AN.render();AN.dirty();});
+    rng(T('Câte înainte','How many before'),1,8,1,function(){return A.onion.nb||A.onion.n||1;},function(v){A.onion.nb=v;AN.render();AN.dirty();},function(v){return String(v);});
+    tg(T('Cadrele de după','Frames after'),function(){return A.onion.nx!==false;},function(v){A.onion.nx=v;AN.render();AN.dirty();});
+    rng(T('Câte după','How many after'),1,8,1,function(){return A.onion.na||A.onion.n||1;},function(v){A.onion.na=v;AN.render();AN.dirty();},function(v){return String(v);});
+    rng(T('Cât de vizibile','How visible'),10,70,1,function(){return Math.round(A.onion.a*100);},function(v){A.onion.a=v/100;AN.render();AN.dirty();},function(v){return v+'%';});
+    var occ=E('div','anrow');S.appendChild(occ);
+    [[T('Culoare înainte','Colour before'),'cb','#d0553f'],[T('Culoare după','Colour after'),'ca','#2f8f6a']].forEach(function(q){var l=E('label','anoncol');l.appendChild(E('span',null,q[0]));var ci=E('input');ci.type='color';ci.value=A.onion[q[1]]||q[2];ci.setAttribute('aria-label',q[0]);
+      ci.addEventListener('input',function(){A.onion[q[1]]=ci.value;AN.render();AN.dirty();});l.appendChild(ci);occ.appendChild(l);});
+    S.appendChild(E('p','annote',T('Implicit: roșu = cadrele de dinainte, verde = cele de după. Ține apăsat pe „Onion” (jos) pentru aceleași opțiuni rapide.','Default: red = frames before, green = frames after. Press and hold “Onion” (bottom) for the same quick options.')));
     S=P.play;h(T('Redare','Playback'));
     var pf=seg([[8,'8'],[12,'12'],[24,'24'],[30,'30'],[60,'60']],function(){return A.fps;},function(v){A.fps=v;rf();dn();AN.dirty();},T('Cadre pe secundă','Frames per second'));
     var rf=rng(T('Cadre pe secundă','Frames per second'),1,60,1,function(){return A.fps;},function(v){A.fps=v;pf();dn();AN.dirty();},function(v){return String(v);});
@@ -21589,6 +21597,45 @@ function trExpModes(d){
       else{V.x-=e.deltaX||e.deltaY;apply();}},{passive:false});
   }
   var lastA=null;setInterval(function(){if(AN.UI&&!hooked)hook();if(hooked&&AN.A!==lastA){lastA=AN.A;reset();P={};G=null;}},400);
+})();
+/* ---------- B4: ține apăsat pe „Onion” → opțiuni rapide (înainte / după, câte cadre) ---------- */
+(function(){
+  var T=AN.T,E=AN.E,pop=null,tm=0,longed=false,hooked=false;
+  var st=document.createElement('style');st.textContent='.anoncol{display:inline-flex;align-items:center;gap:8px;margin-right:12px}.anoncol input{width:44px;height:36px;border:0;background:none;padding:0}'+
+    '.anonp{position:fixed;z-index:9700;width:260px;background:var(--card,#2a2b30);color:var(--ink,#eceae6);border:1px solid var(--rule,#3a3b40);border-radius:14px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:10px;display:grid;gap:8px;font:14px/1.3 system-ui,"Segoe UI",Roboto,Arial,sans-serif}'+
+    '.anonp .r{display:flex;align-items:center;gap:6px}.anonp .r>span{flex:1}.anonp button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--rule,#3a3b40);background:var(--paper-2,#28292d);color:inherit;font:inherit;cursor:pointer}.anonp button[aria-pressed=true]{border-color:#F2A93B;background:rgba(242,169,59,.16)}.anonp b{min-width:22px;text-align:center}';
+  document.head.appendChild(st);
+  function close(){if(pop){pop.remove();pop=null;document.removeEventListener('pointerdown',out,true);}}
+  function out(e){if(pop&&!pop.contains(e.target)&&e.target!==AN.onionBtn)close();}
+  function open(){
+    var A=AN.A;if(!A)return;close();var o=A.onion;
+    pop=E('div','anonp');pop.setAttribute('role','dialog');pop.setAttribute('aria-label','Onion skin');
+    function row(lab,key,cnt,col){
+      var r=E('div','r');pop.appendChild(r);
+      var t=E('button');t.type='button';t.textContent=lab;t.style.flex='1';t.setAttribute('aria-pressed',String(o[key]!==false));t.style.borderLeft='6px solid '+(o[col]||(col==='cb'?'#d0553f':'#2f8f6a'));
+      t.addEventListener('click',function(){o[key]=o[key]===false;if(!o.on&&o[key]!==false){o.on=true;}t.setAttribute('aria-pressed',String(o[key]!==false));sync();});r.appendChild(t);
+      var m=E('button',null,'−');m.type='button';m.setAttribute('aria-label',T('Mai puține','Fewer'));var v=E('b');var p=E('button',null,'+');p.type='button';p.setAttribute('aria-label',T('Mai multe','More'));
+      function val(){return o[cnt]||o.n||1;}v.textContent=val();
+      m.addEventListener('click',function(){o[cnt]=Math.max(1,val()-1);v.textContent=val();sync();});p.addEventListener('click',function(){o[cnt]=Math.min(8,val()+1);v.textContent=val();sync();});
+      r.appendChild(m);r.appendChild(v);r.appendChild(p);
+    }
+    row(T('Înainte','Before'),'pv','nb','cb');row(T('După','After'),'nx','na','ca');
+    function sync(){if(AN.onionBtn)AN.onionBtn.setAttribute('aria-pressed',String(!!o.on));AN.render();AN.dirty();}
+    document.body.appendChild(pop);
+    var r=AN.onionBtn.getBoundingClientRect(),w=pop.offsetWidth,h=pop.offsetHeight;
+    pop.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';pop.style.top=Math.max(8,r.top-h-8)+'px';
+    setTimeout(function(){document.addEventListener('pointerdown',out,true);},0);
+  }
+  AN.onionPop=open;
+  function hook(){
+    var b=AN.onionBtn;if(!b||hooked)return;hooked=true;
+    b.title=T('Atinge: arată / ascunde cadrele vecine. Ține apăsat: opțiuni','Tap: show / hide neighbouring frames. Press and hold: options');
+    b.addEventListener('pointerdown',function(){longed=false;clearTimeout(tm);tm=setTimeout(function(){longed=true;open();},450);});
+    ['pointerup','pointerleave','pointercancel'].forEach(function(t){b.addEventListener(t,function(){clearTimeout(tm);});});
+    b.addEventListener('click',function(e){if(longed){longed=false;e.stopImmediatePropagation();e.preventDefault();}},true);
+    b.addEventListener('contextmenu',function(e){e.preventDefault();});
+  }
+  setInterval(hook,500);
 })();
 /*UX2611-MOD-END*/
 })();
