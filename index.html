@@ -21705,6 +21705,7 @@ function trEpInit(){
   if(!$('#trEpSt')){var st=document.createElement('style');st.id='trEpSt';st.textContent=
     '.trep{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:max-content;z-index:5;display:flex;gap:4px;align-items:center;padding:4px;border-radius:14px;background:var(--float,var(--paper));color:var(--ink);border:1px solid var(--rule);box-shadow:0 4px 16px rgba(0,0,0,.22);max-width:calc(100% - 20px);flex-wrap:wrap;justify-content:center}'+
     '.trep[hidden]{display:none!important}.trep button{min-height:40px;min-width:40px;padding:0 10px;border-radius:10px;border:0;background:transparent;color:inherit;font-family:inherit;font-weight:600;font-size:13px;line-height:1;cursor:pointer}'+
+    '.trep.treptop{position:static;left:auto;bottom:auto;transform:none;box-shadow:none;padding:2px;gap:2px;background:transparent;border:1px solid var(--rule)}.trep.treptop button{min-height:34px;min-width:34px;padding:0 8px;font-size:12.5px}'+
     '.trep button:disabled{opacity:.35}.trep .trepi{font-variant-numeric:tabular-nums;font-weight:500}.trep .trepsep{width:1px;align-self:stretch;background:var(--rule);margin:4px 2px}'+
 '.trrd{position:fixed;inset:0;z-index:80;background:#101318;color:#e8ebf0;display:flex;flex-direction:column}.trrd[hidden]{display:none}'+'.trrdt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:rgba(20,24,31,.96);border-bottom:1px solid #2c3441;transition:opacity .2s}'+'.trrd.trrdhide .trrdt,.trrd.trrdhide .trrdp{opacity:0;pointer-events:none}'+'.trrdn{flex:1;min-width:120px;font-size:15px}.trrdseg{display:flex;gap:2px;background:#1d232c;border-radius:10px;padding:2px}'+'.trrdb{min-height:40px;padding:0 12px;border-radius:9px;border:0;background:transparent;color:#e8ebf0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}'+'.trrdb[aria-pressed="true"]{background:#CBBBA0;color:#2B2418}'+'.trrdstage{flex:1;min-height:0;display:flex;justify-content:center;padding:12px 0}'+'.trrdfr{width:min(360px,94vw);height:100%;border:10px solid #2c3441;border-radius:34px;overflow:hidden;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.5)}'+'.trrd.trrdtab .trrdstage{padding:0}.trrd.trrdtab .trrdfr{width:min(800px,100vw);border:0;border-radius:0;box-shadow:none}'+'.trrdsc{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}.trrdsc img{display:block;width:100%;height:auto;user-select:none}'+'.trrdph{background:#fff;width:100%}.trrdsc img{background:#fff}.trrdend{padding:40px 16px 60px;text-align:center;color:#566170;background:#fff;font-size:14px}'+'.trrdm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;padding:10px 16px;border-radius:12px;background:rgba(29,35,44,.95)}.trrdm[hidden]{display:none}'+'.trrdp{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.08);transition:opacity .2s}.trrdp span{display:block;height:100%;width:0;background:#CBBBA0}'+
     '.trpv{position:fixed;inset:0;z-index:80;background:rgba(10,12,16,.72);display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;box-sizing:border-box}.trpv[hidden]{display:none}'+
@@ -21718,11 +21719,13 @@ function trEpInit(){
   var pv=B('◀','Bucata anterioară',function(){var ep=trEpOf(DR.id);if(ep)trEpGo(ep.segs[ep.segs.indexOf(DR.id)-1]);});
   var inf=B('','Redenumește episodul',trEpRename);inf.className='trepi';
   var nx=B('▶','Bucata următoare',function(){var ep=trEpOf(DR.id);if(ep)trEpGo(ep.segs[ep.segs.indexOf(DR.id)+1]);});
-  B('+ Bucată','Bucată nouă după aceasta',trEpAdd);
+  B('+','Bucată nouă după aceasta',trEpAdd).title=trL('Bucată nouă după aceasta','New part after this one');
   bar.appendChild(el('span','trepsep'));
   B('Citește','Mod de citire',trEpPreview);
   B('Export','Export webtoon',trEpExport);
-  wrap.appendChild(bar);
+  /* 2026.11.28: bara episodului stă în bara de sus (jos acoperea opțiunile uneltelor, ex. „Pe strat nou”) */
+  var top=document.querySelector('#dr .drtop'),lib=$('#drLibB');
+  if(top&&lib){bar.classList.add('treptop');top.insertBefore(bar,lib);}else wrap.appendChild(bar);
   DR.sync.push(function(){
     var on=DR.ready&&DR.kind==='strip',ep=on?trEpOf(DR.id):null;bar.hidden=!ep;
     if(!ep){TRS.forId='';TRS.prev=TRS.next=null;return;}
