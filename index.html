@@ -5245,10 +5245,14 @@ function drRetouch(st,p,r,si){
     var pc=pk.cv.getContext('2d');pc.clearRect(0,0,pk.cv.width,pk.cv.height);pc.drawImage(L.cv,x0,y0,D,D,0,0,D,D);pk.D=D;
   }else{
     if(!drFilterOK()){if(!st.noBlur){st.noBlur=1;drMsg(trL('Estomparea nu merge în acest browser. Actualizează Chrome sau folosește „Întinde”.','Blur does not work in this browser. Update Chrome or use “Smudge”.'));}return;}
-    t=drRtCv('b',D);tc=t.getContext('2d');tc.filter='blur('+Math.max(1,Math.round(r*.2))+'px)';tc.drawImage(L.cv,x0,y0,D,D,0,0,D,D);tc.filter='none';
-    tc.globalCompositeOperation='destination-in';tc.drawImage(m,0,0,D,D);
-    c.save();c.globalCompositeOperation='destination-out';c.globalAlpha=str;c.drawImage(m,x0,y0,D,D);c.restore();
-    c.save();c.globalAlpha=str;c.drawImage(t,0,0,D,D,x0,y0,D,D);c.restore();
+    /* cu margine în jur, ca estomparea să nu „vadă” gol la marginea pătratului de lucru */
+    var br=Math.max(1,Math.round(r*.2)),pd=br*2,DP=D+pd*2;
+    t=drRtCv('b',DP);tc=t.getContext('2d');tc.filter='blur('+br+'px)';tc.drawImage(L.cv,x0-pd,y0-pd,DP,DP,0,0,DP,DP);tc.filter='none';
+
+    /* 2026.11.28: varianta estompată se pune PESTE strat (fără să scot întâi ce era): în mijlocul culorii opacitatea nu mai scade
+       (înainte apăreau pete albe), iar la margini culoarea se întinde moale în afară */
+    /* tăiat cu un cerc (nu cu o mască moale): marginile foarte transparente ale măștii întunecau culoarea, amprentă după amprentă */
+    c.save();c.beginPath();c.arc(p[0],p[1],r*.9,0,7);c.clip();c.globalAlpha=Math.min(1,str*.8);c.drawImage(t,pd,pd,D,D,x0,y0,D,D);c.restore();
   }
 }
 var DRFOK=null;
