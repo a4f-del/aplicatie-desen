@@ -22635,7 +22635,9 @@ function trExpModes(d){
       pop.classList.toggle('busy',!!DR.stroke);
       var W=wrap.clientWidth,H=wrap.clientHeight,pw=pop.offsetWidth,ph=pop.offsetHeight,gap=12;
       var topMin=(document.body.classList.contains('haschstrip')?58:8)+48; /* sub etichetele de sus („Toată pagina ▾”) */
-      var cx=(bx[0]+bx[2])/2,y=bx[1]-ph-gap,below=false;
+      /* 2026.11.28: la mutare, deasupra cutiei e mânerul de rotire; meniul stă mai sus, ca „Gata” să nu fie sub mâner */
+      var gT=m.k==='float'&&!(DR.float&&DR.float.text)?58:gap;
+      var cx=(bx[0]+bx[2])/2,y=bx[1]-ph-gT,below=false;
       if(y<topMin){y=bx[3]+gap;below=true;}            /* sus nu e loc: îl pun sub element */
       if(y+ph>H-8){y=Math.max(topMin,Math.min(H-ph-8,bx[1]+gap));below=false;} /* elementul umple ecranul: îl țin înăuntru */
       var x=Math.max(8,Math.min(W-pw-8,cx-pw/2));
