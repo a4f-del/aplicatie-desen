@@ -4518,7 +4518,7 @@ function drNew(kind,opt){
   DR.kind=kind==='page'?'page':kind==='strip'?'strip':'free';DR.w=sz[0];DR.h=sz[1];DR.layers=[];DR.nid=1;DR.undo=[];DR.redo=[];
   DR.link=null;DR.spread=null;DR.pr=null;DR.sketch=null;DR.bg3d=null;DR.ppl=null;DR.id='d'+Date.now().toString(36);DR.name=(kind==='page'&&opt?'Pagină '+drFmt().n.split(' ')[0]+' ':'Desen ')+(DR.libN||1);
   drBufs();
-  var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;DR.cur=1;
+  var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;a1.sk=true;DR.cur=1;
   DR.trace={mode:kind==='page'?'page':kind==='screen'?'scene':'none',op:.4,cv:null,on:true};DR.clip=false;DR.panel=0;DR.ready=true;
   DR.v={s:1,x:0,y:0,r:0,f:false};
   if(kind==='strip')trEpOnNew();
@@ -6026,7 +6026,7 @@ function drSample(x,y){
   if(x<0||y<0||x>=DR.w||y>=DR.h)return null;
   /* 2026.11.28 bug 5: pipeta sare peste ciorne (schița) și respectă straturile prinse de stratul de jos (tăiere) */
   DR.layers.forEach(function(L,i){
-    if(!L.vis||L.draft)return;
+    if(!L.vis||drIsSketch(L))return;
     if(L.clip){
       var B=drLayerBase(i);if(!B||!B.vis)return;
       var u=drMk(1,1),uc=u.getContext('2d');uc.drawImage(L.cv,x,y,1,1,0,0,1,1);uc.globalCompositeOperation='destination-in';uc.drawImage(B.cv,x,y,1,1,0,0,1,1);
@@ -6078,10 +6078,12 @@ function drDilate(a,w,h,g){
   }
   return o;
 }
+/* 2026.11.28: stratul „Schiță” (cel pus din oficiu la desen nou) și ciornele nu contează pentru găleată și pipetă */
+function drIsSketch(L){return !!(L&&(L.draft||L.sk||L.name==='Schiță'));}
 function drFlatAlpha(){
   var c=drMk(DR.w,DR.h),x=c.getContext('2d');
   /* 2026.11.28 bug 4: straturile de ciornă (schița) nu mai blochează găleata */
-  DR.layers.forEach(function(L){if(L.vis&&!L.clip&&!L.draft)x.drawImage(L.cv,0,0);});
+  DR.layers.forEach(function(L){if(L.vis&&!L.clip&&!drIsSketch(L))x.drawImage(L.cv,0,0);});
   return x.getImageData(0,0,DR.w,DR.h).data;
 }
 function drLimMask(){
@@ -10426,7 +10428,7 @@ function dpOpen(f){
     DR.kind='free';DR.w=w;DR.h=h;DR.layers=[];DR.nid=1;DR.undo=[];DR.redo=[];
     DR.id='d'+Date.now().toString(36);DR.name=(pname+' · panoul '+(i+1)).slice(0,40);
     drBufs();
-    var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;DR.cur=1;
+    var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;a1.sk=true;DR.cur=1;
     DR.link=lk;DR.spread=null;DR.print.on=false;
     DR.trace={mode:'panel',op:.4,cv:null,on:true};DR.clip=true;DR.panel=0;DR.ready=true;
     DR.v={s:1,x:0,y:0,r:0,f:false};
@@ -12228,7 +12230,7 @@ function spNew(){
   drNew('sq');
   /* drNew a făcut o pânză liberă; o redimensionăm la pagina dublă */
   DR.w=w;DR.h=h;DR.layers=[];DR.nid=1;drBufs();
-  var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;DR.cur=1;
+  var a1=drAddLayer('Schiță',0),b1=drAddLayer('Cerneală',1);a1.op=.55;a1.sk=true;DR.cur=1;
   DR.spread={fmt:o.fmt,bl:o.bl,cw:o.cw,ch:o.ch,dpi:o.dpi,gut:6,rtl:true};
   DR.name=('Pagină dublă '+(DR.libN||1)).slice(0,40);DR.trace.mode='scene';
   drBuildTrace();drFit();drSync();drDirty();drSaveSoon();
